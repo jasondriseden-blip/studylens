@@ -2791,6 +2791,7 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
     SUPABASE_URL,
     SUPABASE_ANON_KEY
   );
+  window.supabaseClient = supabaseClient;
 
   async function testIncrementUsage() {
     const { error } = await supabaseClient.rpc('increment_usage', {
