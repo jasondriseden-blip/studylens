@@ -2101,24 +2101,32 @@ text.trim();
     }
   });
 
-  // Solve / Explain
-  snapSolveBtn.addEventListener("click", async () => {
-    // anonymous 5-use guard
-    if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+// Solve / Explain
+snapSolveBtn.addEventListener("click", async () => {
+  // ✅ Auth-aware usage gate:
+  // - If __canUseAIOnce exists, use it (logged-in → Supabase tracking, anon → localStorage limit)
+  // - Otherwise, fall back to the old anon-only limiter
+  if (window.__canUseAIOnce) {
+    const allowed = await window.__canUseAIOnce();
+    if (!allowed) {
       return;
     }
+  } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+    return;
+  }
 
-    const text = snapText.value.trim();
-    if (!text) {
-      alert("No text to solve.");
-      return;
-    }
-    snapResult.textContent = "Thinking...";
-    const ans = await runSnapSolve(text);
-    const clean = sanitizeAnswerText(ans);
-    renderAnswer(snapResult, clean);   // 👈 instead of snapResult.textContent = clean;
-    addNotebookItem("Snap", clean);
-  });
+  const text = snapText.value.trim();
+  if (!text) {
+    alert("No text to solve.");
+    return;
+  }
+  snapResult.textContent = "Thinking...";
+  const ans = await runSnapSolve(text);
+  const clean = sanitizeAnswerText(ans);
+  renderAnswer(snapResult, clean); // 👈 instead of snapResult.textContent = clean;
+  addNotebookItem("Snap", clean);
+});
+
 
   // MATH
   const mathInput = document.getElementById("mathInput");
