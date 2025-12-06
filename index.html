@@ -860,12 +860,33 @@
               placeholder="OCR text will appear here..."
             ></textarea>
 
-            <div class="btn-row">
-              <button id="snapSolveBtn" type="button">
-                <span class="material-symbols-outlined">play_arrow</span>
-                <span>Solve / Explain</span>
-              </button>
-            </div>
+            <div class="hint-row" style="margin-top: 4px;">
+  <span class="desc" style="margin: 0; font-size: 0.75rem;">
+    What do you want to do with this text?
+  </span>
+</div>
+
+<div class="hint-row" style="margin-top: 4px;">
+  <button id="snapActionSolveBtn" class="pill-button" type="button">
+    Solve / Explain here
+  </button>
+  <button id="snapActionMathBtn" class="pill-button" type="button">
+    Send to Math Solver
+  </button>
+  <button id="snapActionStudyBtn" class="pill-button" type="button">
+    Send to Study Guide
+  </button>
+  <button id="snapActionEssayBtn" class="pill-button" type="button">
+    Send to Essay Helper
+  </button>
+  <button id="snapActionCardsBtn" class="pill-button" type="button">
+    Send to Flashcards
+  </button>
+  <button id="snapActionQuizBtn" class="pill-button" type="button">
+    Send to Quiz Maker
+  </button>
+</div>
+
 
             <div class="hint-row">
               <button
@@ -1676,8 +1697,8 @@ text.trim();
   const snapOCRBtn = document.getElementById("snapOCRBtn");
   const snapClearBtn = document.getElementById("snapClearBtn");
   const snapText = document.getElementById("snapText");
-  const snapSolveBtn = document.getElementById("snapSolveBtn");
   const snapResult = document.getElementById("snapResult");
+const snapSolveBtn = document.getElementById("snapActionSolveBtn");
 
   const snapCameraBtn = document.getElementById("snapCameraBtn");
   const snapUploadBtn = document.getElementById("snapUploadBtn");
