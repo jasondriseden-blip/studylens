@@ -2764,14 +2764,14 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
     SUPABASE_ANON_KEY
   );
 
-  // --- handle magic-link / OAuth tokens in the URL hash ---
-  async function handleMagicLinkFromHash() {
-    const hash = window.location.hash || "";
-    if (!hash.includes("access_token") || !hash.includes("refresh_token")) {
-      return;
-    }
+  // --- handle OAuth tokens in URL (hash OR query) ---
+  async function handleAuthFromUrl() {
+    // Supabase / Google might put tokens in the hash (#...) or query (?...)
+    const raw = window.location.hash || window.location.search || "";
+    if (!raw) return;
 
-    const params = new URLSearchParams(hash.replace(/^#/, ""));
+    const qs = raw.replace(/^[#?]/, "");
+    const params = new URLSearchParams(qs);
     const accessToken = params.get("access_token");
     const refreshToken = params.get("refresh_token");
 
@@ -2783,14 +2783,14 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
         refresh_token: refreshToken,
       });
 
-      // Clean the URL (remove the tokens from the bar)
+      // Clean the URL (remove tokens from address bar)
       window.history.replaceState(
         {},
         document.title,
         window.location.pathname + window.location.search
       );
     } catch (err) {
-      console.error("Error setting session from magic link / OAuth:", err);
+      console.error("Error setting session from OAuth redirect:", err);
     }
   }
 
@@ -2849,8 +2849,8 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
         return;
       }
 
-      // Supabase will now redirect to Google, then back to your site.
-      // After redirect, handleMagicLinkFromHash() + updateAuthUI() will run.
+      // Supabase will redirect to Google, then back to your site.
+      // After redirect, handleAuthFromUrl() + updateAuthUI() will run.
     } catch (err) {
       console.error("OAuth error:", err);
       alert("Error starting sign-in. Please try again.");
@@ -2859,8 +2859,8 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
 
   // Wire things up once the DOM is ready
   document.addEventListener("DOMContentLoaded", async () => {
-    // 1) If we just came back from a magic link / OAuth, set the session
-    await handleMagicLinkFromHash();
+    // 1) If we just came back from Google/Supabase, set the session
+    await handleAuthFromUrl();
 
     // 2) Wire the button
     const authButton = document.getElementById("authButton");
