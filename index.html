@@ -2915,6 +2915,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
   // Simple helper to update the header status text + button label
   // Simple helper to update the header status text + button label
+// Simple helper to update the header status text + button label
 async function updateAuthUI() {
   const userPlanLabel = document.getElementById("userPlanLabel");
   const authButton = document.getElementById("authButton");
@@ -2937,7 +2938,7 @@ async function updateAuthUI() {
   const email = user.email || "";
   const namePart = email.split("@")[0] || "your account"; // e.g. "jasondriseden"
 
-  // 🔹 Same condition as your limiter: your email = "Pro"
+  // Same condition as limiter: your email = Pro
   const isPaid = email === "jasondriseden@gmail.com";
   const planLabel = isPaid ? "Pro plan" : "Free plan";
 
@@ -2963,7 +2964,15 @@ async function updateAuthUI() {
     }
 
     const currentCount = row?.count || 0;
-    usageText = ` · ${currentCount}/10 OCR this month`;
+
+    // 🔹 Different label for Pro vs Free
+    if (isPaid) {
+      // Pro: no "/10"
+      usageText = ` · ${currentCount} OCR this month`;
+    } else {
+      // Free: show count out of 10
+      usageText = ` · ${currentCount}/10 OCR this month`;
+    }
   } catch (e) {
     console.error("usage label exception", e);
   }
@@ -2972,6 +2981,7 @@ async function updateAuthUI() {
   authButton.textContent = "Sign out";
   authButton.dataset.authState = "signed-in";
 }
+
 
 
   // Handle click on the auth button (Sign in / Sign out) – GOOGLE OAUTH
