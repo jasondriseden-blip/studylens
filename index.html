@@ -1422,6 +1422,16 @@ text = text.replace(/\\boxed\{([^}]+)\}/g, "$1");
   text = text.replace(/[\\`#*_$>]/g, "");
   text = text.replace(/\r\n/g, "\n");
   text = text.replace(/\n{3,}/g, "\n\n");
+  // If we have a line that ends with "Final answer:" and nothing after it,
+  // fill it with the last number we see in the text.
+  const finalLineMatch = text.match(/Final answer:\s*$/m);
+  if (finalLineMatch) {
+    const numbers = text.match(/-?\d+(\.\d+)?/g);
+    if (numbers && numbers.length > 0) {
+      const lastNum = numbers[numbers.length - 1];
+      text = text.replace(/Final answer:\s*$/m, "Final answer: " + lastNum);
+    }
+  }
 
   return text.trim();
 }
