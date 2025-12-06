@@ -2726,9 +2726,9 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
     // Expose so we can call from existing handlers
     window.__canUseAIOnceAnon = canUseAIOnceAnon;
 
-    // 🔹 NEW: auth-aware helper that will later be our main gate
-    // - If NOT logged in -> uses the old anon limiter above
-    // - If logged in     -> calls Supabase increment_usage and always returns true
+    // 🔹 Auth-aware helper:
+    // - Not logged in  -> use anon localStorage limiter
+    // - Logged in      -> call Supabase increment_usage and allow
     async function canUseAIOnce() {
       try {
         if (!window.supabaseClient) {
@@ -2739,7 +2739,7 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
         const {
           data: { user },
           error: userError,
-        } = await supabaseClient.auth.getUser();
+        } = await window.supabaseClient.auth.getUser();
 
         if (userError || !user) {
           // Not logged in -> still use the anon localStorage limit
@@ -2747,10 +2747,13 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
         }
 
         // Logged in -> bump usage in Supabase (no limit enforced yet)
-        const { error: rpcError } = await supabaseClient.rpc("increment_usage", {
-          p_action: "check",
-          p_amount: 1,
-        });
+        const { error: rpcError } = await window.supabaseClient.rpc(
+          "increment_usage",
+          {
+            p_action: "check",
+            p_amount: 1,
+          }
+        );
 
         if (rpcError) {
           console.error("increment_usage failed", rpcError);
