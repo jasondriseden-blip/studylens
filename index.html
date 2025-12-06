@@ -2756,13 +2756,44 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
 <script>
   // TODO: replace these with your real values from Supabase → Settings → API
   const SUPABASE_URL = "https://rwjijfffirbpmkhcptrb.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3amlqZmZmaXJicG1raGNwdHJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwMzYxNDgsImV4cCI6MjA4MDYxMjE0OH0.Lfv2HGMbdyyjF_SUA-7rWWN5XpvaLX8I36-upjH8_nQ";
+  const SUPABASE_ANON_KEY =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3amlqZmZmaXJicG1raGNwdHJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwMzYxNDgsImV4cCI6MjA4MDYxMjE0OH0.Lfv2HGMbdyyjF_SUA-7rWWN5XpvaLX8I36-upjH8_nQ";
 
   // Create a single Supabase client for the page
   const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_ANON_KEY
   );
+
+  // --- NEW: handle magic-link tokens in the URL hash ---
+  async function handleMagicLinkFromHash() {
+    const hash = window.location.hash || "";
+    if (!hash.includes("access_token") || !hash.includes("refresh_token")) {
+      return;
+    }
+
+    const params = new URLSearchParams(hash.replace(/^#/, ""));
+    const accessToken = params.get("access_token");
+    const refreshToken = params.get("refresh_token");
+
+    if (!accessToken || !refreshToken) return;
+
+    try {
+      await supabaseClient.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+
+      // Clean the URL (remove the tokens from the bar)
+      window.history.replaceState(
+        {},
+        document.title,
+        window.location.pathname + window.location.search
+      );
+    } catch (err) {
+      console.error("Error setting session from magic link:", err);
+    }
+  }
 
   // Simple helper to update the header status text + button label
   async function updateAuthUI() {
@@ -2813,8 +2844,9 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
       const { error } = await supabaseClient.auth.signInWithOtp({
         email: email,
         options: {
-          emailRedirectTo: "https://passinggrade.app"
-        }
+          // must match your Supabase Auth "Site URL"
+          emailRedirectTo: "https://passinggrade.app",
+        },
       });
 
       if (error) {
@@ -2833,16 +2865,21 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
   }
 
   // Wire things up once the DOM is ready
-  document.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("DOMContentLoaded", async () => {
+    // 1) If we just came back from a magic link, set the session
+    await handleMagicLinkFromHash();
+
+    // 2) Wire the button
     const authButton = document.getElementById("authButton");
     if (authButton) {
       authButton.addEventListener("click", handleAuthButtonClick);
     }
 
-    // On page load, set the correct label / button text
+    // 3) Update header (will now see the session if it was set)
     updateAuthUI();
   });
 </script>
+
 
 
 </body>
