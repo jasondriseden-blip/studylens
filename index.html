@@ -963,6 +963,21 @@ pre .section-heading {
 .pulse-once {
   animation: pulse-highlight 0.7s ease-out;
 }
+/* Keep auth text readable on small screens */
+@media (max-width: 700px) {
+  .auth-row {
+    width: 100%;
+    justify-content: flex-end;
+    align-items: flex-end;
+  }
+
+  .user-plan-label {
+    max-width: 180px;
+    white-space: normal;      /* allow wrapping */
+    text-align: right;
+    line-height: 1.2;
+  }
+}
 
   </style>
 </head>
@@ -2809,13 +2824,16 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
       userPlanLabel.textContent = "Guest · 5 free tries";
       authButton.textContent = "Sign in";
       authButton.dataset.authState = "signed-out";
-    } else {
-      // Logged in (for now always show Free; later we'll read real plan from backend)
-      const email = data.user.email || "Account";
-      userPlanLabel.textContent = `Free plan · signed in as ${email}`;
-      authButton.textContent = "Sign out";
-      authButton.dataset.authState = "signed-in";
-    }
+      } else {
+    // Logged in – keep header short but still show "signed in as"
+    const email = data.user.email || "";
+    const namePart = email.split("@")[0] || "your account"; // e.g. "jasondriseden"
+
+    userPlanLabel.textContent = `Free plan · signed in as ${namePart}`;
+    authButton.textContent = "Sign out";
+    authButton.dataset.authState = "signed-in";
+  }
+
   }
 
   // Handle click on the auth button (Sign in / Sign out) – GOOGLE OAUTH
