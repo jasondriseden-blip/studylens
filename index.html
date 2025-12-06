@@ -1005,12 +1005,12 @@
 
     <!-- Row 2 under logo: plan + Sign in/out -->
     <div class="auth-row">
-      <span id="userPlanLabel" class="user-plan-label">
-        Guest · 5 free tries
-      </span>
-      <button id="authButton" class="auth-button" type="button">
-        Sign in
-      </button>
+      
+	  <span id="userPlanLabel">Guest · 5 free OCR scans</span>
+<button id="upgradeButton" class="upgrade-btn">Upgrade to Pro</button>
+<button id="authButton">Sign in</button>
+
+
     </div>
   </div>
 </header>
@@ -2935,11 +2935,10 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
   }
 
   // Simple helper to update the header status text + button label
-  // Simple helper to update the header status text + button label
-  // Simple helper to update the header status text + button label
   async function updateAuthUI() {
     const userPlanLabel = document.getElementById("userPlanLabel");
     const authButton = document.getElementById("authButton");
+    const upgradeButton = document.getElementById("upgradeButton");
 
     if (!userPlanLabel || !authButton) return;
 
@@ -2951,6 +2950,14 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       userPlanLabel.textContent = "Guest · 5 free OCR scans";
       authButton.textContent = "Sign in";
       authButton.dataset.authState = "signed-out";
+
+      // Guest: show the Upgrade button (so they know Pro exists)
+      if (upgradeButton) {
+        upgradeButton.style.display = "inline-flex";
+        upgradeButton.disabled = false;
+        upgradeButton.textContent = "Upgrade to Pro";
+      }
+
       return;
     }
 
@@ -3020,6 +3027,19 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     userPlanLabel.textContent = `${planLabel} · signed in as ${namePart}${usageText}`;
     authButton.textContent = "Sign out";
     authButton.dataset.authState = "signed-in";
+
+    // 🔹 Handle Upgrade button visibility for logged-in users
+    if (upgradeButton) {
+      if (isPaid) {
+        // Pro users: hide the Upgrade button (already Pro)
+        upgradeButton.style.display = "none";
+      } else {
+        // Free logged-in users: show Upgrade button
+        upgradeButton.style.display = "inline-flex";
+        upgradeButton.disabled = false;
+        upgradeButton.textContent = "Upgrade to Pro";
+      }
+    }
   }
 
   // Handle click on the auth button (Sign in / Sign out) – GOOGLE OAUTH
@@ -3081,6 +3101,17 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
 
 
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const upgradeBtn = document.getElementById("upgradeButton");
+    if (!upgradeBtn) return;
+
+    upgradeBtn.addEventListener("click", () => {
+      alert("Upgrade to Pro is coming soon. For now this is just a placeholder button.");
+    });
+  });
+</script>
 
 
 
