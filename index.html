@@ -2888,59 +2888,65 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
   }
 
   // Simple helper to update the header status text + button label
-  async function updateAuthUI() {
-    const userPlanLabel = document.getElementById("userPlanLabel");
-    const authButton = document.getElementById("authButton");
+  // Simple helper to update the header status text + button label
+async function updateAuthUI() {
+  const userPlanLabel = document.getElementById("userPlanLabel");
+  const authButton = document.getElementById("authButton");
 
-    if (!userPlanLabel || !authButton) return;
+  if (!userPlanLabel || !authButton) return;
 
-    // Check if user is logged in
-    const { data, error } = await supabaseClient.auth.getUser();
+  // Check if user is logged in
+  const { data, error } = await supabaseClient.auth.getUser();
 
-    // Not logged in
-    if (error || !data.user) {
-      userPlanLabel.textContent = "Guest · 5 free OCR scans";
-      authButton.textContent = "Sign in";
-      authButton.dataset.authState = "signed-out";
-      return;
-    }
-
-    // Logged in – show email name + OCR usage
-    const user = data.user;
-    const email = user.email || "";
-    const namePart = email.split("@")[0] || "your account"; // e.g. "jasondriseden"
-
-    let usageText = "";
-
-    try {
-      // Same month logic as your gate: YYYY-MM-01
-      const now = new Date();
-      const month = String(now.getMonth() + 1).padStart(2, "0");
-      const periodStart = `${now.getFullYear()}-${month}-01`;
-
-      // Read this month's OCR usage row
-      const { data: row, error: usageError } = await supabaseClient
-        .from("usage_counters")
-        .select("count")
-        .eq("user_id", user.id)
-        .eq("period_start", periodStart)
-        .eq("action", "ocr")
-        .maybeSingle();
-
-      if (usageError) {
-        console.error("usage label read error", usageError);
-      }
-
-      const currentCount = row?.count || 0;
-      usageText = ` · ${currentCount}/10 OCR this month`;
-    } catch (e) {
-      console.error("usage label exception", e);
-    }
-
-    userPlanLabel.textContent = `Free plan · signed in as ${namePart}${usageText}`;
-    authButton.textContent = "Sign out";
-    authButton.dataset.authState = "signed-in";
+  // Not logged in
+  if (error || !data.user) {
+    userPlanLabel.textContent = "Guest · 5 free OCR scans";
+    authButton.textContent = "Sign in";
+    authButton.dataset.authState = "signed-out";
+    return;
   }
+
+  // Logged in – show email name + OCR usage
+  const user = data.user;
+  const email = user.email || "";
+  const namePart = email.split("@")[0] || "your account"; // e.g. "jasondriseden"
+
+  // 🔹 Same condition as your limiter: your email = "Pro"
+  const isPaid = email === "jasondriseden@gmail.com";
+  const planLabel = isPaid ? "Pro plan" : "Free plan";
+
+  let usageText = "";
+
+  try {
+    // Same month logic as your gate: YYYY-MM-01
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const periodStart = `${now.getFullYear()}-${month}-01`;
+
+    // Read this month's OCR usage row
+    const { data: row, error: usageError } = await supabaseClient
+      .from("usage_counters")
+      .select("count")
+      .eq("user_id", user.id)
+      .eq("period_start", periodStart)
+      .eq("action", "ocr")
+      .maybeSingle();
+
+    if (usageError) {
+      console.error("usage label read error", usageError);
+    }
+
+    const currentCount = row?.count || 0;
+    usageText = ` · ${currentCount}/10 OCR this month`;
+  } catch (e) {
+    console.error("usage label exception", e);
+  }
+
+  userPlanLabel.textContent = `${planLabel} · signed in as ${namePart}${usageText}`;
+  authButton.textContent = "Sign out";
+  authButton.dataset.authState = "signed-in";
+}
+
 
   // Handle click on the auth button (Sign in / Sign out) – GOOGLE OAUTH
   async function handleAuthButtonClick() {
