@@ -2754,7 +2754,6 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
 
 <!-- PassingGrade auth setup (Supabase) -->
 <script>
-  // TODO: replace these with your real values from Supabase → Settings → API
   const SUPABASE_URL = "https://rwjijfffirbpmkhcptrb.supabase.co";
   const SUPABASE_ANON_KEY =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3amlqZmZmaXJicG1raGNwdHJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwMzYxNDgsImV4cCI6MjA4MDYxMjE0OH0.Lfv2HGMbdyyjF_SUA-7rWWN5XpvaLX8I36-upjH8_nQ";
@@ -2765,7 +2764,7 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
     SUPABASE_ANON_KEY
   );
 
-  // --- NEW: handle magic-link tokens in the URL hash ---
+  // --- handle magic-link / OAuth tokens in the URL hash ---
   async function handleMagicLinkFromHash() {
     const hash = window.location.hash || "";
     if (!hash.includes("access_token") || !hash.includes("refresh_token")) {
@@ -2791,7 +2790,7 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
         window.location.pathname + window.location.search
       );
     } catch (err) {
-      console.error("Error setting session from magic link:", err);
+      console.error("Error setting session from magic link / OAuth:", err);
     }
   }
 
@@ -2819,7 +2818,7 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
     }
   }
 
-  // Handle click on the auth button (Sign in / Sign out) – EMAIL ONLY
+  // Handle click on the auth button (Sign in / Sign out) – GOOGLE OAUTH
   async function handleAuthButtonClick() {
     const authButton = document.getElementById("authButton");
     if (!authButton) return;
@@ -2834,39 +2833,33 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
       return;
     }
 
-    // Signed out → Email sign-in (magic link)
-    const email = window.prompt("Enter your email to sign in to PassingGrade:");
-    if (!email) {
-      return; // user cancelled
-    }
-
+    // Signed out → Google OAuth sign-in
     try {
-      const { error } = await supabaseClient.auth.signInWithOtp({
-        email: email,
+      const { error } = await supabaseClient.auth.signInWithOAuth({
+        provider: "google",
         options: {
-          // must match your Supabase Auth "Site URL"
-          emailRedirectTo: "https://passinggrade.app",
+          // Must match your Supabase Auth "Site URL"
+          redirectTo: "https://passinggrade.app",
         },
       });
 
       if (error) {
-        console.error("Email sign-in error:", error);
-        alert("Error sending sign-in link. Please try again.");
+        console.error("Google sign-in error:", error);
+        alert("Error starting Google sign-in. Please try again.");
         return;
       }
 
-      alert(
-        "Check your email for a sign-in link. Open it, and you’ll be logged in to PassingGrade."
-      );
+      // Supabase will now redirect to Google, then back to your site.
+      // After redirect, handleMagicLinkFromHash() + updateAuthUI() will run.
     } catch (err) {
-      console.error("OTP error:", err);
+      console.error("OAuth error:", err);
       alert("Error starting sign-in. Please try again.");
     }
   }
 
   // Wire things up once the DOM is ready
   document.addEventListener("DOMContentLoaded", async () => {
-    // 1) If we just came back from a magic link, set the session
+    // 1) If we just came back from a magic link / OAuth, set the session
     await handleMagicLinkFromHash();
 
     // 2) Wire the button
