@@ -3,14 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Study AI</title>
+  <title>Passing Grade</title>
 
   <!-- Google Fonts + Material Icons -->
   <link
     rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=DM+Sans:wght@400;500;600&family=Material+Symbols+Outlined:wght@400&display=swap"
   />
-
+<link rel="icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" href="icon.png" />
   <style>
     :root {
       /* Neutral, gender-balanced indigo/sky palette */
@@ -133,35 +134,59 @@
       border: 0;
     }
 
-    .brand-logo-wrap {
-      display: inline-flex;
-      align-items: center;
-      justify-content: flex-start;
-      gap: 0;
-      padding: 0;
-    }
+/* Show correct logo per theme */
+html[data-theme="light"] .brand-logo-light { display: block; }
+html[data-theme="light"] .brand-logo-dark  { display: none; }
 
-    .brand-logo {
-      display: block;
-      height: 50px;
-      width: auto;
-    }
+html[data-theme="dark"] .brand-logo-light { display: none; }
+html[data-theme="dark"] .brand-logo-dark  { display: block; }
 
-    .brand-logo-light { display: block; }
-    .brand-logo-dark { display: none; }
+/* Header layout */
+.title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
 
-    [data-theme="dark"] .brand-logo-light { display: none; }
-    [data-theme="dark"] .brand-logo-dark { display: block; }
+/* layout for logo + controls row */
+.title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
 
-    [data-theme="dark"] .brand-logo-dark {
-      /* subtler glow */
-      filter: drop-shadow(0 0 8px rgba(79, 70, 229, 0.55));
-    }
+/* logo container */
+.brand-logo-wrap {
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+}
 
-    .subtitle {
-      font-size: 0.78rem;
-      color: var(--muted);
-    }
+/* main logo image (use your new horizontal logo here) */
+.brand-logo {
+  display: block;
+  height: 70px;   /* try 36–44 until it feels right */
+  width: auto;
+}
+
+/* tagline under the logo/header */
+.header-subline {
+  margin-top: 0.35rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: #4b5563;
+}
+
+/* Right-side controls (mode toggle, etc.) */
+.title-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
 
     .header-right {
       display: flex;
@@ -675,7 +700,12 @@
       .header-right {
         align-items: flex-end;
       }
-
+/* main logo image (use your new horizontal logo here) */
+.brand-logo {
+  display: block;
+  height: 50px;   /* try 36–44 until it feels right */
+  width: auto;
+}
       .chip.learn-mode {
         max-width: fit-content;
         width: auto;
@@ -1211,6 +1241,7 @@
 
   <div class="drawer-backdrop" id="drawerBackdrop"></div>
 
+<!-- BLOCK 1: Theme toggle, cheat/learn mode, drawer/sidebar, subject/model helpers -->
 <script>
   // ---------- THEME TOGGLE ----------
   const themeToggle = document.getElementById("themeToggle");
@@ -1313,7 +1344,10 @@
   function getModelChoice() {
     return modelSelect?.value || "smart";
   }
+</script>
 
+<!-- BLOCK 2: Notebook load/save/render, filters, add item -->
+<script>
   // ---------- NOTEBOOK ----------
   const notebookKey = "studyai-notebook";
   const notebookListEl = document.getElementById("notebookList");
@@ -1411,7 +1445,10 @@
 
   // Initial render
   renderNotebook();
+</script>
 
+<!-- BLOCK 3: Answer sanitizing, AI backend call, and all task helpers -->
+<script>
 function sanitizeAnswerText(raw) {
   if (!raw) return "";
   let text = String(raw);
@@ -1578,7 +1615,10 @@ text.trim();
         text.trim();
     return callAI({ prompt, task: "snap" });
   }
+</script>
 
+<!-- BLOCK 4: Image resize helper and OCR call to backend -->
+<script>
   // Helper: resize image before sending to backend (faster on phones)
   function resizeImageToDataUrl(file, maxWidth = 1200, quality = 0.8) {
     return new Promise((resolve, reject) => {
@@ -1651,7 +1691,10 @@ text.trim();
       return "⚠️ Error during OCR: " + err.message;
     }
   }
+</script>
 
+<!-- BLOCK 5: Tabs / sidenav navigation -->
+<script>
   // ---------- TABS (SIDENAV) ----------
   const navBtns = document.querySelectorAll(".nav-btn");
   const tabs = document.querySelectorAll(".tab-content");
@@ -1688,7 +1731,10 @@ text.trim();
 
   const savedTab = localStorage.getItem(LAST_TAB_KEY) || "snap";
   activateTab(savedTab);
+</script>
 
+<!-- BLOCK 6: UI wiring for Snap, Math, Study, Essay -->
+<script>
   // ---------- UI WIRING ----------
 
   // SNAP (now with camera + gallery inputs)
@@ -1868,7 +1914,10 @@ const snapSolveBtn = document.getElementById("snapActionSolveBtn");
     essayInput.value = "";
     essayResult.textContent = "";
   });
+</script>
 
+<!-- BLOCK 7: Flashcards generation + interactive viewer -->
+<script>
   // ---------- FLASHCARDS (interactive) ----------
   const cardsInput = document.getElementById("cardsInput");
   const cardsBtn = document.getElementById("cardsBtn");
@@ -2086,7 +2135,10 @@ const snapSolveBtn = document.getElementById("snapActionSolveBtn");
     saveFlashcards(flashcards);
     goToNextCard();
   });
+</script>
 
+<!-- BLOCK 8: Quiz tab UI wiring -->
+<script>
   // QUIZ
   const quizInput = document.getElementById("quizInput");
   const quizBtn = document.getElementById("quizBtn");
@@ -2110,7 +2162,10 @@ const snapSolveBtn = document.getElementById("snapActionSolveBtn");
     quizInput.value = "";
     quizResult.textContent = "";
   });
+</script>
 
+<!-- BLOCK 9: Simplify + Hint “pill” buttons -->
+<script>
   // SIMPLIFY + HINT BUTTONS
   document.querySelectorAll(".pill-button").forEach((btn) => {
     btn.addEventListener("click", async () => {
@@ -2143,6 +2198,50 @@ const snapSolveBtn = document.getElementById("snapActionSolveBtn");
     });
   });
 </script>
+
+
+<!-- BLOCK X: Snap hint row — send OCR text to other tools -->
+<script>
+  (function () {
+    const snapText = document.getElementById("snapText");
+
+    function wireSnapAction(buttonId, inputId, tabId) {
+      const btn = document.getElementById(buttonId);
+      const input = document.getElementById(inputId);
+      if (!btn || !input) return;
+
+      btn.addEventListener("click", () => {
+        const text = snapText.value.trim();
+        if (!text) {
+          alert("No OCR text yet. Run OCR or type something first.");
+          return;
+        }
+        input.value = text;
+
+        // Switch to the corresponding tab if activateTab exists
+        if (typeof activateTab === "function" && tabId) {
+          activateTab(tabId);
+        }
+      });
+    }
+
+    // Send to Math Solver
+    wireSnapAction("snapActionMathBtn", "mathInput", "math");
+
+    // Send to Study Guide
+    wireSnapAction("snapActionStudyBtn", "studyInput", "study");
+
+    // Send to Essay Helper
+    wireSnapAction("snapActionEssayBtn", "essayInput", "essay");
+
+    // Send to Flashcards
+    wireSnapAction("snapActionCardsBtn", "cardsInput", "cards");
+
+    // Send to Quiz Maker
+    wireSnapAction("snapActionQuizBtn", "quizInput", "quiz");
+  })();
+</script>
+
 
 </body>
 </html>
