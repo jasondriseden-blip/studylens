@@ -1,6 +1,39 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <script>
+    (function () {
+      try {
+        const savedTheme = localStorage.getItem("studyai-theme");
+        const prefersDark =
+          window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+        const theme = savedTheme || (prefersDark ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+      } catch (e) {
+        // fallback if localStorage is blocked
+        document.documentElement.setAttribute("data-theme", "dark");
+      }
+    })();
+  </script>
+  
+  <title>Passing Grade</title>
+   <!-- Tell Safari/Chrome we support both themes -->
+  <meta name="color-scheme" content="light dark" />
+
+  <!-- Browser / status bar color (will be updated by JS) -->
+  <meta name="theme-color" content="#020617" id="meta-theme-color" />
+
+  <!-- Optional iOS standalone app styling -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Passing Grade</title>
@@ -217,8 +250,8 @@ html[data-theme="dark"] .brand-logo-dark  { display: block; }
     }
 
     .chip-dot {
-      width: 7px;
-      height: 7px;
+      width: 9px;
+      height: 9px;
       border-radius: 999px;
       background: #22c55e;
       box-shadow: 0 0 6px rgba(34, 197, 94, 0.7);
@@ -802,7 +835,7 @@ html[data-theme="dark"] .brand-logo-dark  { display: block; }
           <!-- Learn / Cheat mode chip -->
           <div class="chip learn-mode" id="modeChip">
             <span class="chip-dot"></span>
-            <span class="mode-label">Learn mode ON</span>
+            <span class="mode-label">Learn ON</span>
           </div>
 
           <button class="theme-toggle" id="themeToggle" type="button">
@@ -1270,29 +1303,46 @@ html[data-theme="dark"] .brand-logo-dark  { display: block; }
 
 <!-- BLOCK 1: Theme toggle, cheat/learn mode, drawer/sidebar, subject/model helpers -->
 <script>
-  // ---------- THEME TOGGLE ----------
-  const themeToggle = document.getElementById("themeToggle");
-  const themeLabel = document.getElementById("themeLabel");
-  const iconSun = document.getElementById("iconSun");
-  const iconMoon = document.getElementById("iconMoon");
+// ---------- THEME TOGGLE ----------
+const themeToggle = document.getElementById("themeToggle");
+const themeLabel = document.getElementById("themeLabel");
+const iconSun = document.getElementById("iconSun");
+const iconMoon = document.getElementById("iconMoon");
 
-  function setTheme(theme) {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("studyai-theme", theme);
-    const dark = theme === "dark";
-    themeLabel.textContent = dark ? "Dark" : "Light";
-    iconSun.style.display = dark ? "block" : "none";
-    iconMoon.style.display = dark ? "none" : "block";
-  }
+// NEW: keep browser/status bar color in sync
+function applyThemeColor(theme) {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) return;
+  const isDark = theme === "dark";
+  // dark uses your dark surface, light uses your light header/bg
+  meta.setAttribute("content", isDark ? "#020617" : "#f9fafb");
+}
 
-  const savedTheme = localStorage.getItem("studyai-theme") || "dark";
-  setTheme(savedTheme);
+function setTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("studyai-theme", theme);
 
-  themeToggle.addEventListener("click", () => {
-    const current =
-      document.documentElement.getAttribute("data-theme") || "dark";
-    setTheme(current === "dark" ? "light" : "dark");
-  });
+  const dark = theme === "dark";
+  themeLabel.textContent = dark ? "Dark" : "Light";
+  iconSun.style.display = dark ? "block" : "none";
+  iconMoon.style.display = dark ? "none" : "block";
+
+  // NEW: sync meta tag
+  applyThemeColor(theme);
+}
+
+// use whatever the <html> tag currently has as the initial theme
+const initialTheme =
+  document.documentElement.getAttribute("data-theme") || "dark";
+setTheme(initialTheme);
+
+themeToggle.addEventListener("click", () => {
+  const current =
+    document.documentElement.getAttribute("data-theme") || "dark";
+  setTheme(current === "dark" ? "light" : "dark");
+});
+
+
 
   // ---------- CHEAT MODE TOGGLE ----------
   const modeChip = document.getElementById("modeChip");
@@ -1301,9 +1351,9 @@ html[data-theme="dark"] .brand-logo-dark  { display: block; }
 
   function updateModeChip() {
     if (window.__cheatMode) {
-      modeLabel.textContent = "Cheat mode ON";
+      modeLabel.textContent = "Cheat ON";
     } else {
-      modeLabel.textContent = "Learn mode ON";
+      modeLabel.textContent = "Learn ON";
     }
   }
 
