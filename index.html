@@ -2707,11 +2707,10 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
     }
 
     function showAnonLimitReached() {
-  alert(
-    "You’ve used PassingGrade 5 times.\n\nTap ‘Sign in’ at the top right to create a free account and get 50 questions every month."
-  );
-}
-
+      alert(
+        "You’ve used PassingGrade 5 times.\n\nTap ‘Sign in’ at the top right to create a free account and get 50 questions every month."
+      );
+    }
 
     // Call this before doing any AI action
     function canUseAIOnceAnon() {
@@ -2726,8 +2725,50 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
 
     // Expose so we can call from existing handlers
     window.__canUseAIOnceAnon = canUseAIOnceAnon;
+
+    // 🔹 NEW: auth-aware helper that will later be our main gate
+    // - If NOT logged in -> uses the old anon limiter above
+    // - If logged in     -> calls Supabase increment_usage and always returns true
+    async function canUseAIOnce() {
+      try {
+        if (!window.supabaseClient) {
+          // No Supabase client available, fall back to anon behavior
+          return window.__canUseAIOnceAnon();
+        }
+
+        const {
+          data: { user },
+          error: userError,
+        } = await supabaseClient.auth.getUser();
+
+        if (userError || !user) {
+          // Not logged in -> still use the anon localStorage limit
+          return window.__canUseAIOnceAnon();
+        }
+
+        // Logged in -> bump usage in Supabase (no limit enforced yet)
+        const { error: rpcError } = await supabaseClient.rpc("increment_usage", {
+          p_action: "check",
+          p_amount: 1,
+        });
+
+        if (rpcError) {
+          console.error("increment_usage failed", rpcError);
+        }
+
+        return true;
+      } catch (err) {
+        console.error("canUseAIOnce error", err);
+        // On any error, don't break the app – just allow usage
+        return true;
+      }
+    }
+
+    // Expose new async helper
+    window.__canUseAIOnce = canUseAIOnce;
   })();
 </script>
+
 
 
 
