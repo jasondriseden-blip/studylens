@@ -1,0 +1,2114 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Study AI</title>
+
+  <!-- Google Fonts + Material Icons -->
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=DM+Sans:wght@400;500;600&family=Material+Symbols+Outlined:wght@400&display=swap"
+  />
+
+  <style>
+    :root {
+      /* Neutral, gender-balanced indigo/sky palette */
+      --primary: #6366f1;           /* indigo */
+      --primary-variant: #0ea5e9;   /* sky */
+      --on-primary: #ffffff;
+
+      --surface-dark: #020617;      /* page background dark */
+      --surface-light: #e5e7eb;     /* page background light */
+      --surface-elevated-dark: #0b1020;
+      --surface-elevated-light: #ffffff;
+
+      --on-surface-dark: #e5e7eb;
+      --on-surface-light: #020617;
+
+      --outline-dark: rgba(148, 163, 184, 0.3);
+      --outline-light: rgba(15, 23, 42, 0.12);
+
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --transition-fast: 0.16s ease-out;
+    }
+
+    [data-theme="dark"] {
+      --surface: var(--surface-dark);
+      --card-bg: var(--surface-elevated-dark);
+      --on-surface: var(--on-surface-dark);
+      --outline: var(--outline-dark);
+      --field-bg: rgba(15, 23, 42, 0.95);
+      --chip-bg: #020617;
+      --code-bg: #ffffff; /* white outputs */
+      --code-fg: #020617;
+      --muted: #9ca3af;
+      --header-bg: radial-gradient(circle at top left, #111827, #020617);
+      --sidebar-bg: #020617;
+    }
+
+    [data-theme="light"] {
+      /* page slightly darker than white, cards + outputs white */
+      --surface: var(--surface-light);
+      --card-bg: var(--surface-elevated-light);
+      --on-surface: var(--on-surface-light);
+      --outline: var(--outline-light);
+      --field-bg: #f9fafb;
+      --chip-bg: #eef2ff;
+      --code-bg: #ffffff; /* white outputs */
+      --code-fg: #020617;
+      --muted: #6b7280;
+      --header-bg: #f9fafb;
+      --sidebar-bg: #f9fafb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "DM Sans", system-ui, -apple-system, BlinkMacSystemFont,
+        sans-serif;
+      background: var(--surface);
+      color: var(--on-surface);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 980px;
+      min-height: 100vh;
+      padding: 14px 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    header {
+      background: var(--header-bg);
+      border-radius: 20px;
+      padding: 12px 14px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .title-block h1 {
+      margin: 0;
+      font-family: "Outfit", system-ui;
+      font-size: 1.4rem;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .brand-logo-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 0;
+      padding: 0;
+    }
+
+    .brand-logo {
+      display: block;
+      height: 50px;
+      width: auto;
+    }
+
+    .brand-logo-light { display: block; }
+    .brand-logo-dark { display: none; }
+
+    [data-theme="dark"] .brand-logo-light { display: none; }
+    [data-theme="dark"] .brand-logo-dark { display: block; }
+
+    [data-theme="dark"] .brand-logo-dark {
+      /* subtler glow */
+      filter: drop-shadow(0 0 8px rgba(79, 70, 229, 0.55));
+    }
+
+    .subtitle {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .header-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
+    .header-top-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chip {
+      font-size: 0.74rem;
+      padding: 5px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: var(--chip-bg);
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .chip-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 6px rgba(34, 197, 94, 0.7);
+    }
+
+    .theme-toggle,
+    .drawer-toggle {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      padding: 7px 13px; /* slightly bigger */
+      background: rgb(238 242 255);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      cursor: pointer;
+      transition:
+        border-color var(--transition-fast),
+        color var(--transition-fast),
+        background var(--transition-fast),
+        transform 0.08s ease-out;
+    }
+
+    .theme-toggle svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .drawer-toggle .material-symbols-outlined {
+      font-size: 20px;
+    }
+
+    .theme-toggle:hover,
+    .drawer-toggle:hover {
+      border-color: var(--primary);
+      color: var(--on-surface);
+      background: rgba(99, 102, 241, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .top-bar {
+      display: flex;
+      gap: 8px;
+      margin: 2px 0 4px;
+    }
+
+    select {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: var(--card-bg);
+      color: var(--on-surface);
+      font-size: 0.8rem;
+      padding: 7px 10px;
+      outline: none;
+    }
+
+    .top-bar select {
+      flex: 1;
+    }
+
+    .main-layout {
+      display: flex;
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+      margin-top: 4px;
+    }
+
+    .content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 18px;
+      border: 1px solid var(--outline);
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+
+    .card h2 {
+      margin: 0 0 4px;
+      font-family: "Outfit", system-ui;
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .desc {
+      margin: 0 0 10px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    textarea,
+    input[type="file"] {
+      width: 100%;
+      font-family: inherit;
+      font-size: 0.9rem;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: var(--field-bg);
+      color: var(--on-surface);
+      outline: none;
+      resize: vertical;
+      min-height: 120px;
+      transition:
+        border-color var(--transition-fast),
+        box-shadow var(--transition-fast),
+        background var(--transition-fast);
+    }
+
+    input[type="file"] {
+      min-height: auto;
+      padding: 8px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    textarea:focus,
+    input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.3);
+      background: #ffffff05;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 9px;
+      margin-bottom: 4px;
+    }
+
+    button {
+      border-radius: 999px;
+      border: none;
+      padding: 9px 16px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: linear-gradient(
+        135deg,
+        var(--primary),
+        var(--primary-variant)
+      );
+      color: var(--on-primary);
+      transition:
+        transform 0.08s ease-out,
+        box-shadow 0.08s ease-out,
+        opacity 0.08s,
+        background 0.12s ease-out;
+      font-weight: 500;
+    }
+
+    button.secondary {
+      background: transparent;
+      color: var(--on-surface);
+      box-shadow: none;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+    }
+
+    button:active {
+      transform: translateY(1px) scale(0.99);
+      opacity: 0.96;
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.25);
+    }
+
+    .hint-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .hint-row button {
+      font-size: 0.76rem;
+      padding: 6px 11px;
+    }
+
+    pre {
+      margin-top: 8px;
+      background: var(--code-bg);  /* white */
+      color: var(--code-fg);
+      border-radius: 14px;
+      padding: 10px 11px;
+      font-size: 0.8rem;
+      line-height: 1.45;
+      max-height: 230px;
+      overflow: auto;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      box-shadow: 0 10px 26px rgba(15, 23, 42, 0.18);
+    }
+
+    .pill-button {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      padding: 6px 11px;
+      font-size: 0.76rem;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .pill-button.active {
+      border-color: var(--primary);
+      color: var(--on-surface);
+      background: rgba(99, 102, 241, 0.08);
+    }
+
+    .material-symbols-outlined {
+      font-family: "Material Symbols Outlined";
+      font-weight: normal;
+      font-style: normal;
+      font-size: 20px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-feature-settings: "liga";
+      -webkit-font-smoothing: antialiased;
+      font-variation-settings:
+        "FILL" 0,
+        "wght" 400,
+        "GRAD" 0,
+        "opsz" 24;
+    }
+
+    .hint-footer {
+      margin-top: 8px;
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-align: left;
+    }
+
+    .notebook-item {
+      padding: 8px;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      margin-bottom: 6px;
+      font-size: 0.8rem;
+      background: rgba(15, 23, 42, 0.3);
+    }
+
+    [data-theme="light"] .notebook-item {
+      background: #f9fafb;
+    }
+
+    .notebook-item small {
+      display: block;
+      color: var(--muted);
+      margin-bottom: 2px;
+      font-size: 0.7rem;
+    }
+
+    .notebook-item-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .notebook-meta {
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .notebook-actions {
+      display: inline-flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .notebook-actions button {
+      box-shadow: none;
+      padding: 3px 8px;
+      font-size: 0.7rem;
+    }
+
+    .flashcard {
+      margin-top: 8px;
+      padding: 14px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--outline);
+      background: var(--field-bg);
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flashcard-side {
+      font-size: 0.9rem;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      width: 100%;
+    }
+
+    .side-drawer {
+      width: 220px;
+      background: var(--sidebar-bg);
+      border-left: 1px solid rgba(148, 163, 184, 0.5);
+      border-radius: 20px 0 0 20px;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.45);
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      height: calc(100vh - 20px);
+      transform: translateX(110%);
+      transition: transform 0.18s ease-out;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .side-drawer.open {
+      transform: translateX(0);
+    }
+
+    .side-drawer-inner {
+      padding: 12px 10px 10px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .side-drawer-header {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--muted);
+      margin-bottom: 6px;
+      padding: 0 6px;
+    }
+
+    .side-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      overflow-y: auto;
+      padding-right: 4px;
+      margin-top: 2px;
+    }
+
+    .nav-btn {
+      border-radius: 999px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 12px;
+      cursor: pointer;
+      text-align: left;
+      transition:
+        background var(--transition-fast),
+        color var(--transition-fast),
+        transform 0.06s ease-out;
+    }
+
+    .nav-btn .material-symbols-outlined {
+      font-size: 20px;
+    }
+
+    .nav-btn span.label {
+      flex: 1;
+    }
+
+    .nav-btn.active {
+  background: linear-gradient(
+    135deg,
+    var(--primary),
+    var(--primary-variant)
+  );
+  color: var(--on-primary);
+  border: none;
+}
+
+
+
+    .drawer-backdrop.show {
+      display: block;
+    }
+
+    @media (min-width: 800px) {
+      .app {
+        padding-bottom: 18px;
+      }
+
+      .main-layout {
+        display: flex;
+      }
+
+      .side-drawer {
+        position: static;
+        height: auto;
+        transform: none !important;
+        box-shadow: none;
+        border-radius: 18px;
+        max-height: none;
+        width: 230px;
+      }
+
+      .side-drawer-inner {
+        height: auto;
+        max-height: calc(100vh - 120px);
+      }
+
+      .drawer-backdrop {
+        display: none !important;
+      }
+
+      .drawer-toggle {
+        display: none;
+      }
+    }
+
+    [data-theme="light"] .side-drawer {
+      background: #ffffff;
+    }
+
+    [data-theme="light"] .side-nav .nav-btn {
+      background: #ffffff;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      color: var(--on-surface);
+    }
+
+    [data-theme="light"] .side-nav .nav-btn.active,
+[data-theme="dark"] .side-nav .nav-btn.active {
+  background: linear-gradient(
+    135deg,
+    var(--primary),
+    var(--primary-variant)
+  );
+  color: var(--on-primary);
+  border: none;
+}
+
+
+    [data-theme="dark"] .side-nav .nav-btn {
+      background: #0f172a;
+      border: 1px solid rgb(55 65 81);
+      color: var(--on-surface);
+    }
+
+
+
+    @media (max-width: 700px) {
+      .header-right {
+        align-items: flex-end;
+      }
+
+      .chip.learn-mode {
+        max-width: fit-content;
+        width: auto;
+        padding: 5px 12px;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .brand-logo-wrap {
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-start;
+        height: 40px;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      .subtitle {
+        font-size: 0.7rem;
+        color: var(--muted);
+      }
+
+      [data-theme="light"] .brand-logo {
+        filter: drop-shadow(0 6px 14px rgba(148, 163, 184, 0.6));
+      }
+
+      [data-theme="dark"] .brand-logo {
+        filter:
+          brightness(1.08)
+          drop-shadow(0 0 12px rgba(59, 130, 246, 0.4));
+      }
+
+      .header-top-row .chip.learn-mode {
+        flex-shrink: 0;
+      }
+
+      .header-top-row {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 6px;
+      }
+
+      .header-top-row .chip {
+        order: -1;
+        width: 100%;
+        display: flex;
+        justify-content: flex-end;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title-block">
+        <div class="title-row">
+          <div class="brand-logo-wrap">
+            <img src="studylens-light.png" class="brand-logo brand-logo-light" alt="StudyLens">
+            <img src="studylens-dark-highvis.png" class="brand-logo brand-logo-dark" alt="StudyLens">
+          </div>
+          <h1 class="visually-hidden">StudyLens</h1>
+        </div>
+        <div class="subtitle">
+          Snap, solve, study & write. Built for students.
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="header-top-row">
+          <!-- Learn / Cheat mode chip -->
+          <div class="chip learn-mode" id="modeChip">
+            <span class="chip-dot"></span>
+            <span class="mode-label">Learn mode ON</span>
+          </div>
+
+          <button class="theme-toggle" id="themeToggle" type="button">
+            <svg id="iconSun" viewBox="0 0 24 24">
+              <path
+                fill="currentColor"
+                d="M12 4a1 1 0 0 1 1 1V6a1 1 0 1 1-2 0V5a1 1 0 0 1 1-1Zm0 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-4a1 1 0 0 1-1 1h-1a1 1 0 1 1 0-2h1a1 1 0 0 1 1 1ZM6 13a1 1 0 1 1 0-2H5a1 1 0 1 1 0 2h1Zm11.07-5.07a1 1 0 0 1-1.41 0L14.9 7.17a1 1 0 0 1 1.42-1.41l.76.76a1 1 0 0 1 0 1.41Zm-9.54 9.54a1 1 0 0 1-1.41 0l-.76-.76A1 1 0 0 1 6.24 15.3l.76.76a1 1 0 0 1 0 1.41ZM18 17.24a1 1 0 0 1 0-1.41l.76-.76a1 1 0 1 1 1.41 1.41l-.76.76a1 1 0 0 1-1.41 0ZM6.24 8.7a1 1 0 0 1-1.41-1.41l.76-.76A1 1 0 0 1 7 7.24l-.76.76Z"
+              />
+            </svg>
+            <svg id="iconMoon" viewBox="0 0 24 24" style="display: none">
+              <path
+                fill="currentColor"
+                d="M20.3 14.8A7.5 7.5 0 0 1 11.2 3.7 1 1 0 0 0 10 2.49 9.5 9.5 0 1 0 21.51 14a1 1 0 0 0-1.21-1.22Z"
+              />
+            </svg>
+            <span id="themeLabel">Dark</span>
+          </button>
+
+          <button class="drawer-toggle" id="drawerToggle" type="button">
+            <span class="material-symbols-outlined">view_sidebar</span>
+            <span>Tools</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="top-bar">
+      <select id="subjectSelect">
+        <option value="general">Subject: Auto</option>
+        <option value="math">Math</option>
+        <option value="science">Science</option>
+        <option value="english">English</option>
+        <option value="history">History</option>
+      </select>
+      <select id="modelSelect">
+        <option value="smart">Model: Smart</option>
+        <option value="openai">ChatGPT</option>
+        <option value="gemini">Gemini</option>
+      </select>
+    </div>
+
+    <div class="main-layout">
+      <div class="content">
+        <!-- SNAP & SOLVE -->
+        <section id="snap" class="tab-content active">
+          <div class="card">
+            <h2>Snap & Solve</h2>
+            <p class="desc">
+              Take a photo or screenshot of homework → text → AI explanation.
+            </p>
+
+            <label for="snapInput">Homework image</label>
+
+            <!-- Hidden file inputs: gallery + camera -->
+            <input
+              type="file"
+              id="snapInputGallery"
+              accept="image/*"
+              style="display:none;"
+            />
+            <input
+              type="file"
+              id="snapInputCamera"
+              accept="image/*"
+              capture="environment"
+              style="display:none;"
+            />
+
+            <div class="btn-row">
+              <!-- Open camera / gallery -->
+              <button id="snapCameraBtn" type="button">
+                <span class="material-symbols-outlined">photo_camera</span>
+                <span>Take Photo</span>
+              </button>
+
+              <button id="snapUploadBtn" class="secondary" type="button">
+                <span class="material-symbols-outlined">image</span>
+                <span>Upload Image</span>
+              </button>
+
+              <button id="snapOCRBtn" type="button">
+                <span class="material-symbols-outlined">scan</span>
+                <span>Run OCR</span>
+              </button>
+
+              <button class="secondary" id="snapClearBtn" type="button">
+                <span class="material-symbols-outlined">delete</span>
+                <span>Clear</span>
+              </button>
+            </div>
+
+            <!-- Preview -->
+            <img
+              id="snapPreview"
+              alt="Homework preview"
+              style="
+                margin-top: 8px;
+                max-width: 100%;
+                border-radius: 12px;
+                display: none;
+              "
+            />
+
+            <label for="snapText">Recognized text (you can edit this)</label>
+            <textarea
+              id="snapText"
+              placeholder="OCR text will appear here..."
+            ></textarea>
+
+            <div class="btn-row">
+              <button id="snapSolveBtn" type="button">
+                <span class="material-symbols-outlined">play_arrow</span>
+                <span>Solve / Explain</span>
+              </button>
+            </div>
+
+            <div class="hint-row">
+              <button
+                class="pill-button"
+                data-action="simplify"
+                data-target="snapResult"
+              >
+                <span
+                  class="material-symbols-outlined"
+                  style="font-size: 16px;"
+                >lightbulb</span>
+                Explain simpler
+              </button>
+              <button
+                class="pill-button"
+                data-action="hint"
+                data-target="snapResult"
+              >
+                <span
+                  class="material-symbols-outlined"
+                  style="font-size: 16px;"
+                >tips_and_updates</span>
+                Give me a hint
+              </button>
+            </div>
+
+            <pre id="snapResult"></pre>
+          </div>
+        </section>
+
+        <!-- MATH SOLVER -->
+        <section id="math" class="tab-content">
+          <div class="card">
+            <h2>Math Solver</h2>
+            <p class="desc">
+              Type or paste a math question → step-by-step solution.
+            </p>
+
+            <label for="mathInput">Math problem</label>
+            <textarea
+              id="mathInput"
+              placeholder="Example: Solve 3x + 7 = 22"
+            ></textarea>
+
+            <div class="btn-row">
+              <button id="mathSolveBtn" type="button">
+                <span class="material-symbols-outlined">functions</span>
+                <span>Solve</span>
+              </button>
+              <button class="secondary" id="mathClearBtn" type="button">
+                <span class="material-symbols-outlined">delete</span>
+                <span>Clear</span>
+              </button>
+            </div>
+
+            <div class="hint-row">
+              <button
+                class="pill-button"
+                data-action="simplify"
+                data-target="mathResult"
+              >
+                <span
+                  class="material-symbols-outlined"
+                  style="font-size: 16px;"
+                >lightbulb</span>
+                Explain simpler
+              </button>
+            </div>
+
+            <pre id="mathResult"></pre>
+          </div>
+        </section>
+
+        <!-- STUDY GUIDE -->
+        <section id="study" class="tab-content">
+          <div class="card">
+            <h2>Study Guide</h2>
+            <p class="desc">
+              Turn messy notes or textbook text into a clean study guide.
+            </p>
+
+            <label for="studyInput">Notes or textbook text</label>
+            <textarea
+              id="studyInput"
+              placeholder="Paste your notes or textbook text here..."
+            ></textarea>
+
+            <div class="btn-row">
+              <button id="studyGuideBtn" type="button">
+                <span class="material-symbols-outlined">view_list</span>
+                <span>Generate Study Guide</span>
+              </button>
+              <button class="secondary" id="studyClearBtn" type="button">
+                <span class="material-symbols-outlined">delete</span>
+                <span>Clear</span>
+              </button>
+            </div>
+
+            <div class="hint-row">
+              <button
+                class="pill-button"
+                data-action="simplify"
+                data-target="studyResult"
+              >
+                <span
+                  class="material-symbols-outlined"
+                  style="font-size: 16px;"
+                >lightbulb</span>
+                Explain simpler
+              </button>
+            </div>
+
+            <pre id="studyResult"></pre>
+          </div>
+        </section>
+
+        <!-- ESSAY HELPER -->
+        <section id="essay" class="tab-content">
+          <div class="card">
+            <h2>Essay Helper</h2>
+            <p class="desc">
+              Fix grammar, improve structure, or generate a draft from a prompt.
+            </p>
+
+            <label for="essayInput">Essay text or assignment prompt</label>
+            <textarea
+              id="essayInput"
+              placeholder="Paste your essay or describe what you need to write..."
+            ></textarea>
+
+            <div class="btn-row">
+              <button id="essayBtn" type="button">
+                <span class="material-symbols-outlined">edit</span>
+                <span>Improve / Generate</span>
+              </button>
+              <button class="secondary" id="essayClearBtn" type="button">
+                <span class="material-symbols-outlined">delete</span>
+                <span>Clear</span>
+              </button>
+            </div>
+
+            <div class="hint-row">
+              <button
+                class="pill-button"
+                data-action="simplify"
+                data-target="essayResult"
+              >
+                <span
+                  class="material-symbols-outlined"
+                  style="font-size: 16px;"
+                >lightbulb</span>
+                Simpler version
+              </button>
+            </div>
+
+            <pre id="essayResult"></pre>
+          </div>
+        </section>
+
+<section id="flashcards" class="tab-content">
+  <div class="card">
+    <h2>Flashcards</h2>
+    <p class="desc">
+      Paste content → get term/question → answer flashcards.
+    </p>
+
+    <label for="cardsInput">Source text for flashcards</label>
+    <textarea
+      id="cardsInput"
+      placeholder="Paste notes, vocabulary lists, or textbook text..."
+    ></textarea>
+
+    <div class="btn-row">
+      <button id="cardsBtn" type="button">
+        <span class="material-symbols-outlined">style</span>
+        <span>Create Flashcards</span>
+      </button>
+      <button class="secondary" id="cardsClearBtn" type="button">
+        <span class="material-symbols-outlined">delete</span>
+        <span>Clear</span>
+      </button>
+    </div>
+
+    <!-- Raw AI output (for debug / copy) -->
+    <pre id="cardsResult"></pre>
+
+    <!-- New interactive flashcard viewer -->
+    <div id="cardsViewer" style="display: none; margin-top: 10px;">
+      <div id="cardsStats" class="desc">
+        <!-- e.g. Card 1 of 10 • Got it: 3 • Need work: 2 -->
+      </div>
+
+      <div id="cardsCard" class="flashcard">
+        <div id="cardsFront" class="flashcard-side">
+          Front
+        </div>
+        <div id="cardsBack" class="flashcard-side" style="display: none;">
+          Back
+        </div>
+      </div>
+
+      <div class="btn-row" style="margin-top: 8px;">
+        <button id="cardsFlipBtn" type="button">
+          <span class="material-symbols-outlined">sync</span>
+          <span>Flip</span>
+        </button>
+        <button class="secondary" id="cardsGotItBtn" type="button">
+          <span class="material-symbols-outlined">check_circle</span>
+          <span>Got it</span>
+        </button>
+        <button class="secondary" id="cardsNeedWorkBtn" type="button">
+          <span class="material-symbols-outlined">priority_high</span>
+          <span>Need work</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+        <!-- QUIZ MAKER -->
+        <section id="quiz" class="tab-content">
+          <div class="card">
+            <h2>Quiz Maker</h2>
+            <p class="desc">
+              Turn notes into multiple-choice and short-answer questions.
+            </p>
+
+            <label for="quizInput">Material to quiz on</label>
+            <textarea
+              id="quizInput"
+              placeholder="Paste notes or textbook section..."
+            ></textarea>
+
+            <div class="btn-row">
+              <button id="quizBtn" type="button">
+                <span class="material-symbols-outlined">quiz</span>
+                <span>Generate Quiz</span>
+              </button>
+              <button class="secondary" id="quizClearBtn" type="button">
+                <span class="material-symbols-outlined">delete</span>
+                <span>Clear</span>
+              </button>
+            </div>
+
+            <pre id="quizResult"></pre>
+          </div>
+        </section>
+
+        <!-- NOTEBOOK -->
+
+
+        <section id="notebook" class="tab-content">
+				<div class="hint-row" id="notebookFilterRow">
+  <button class="pill-button notebook-filter active" data-filter="all">All</button>
+  <button class="pill-button notebook-filter" data-filter="Snap">Snap</button>
+  <button class="pill-button notebook-filter" data-filter="Math">Math</button>
+  <button class="pill-button notebook-filter" data-filter="Study">Study</button>
+  <button class="pill-button notebook-filter" data-filter="Essay">Essay</button>
+  <button class="pill-button notebook-filter" data-filter="Quiz">Quiz</button>
+</div>
+          <div class="card">
+            <h2>Notebook</h2>
+            <p class="desc">
+              Recent saved results from Snap, Math, Study, Essay, etc.
+            </p>
+ <div class="btn-row" style="margin-bottom: 8px;">
+      <button class="secondary" id="clearNotebookBtn" type="button">
+        <span class="material-symbols-outlined">delete_forever</span>
+        <span>Clear notebook</span>
+      </button>
+    </div>
+
+            <div id="notebookList"></div>
+          </div>
+        </section>
+
+        <div class="hint-footer" id="hintFooter">
+  AI is for learning, not cheating. Always check your work.
+</div>
+
+      </div>
+
+      <!-- RIGHT SIDE DRAWER / SIDEBAR -->
+      <aside class="side-drawer" id="sideDrawer">
+        <div class="side-drawer-inner">
+          <div class="side-drawer-header">TOOLS</div>
+          <nav class="side-nav">
+            <button class="nav-btn active" data-target="snap" type="button">
+              <span class="material-symbols-outlined">photo_camera</span>
+              <span class="label">Snap & Solve</span>
+            </button>
+            <button class="nav-btn" data-target="math" type="button">
+              <span class="material-symbols-outlined">calculate</span>
+              <span class="label">Math Solver</span>
+            </button>
+            <button class="nav-btn" data-target="study" type="button">
+              <span class="material-symbols-outlined">menu_book</span>
+              <span class="label">Study Guide</span>
+            </button>
+            <button class="nav-btn" data-target="essay" type="button">
+              <span class="material-symbols-outlined">draw</span>
+              <span class="label">Essay Helper</span>
+            </button>
+            <button class="nav-btn" data-target="flashcards" type="button">
+              <span class="material-symbols-outlined">style</span>
+              <span class="label">Flashcards</span>
+            </button>
+            <button class="nav-btn" data-target="quiz" type="button">
+              <span class="material-symbols-outlined">quiz</span>
+              <span class="label">Quiz Maker</span>
+            </button>
+            <button class="nav-btn" data-target="notebook" type="button">
+              <span class="material-symbols-outlined">book_2</span>
+              <span class="label">Notebook</span>
+            </button>
+          </nav>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+
+<script>
+  // ---------- THEME TOGGLE ----------
+  const themeToggle = document.getElementById("themeToggle");
+  const themeLabel = document.getElementById("themeLabel");
+  const iconSun = document.getElementById("iconSun");
+  const iconMoon = document.getElementById("iconMoon");
+
+  function setTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("studyai-theme", theme);
+    const dark = theme === "dark";
+    themeLabel.textContent = dark ? "Dark" : "Light";
+    iconSun.style.display = dark ? "block" : "none";
+    iconMoon.style.display = dark ? "none" : "block";
+  }
+
+  const savedTheme = localStorage.getItem("studyai-theme") || "dark";
+  setTheme(savedTheme);
+
+  themeToggle.addEventListener("click", () => {
+    const current =
+      document.documentElement.getAttribute("data-theme") || "dark";
+    setTheme(current === "dark" ? "light" : "dark");
+  });
+
+  // ---------- CHEAT MODE TOGGLE ----------
+  const modeChip = document.getElementById("modeChip");
+  const modeLabel = modeChip.querySelector(".mode-label");
+  window.__cheatMode = false;
+
+  function updateModeChip() {
+    if (window.__cheatMode) {
+      modeLabel.textContent = "Cheat mode ON";
+    } else {
+      modeLabel.textContent = "Learn mode ON";
+    }
+  }
+
+  modeChip.addEventListener("click", () => {
+    window.__cheatMode = !window.__cheatMode;
+    updateModeChip();
+  });
+
+  updateModeChip();
+
+  // ---------- DRAWER / SIDEBAR ----------
+  const drawerToggle = document.getElementById("drawerToggle");
+  const sideDrawer = document.getElementById("sideDrawer");
+  const drawerBackdrop = document.getElementById("drawerBackdrop");
+
+  function isDesktop() {
+    return window.innerWidth >= 800;
+  }
+
+  function openDrawer() {
+    if (isDesktop()) return; // always visible on desktop
+    sideDrawer.classList.add("open");
+    drawerBackdrop.classList.add("show");
+  }
+
+  function closeDrawer() {
+    if (isDesktop()) return;
+    sideDrawer.classList.remove("open");
+    drawerBackdrop.classList.remove("show");
+  }
+
+  if (drawerToggle) {
+    drawerToggle.addEventListener("click", () => {
+      if (sideDrawer.classList.contains("open")) {
+        closeDrawer();
+      } else {
+        openDrawer();
+      }
+    });
+  }
+
+  drawerBackdrop.addEventListener("click", closeDrawer);
+
+  window.addEventListener("resize", () => {
+    if (isDesktop()) {
+      sideDrawer.classList.add("open");
+      drawerBackdrop.classList.remove("show");
+    } else {
+      sideDrawer.classList.remove("open");
+    }
+  });
+
+  if (isDesktop()) {
+    sideDrawer.classList.add("open");
+  }
+
+  // ---------- SUBJECT / MODEL HELPERS ----------
+  const subjectSelect = document.getElementById("subjectSelect");
+  const modelSelect = document.getElementById("modelSelect");
+
+  function getSubject() {
+    return subjectSelect?.value || "general";
+  }
+
+  function getModelChoice() {
+    return modelSelect?.value || "smart";
+  }
+
+  // ---------- NOTEBOOK ----------
+  const notebookKey = "studyai-notebook";
+  const notebookListEl = document.getElementById("notebookList");
+  const notebookFilterButtons = document.querySelectorAll(".notebook-filter");
+  let notebookFilter = "all";
+
+  function loadNotebook() {
+    try {
+      return JSON.parse(localStorage.getItem(notebookKey) || "[]");
+    } catch {
+      return [];
+    }
+  }
+
+  function saveNotebook(items) {
+    localStorage.setItem(notebookKey, JSON.stringify(items.slice(-200))); // keep last 200
+  }
+
+  function renderNotebook() {
+    if (!notebookListEl) return;
+
+    const allItems = loadNotebook();
+    notebookListEl.innerHTML = "";
+
+    if (!allItems.length) {
+      notebookListEl.innerHTML =
+        '<p class="desc">Nothing saved yet. Solve something and it will appear here.</p>';
+      return;
+    }
+
+    const items =
+      notebookFilter === "all"
+        ? allItems
+        : allItems.filter((i) => i.type === notebookFilter);
+
+    if (!items.length) {
+      notebookListEl.innerHTML =
+        '<p class="desc">No items for this filter yet.</p>';
+      return;
+    }
+
+    items
+      .slice()
+      .reverse()
+      .forEach((item) => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "notebook-item";
+
+        const header = document.createElement("div");
+        header.className = "notebook-item-header";
+
+        const meta = document.createElement("div");
+        meta.className = "notebook-meta";
+        const timeStr = new Date(item.time).toLocaleString();
+        meta.textContent = `${item.type} • ${timeStr} • ${item.subject || "general"} • ${item.model || "smart"} • ${item.mode || "learn"}`;
+
+        header.appendChild(meta);
+        wrapper.appendChild(header);
+
+        const body = document.createElement("div");
+        body.textContent = item.text;
+        wrapper.appendChild(body);
+
+        notebookListEl.appendChild(wrapper);
+      });
+  }
+
+  // Notebook filters (All, Snap, Math, Study, Essay, Quiz...)
+  notebookFilterButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      notebookFilterButtons.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      notebookFilter = btn.dataset.filter || "all";
+      renderNotebook();
+    });
+  });
+
+  // Add an item to notebook
+  function addNotebookItem(type, text) {
+    if (!text || !text.trim()) return;
+    const items = loadNotebook();
+    items.push({
+      id: Date.now() + Math.random().toString(16).slice(2),
+      type, // "Snap", "Math", "Study", etc.
+      text: text.trim(),
+      time: Date.now(),
+      subject: getSubject(),
+      model: getModelChoice(),
+      mode: window.__cheatMode ? "cheat" : "learn",
+      pinned: false,
+    });
+    saveNotebook(items);
+    renderNotebook();
+  }
+
+  // Initial render
+  renderNotebook();
+
+function sanitizeAnswerText(raw) {
+  if (!raw) return "";
+  let text = String(raw);
+
+  text = text.replace(/^\s*#{1,6}\s+.*$/gm, "");
+  text = text.replace(/^\s*[-*_]{3,}\s*$/gm, "");
+  text = text.replace(/---/g, "");
+  text = text.replace(/```/g, "");
+
+  text = text.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "$1/$2");
+  text = text.replace(/\\sqrt\{([^}]+)\}/g, "√($1)");
+  text = text.replace(/√\(([^()]+)\)/g, "√$1");
+  text = text.replace(/\\boxed\{([^}]+)\}/g, "");
+
+  text = text.replace(/\\\(|\\\)/g, "");
+  text = text.replace(/\\\[|\\\]/g, "");
+  text = text.replace(/\$\$/g, "");
+  text = text.replace(/\$(.*?)\$/g, "$1");
+
+  text = text.replace(/\\times/g, "×");
+  text = text.replace(/\\cdot/g, "·");
+
+  text = text.replace(/^\s*-\s+(?!\d)/gm, "");
+  text = text.replace(/^\s*\*\s+(?!\d)/gm, "");
+
+  text = text.replace(/^Lets solve.*$/gmi, "");
+
+  text = text.replace(/[\\`#*_$>]/g, "");
+  text = text.replace(/\r\n/g, "\n");
+  text = text.replace(/\n{3,}/g, "\n\n");
+
+  return text.trim();
+}
+
+
+  // ---------- AI ENGINE (BACKEND HOOK POINT) ----------
+  async function callAI({ prompt, task }) {
+    const modelChoice = getModelChoice();
+    const subject = getSubject();
+    const mode = window.__cheatMode ? "cheat" : "learn";
+
+    try {
+      const res = await fetch("api/solve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt:
+            `Mode: ${mode}\n` +
+            `Subject: ${subject}\n` +
+            `Tool: ${task}\n\n` +
+            prompt,
+          task,
+          model: modelChoice,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Network error (" + res.status + ")");
+      }
+
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      return data.text || "[Empty response]";
+    } catch (err) {
+      console.error(err);
+      return "⚠️ Error talking to AI:\n" + err.message;
+    }
+  }
+
+  // ---------- TASK HELPERS ----------
+  async function runMathSolver(text) {
+    const cheat = window.__cheatMode;
+    const prompt = cheat
+      ? "Solve this math problem and give ONLY the final numeric/algebraic answer. " +
+        "If there are multiple parts, label each answer clearly (a), b), c), etc.).\n\nProblem:\n" +
+        text.trim()
+      : "You are a step-by-step math tutor for a middle/high school student.\n" +
+        "Solve the problem clearly. Show each step and the final answer.\n\n" +
+        "Problem:\n" +
+        text.trim();
+    return callAI({ prompt, task: "math" });
+  }
+
+  async function runStudyGuide(text) {
+    const prompt =
+      "Turn the following notes or textbook text into a study guide for a student.\n" +
+      "Output:\n- Bullet point main ideas\n- Key definitions\n- Short summary at the end.\n\n" +
+      text.trim();
+    return callAI({ prompt, task: "study_guide" });
+  }
+
+  async function runEssayHelper(text) {
+    const cheat = window.__cheatMode;
+    const prompt = cheat
+      ? "Write a strong, polished essay based on this text or prompt. Just give the finished essay.\n\nInput:\n" +
+        text.trim()
+      : "You are an essay helper for a middle/high school student.\n" +
+        "If the text looks like a draft, improve clarity, grammar, and structure but keep their voice.\n" +
+        "If it is a prompt, generate a well-structured answer.\n\n" +
+        "Input:\n" +
+        text.trim();
+    return callAI({ prompt, task: "essay" });
+  }
+
+  async function runFlashcards(text) {
+    const prompt =
+      "Create useful flashcards from this content for a student.\n" +
+      "Output format strictly like:\n" +
+      "Q: ...\nA: ...\n\n" +
+      "Use many short cards.\n\n" +
+      "Content:\n" +
+      text.trim();
+
+    return callAI({ prompt, task: "flashcards" });
+  }
+
+  async function runQuiz(text) {
+    const prompt =
+      "Create a short quiz (5-10 questions) for a student based on this text.\n" +
+      "Include a mix of multiple choice, short answer, and true/false.\n" +
+      "Format clearly so it's easy to read:\n1) Question\nA)\nB)\n...\n\nThen provide an Answer Key at the end.\n\nText:\n" +
+      text.trim();
+    return callAI({ prompt, task: "quiz" });
+  }
+
+  async function runSimplify(text) {
+    const prompt =
+      "Explain the following answer in much simpler language for a middle or high school student. Keep key ideas, but shorten and simplify:\n\n" +
+      text.trim();
+    return callAI({ prompt, task: "simplify" });
+  }
+
+  async function runHint(question, existingAnswer) {
+    const prompt =
+      "Give a helpful hint (not the full solution) for this problem for a student.\n" +
+      "Keep it short and focused.\n\nProblem:\n" +
+      question.trim() +
+      "\n\nExisting answer (if any):\n" +
+      (existingAnswer || "");
+    return callAI({ prompt, task: "hint" });
+  }
+
+  async function runSnapSolve(text) {
+    const cheat = window.__cheatMode;
+    const prompt = cheat
+      ? "A student scanned this homework text. Give the direct final answers as clearly as possible. " +
+        "If there are multiple questions, number each answer so it matches. Minimal explanation.\n\n" +
+        text.trim()
+      : "A student scanned this homework text. Solve or explain it step-by-step in a clear way.\n\n" +
+        text.trim();
+    return callAI({ prompt, task: "snap" });
+  }
+
+  // Helper: resize image before sending to backend (faster on phones)
+  function resizeImageToDataUrl(file, maxWidth = 1200, quality = 0.8) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, maxWidth / img.width);
+          const w = img.width * scale;
+          const h = img.height * scale;
+
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, w, h);
+
+          try {
+            const dataUrl = canvas.toDataURL("image/jpeg", quality);
+            resolve(dataUrl);
+          } catch (err) {
+            reject(err);
+          }
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ---------- REAL OCR VIA AI BACKEND ----------
+  async function runFakeOCR(file) {
+    // Resize the image first to keep things fast on phones
+    const imageData = await resizeImageToDataUrl(file, 1200, 0.8);
+
+    const subject = getSubject();
+    const modelChoice = getModelChoice();
+    const mode = window.__cheatMode ? "cheat" : "learn";
+
+    const body = {
+      prompt:
+        `Mode: ${mode}\n` +
+        `Subject: ${subject}\n` +
+        `Tool: ocr\n\n` +
+        "Extract the text from this homework image and return plain text only.",
+      task: "ocr",
+      model: modelChoice,
+      imageData: imageData,
+    };
+
+    try {
+      const res = await fetch("api/ocr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        throw new Error("Network error (" + res.status + ")");
+      }
+
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      return data.text || "";
+    } catch (err) {
+      console.error("OCR error:", err);
+      return "⚠️ Error during OCR: " + err.message;
+    }
+  }
+
+  // ---------- TABS (SIDENAV) ----------
+  const navBtns = document.querySelectorAll(".nav-btn");
+  const tabs = document.querySelectorAll(".tab-content");
+  const LAST_TAB_KEY = "studyai-last-tab";
+
+  function activateTab(targetId) {
+    let found = false;
+
+    navBtns.forEach((b) => {
+      const isTarget = b.dataset.target === targetId;
+      if (isTarget) found = true;
+      b.classList.toggle("active", isTarget);
+    });
+
+    tabs.forEach((t) => {
+      t.classList.toggle("active", t.id === targetId);
+    });
+
+    if (!found && targetId !== "snap") {
+      activateTab("snap");
+    }
+  }
+
+  navBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const target = btn.dataset.target;
+      localStorage.setItem(LAST_TAB_KEY, target);
+      activateTab(target);
+      if (!isDesktop()) {
+        closeDrawer();
+      }
+    });
+  });
+
+  const savedTab = localStorage.getItem(LAST_TAB_KEY) || "snap";
+  activateTab(savedTab);
+
+  // ---------- UI WIRING ----------
+
+  // SNAP (now with camera + gallery inputs)
+  const snapInputGallery = document.getElementById("snapInputGallery");
+  const snapInputCamera = document.getElementById("snapInputCamera");
+  const snapOCRBtn = document.getElementById("snapOCRBtn");
+  const snapClearBtn = document.getElementById("snapClearBtn");
+  const snapText = document.getElementById("snapText");
+  const snapSolveBtn = document.getElementById("snapSolveBtn");
+  const snapResult = document.getElementById("snapResult");
+
+  const snapCameraBtn = document.getElementById("snapCameraBtn");
+  const snapUploadBtn = document.getElementById("snapUploadBtn");
+  const snapPreview = document.getElementById("snapPreview");
+
+  // keep track of whichever file was chosen last
+  let lastSnapFile = null;
+
+  function handleSnapFile(file) {
+    if (!file) {
+      lastSnapFile = null;
+      if (snapPreview) {
+        snapPreview.src = "";
+        snapPreview.style.display = "none";
+      }
+      return;
+    }
+
+    lastSnapFile = file;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (snapPreview) {
+        snapPreview.src = e.target.result;
+        snapPreview.style.display = "block";
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // Open CAMERA
+  if (snapCameraBtn && snapInputCamera) {
+    snapCameraBtn.addEventListener("click", () => {
+      snapInputCamera.click();
+    });
+  }
+
+  // Open GALLERY / FILE PICKER
+  if (snapUploadBtn && snapInputGallery) {
+    snapUploadBtn.addEventListener("click", () => {
+      snapInputGallery.click();
+    });
+  }
+
+  // When user picks from camera
+  if (snapInputCamera) {
+    snapInputCamera.addEventListener("change", () => {
+      const file = snapInputCamera.files[0];
+      handleSnapFile(file);
+    });
+  }
+
+  // When user picks from gallery
+  if (snapInputGallery) {
+    snapInputGallery.addEventListener("change", () => {
+      const file = snapInputGallery.files[0];
+      handleSnapFile(file);
+    });
+  }
+
+  // Run OCR on whichever file we last picked
+  snapOCRBtn.addEventListener("click", async () => {
+    if (!lastSnapFile) {
+      alert("Choose or take an image first.");
+      return;
+    }
+    snapText.value = "Reading image...";
+    const text = await runFakeOCR(lastSnapFile);
+    snapText.value = text;
+  });
+
+  // Clear everything
+  snapClearBtn.addEventListener("click", () => {
+    if (snapInputCamera) snapInputCamera.value = "";
+    if (snapInputGallery) snapInputGallery.value = "";
+    lastSnapFile = null;
+    snapText.value = "";
+    snapResult.textContent = "";
+    if (snapPreview) {
+      snapPreview.src = "";
+      snapPreview.style.display = "none";
+    }
+  });
+
+  // Solve / Explain
+  snapSolveBtn.addEventListener("click", async () => {
+    const text = snapText.value.trim();
+    if (!text) {
+      alert("No text to solve.");
+      return;
+    }
+    snapResult.textContent = "Thinking...";
+    const ans = await runSnapSolve(text);
+    const clean = sanitizeAnswerText(ans);
+    snapResult.textContent = clean;
+    addNotebookItem("Snap", clean);
+  });
+
+  // MATH
+  const mathInput = document.getElementById("mathInput");
+  const mathSolveBtn = document.getElementById("mathSolveBtn");
+  const mathClearBtn = document.getElementById("mathClearBtn");
+  const mathResult = document.getElementById("mathResult");
+
+  mathSolveBtn.addEventListener("click", async () => {
+    const text = mathInput.value.trim();
+    if (!text) {
+      alert("Type a math problem first.");
+      return;
+    }
+    mathResult.textContent = "Thinking...";
+    const ans = await runMathSolver(text);
+    const clean = sanitizeAnswerText(ans);
+    mathResult.textContent = clean;
+    addNotebookItem("Math", clean);
+  });
+
+  mathClearBtn.addEventListener("click", () => {
+    mathInput.value = "";
+    mathResult.textContent = "";
+  });
+
+  // STUDY
+  const studyInput = document.getElementById("studyInput");
+  const studyGuideBtn = document.getElementById("studyGuideBtn");
+  const studyClearBtn = document.getElementById("studyClearBtn");
+  const studyResult = document.getElementById("studyResult");
+
+  studyGuideBtn.addEventListener("click", async () => {
+    const text = studyInput.value.trim();
+    if (!text) {
+      alert("Paste some notes or text first.");
+      return;
+    }
+    studyResult.textContent = "Thinking...";
+    const ans = await runStudyGuide(text);
+    const clean = sanitizeAnswerText(ans);
+    studyResult.textContent = clean;
+    addNotebookItem("Study", clean);
+  });
+
+  studyClearBtn.addEventListener("click", () => {
+    studyInput.value = "";
+    studyResult.textContent = "";
+  });
+
+  // ESSAY
+  const essayInput = document.getElementById("essayInput");
+  const essayBtn = document.getElementById("essayBtn");
+  const essayClearBtn = document.getElementById("essayClearBtn");
+  const essayResult = document.getElementById("essayResult");
+
+  essayBtn.addEventListener("click", async () => {
+    const text = essayInput.value.trim();
+    if (!text) {
+      alert("Paste your essay or prompt first.");
+      return;
+    }
+    essayResult.textContent = "Thinking...";
+    const ans = await runEssayHelper(text);
+    const clean = sanitizeAnswerText(ans);
+    essayResult.textContent = clean;
+    addNotebookItem("Essay", clean);
+  });
+
+  essayClearBtn.addEventListener("click", () => {
+    essayInput.value = "";
+    essayResult.textContent = "";
+  });
+
+  // ---------- FLASHCARDS (interactive) ----------
+  const cardsInput = document.getElementById("cardsInput");
+  const cardsBtn = document.getElementById("cardsBtn");
+  const cardsClearBtn = document.getElementById("cardsClearBtn");
+  const cardsResult = document.getElementById("cardsResult");
+
+  const cardsViewer = document.getElementById("cardsViewer");
+  const cardsStats = document.getElementById("cardsStats");
+  const cardsFront = document.getElementById("cardsFront");
+  const cardsBack = document.getElementById("cardsBack");
+  const cardsFlipBtn = document.getElementById("cardsFlipBtn");
+  const cardsGotItBtn = document.getElementById("cardsGotItBtn");
+  const cardsNeedWorkBtn = document.getElementById("cardsNeedWorkBtn");
+
+  const cardsStorageKey = "studyai-flashcards";
+
+  let flashcards = [];
+  let currentCardIndex = 0;
+  let showingBack = false;
+
+  function loadFlashcardsStorage() {
+    try {
+      return JSON.parse(localStorage.getItem(cardsStorageKey) || "[]" );
+    } catch {
+      return [];
+    }
+  }
+
+  function saveFlashcards(cards) {
+    localStorage.setItem(cardsStorageKey, JSON.stringify(cards));
+  }
+
+  function parseFlashcardsFromText(raw) {
+    const text = typeof raw === "string" ? raw : String(raw ?? "");
+    const lines = text.split(/\r?\n/);
+    const temp = [];
+    let current = null;
+
+    for (let line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+
+      const qMatch = trimmed.match(/^Q[\s.:,-]*?(.*)$/i);
+      const aMatch = trimmed.match(/^A[\s.:,-]*?(.*)$/i);
+
+      if (qMatch) {
+        if (current && current.front && current.back) {
+          temp.push(current);
+        }
+        current = {
+          front: qMatch[1].trim(),
+          back: "",
+        };
+      } else if (aMatch && current) {
+        const piece = aMatch[1].trim();
+        current.back = current.back ? current.back + "\n" + piece : piece;
+      } else if (current) {
+        if (!current.back) {
+          current.front += "\n" + trimmed;
+        } else {
+          current.back += "\n" + trimmed;
+        }
+      }
+    }
+
+    if (current && current.front && current.back) {
+      temp.push(current);
+    }
+
+    const now = Date.now();
+    return temp.map((c, i) => ({
+      id: now + "-" + i,
+      front: c.front,
+      back: c.back,
+      status: "new",
+      seen: 0,
+      correct: 0,
+      lastSeen: now,
+    }));
+  }
+
+  function updateCardsStats() {
+    if (!flashcards.length) {
+      cardsStats.textContent = "No cards yet. Create some above.";
+      return;
+    }
+    const total = flashcards.length;
+    const got = flashcards.filter((c) => c.status === "got").length;
+    const need = flashcards.filter((c) => c.status === "need_work").length;
+    const indexLabel = currentCardIndex + 1;
+
+    cardsStats.textContent =
+      `Card ${indexLabel} of ${total}` +
+      ` • Got it: ${got}` +
+      ` • Need work: ${need}`;
+  }
+
+  function renderCurrentCard() {
+    if (!cardsViewer) return;
+
+    if (!flashcards.length) {
+      cardsViewer.style.display = "none";
+      return;
+    }
+
+    if (currentCardIndex < 0 || currentCardIndex >= flashcards.length) {
+      currentCardIndex = 0;
+    }
+
+    const card = flashcards[currentCardIndex];
+    cardsViewer.style.display = "block";
+    showingBack = false;
+
+    cardsFront.style.display = "block";
+    cardsBack.style.display = "none";
+
+    cardsFront.textContent = card.front || "[No question]";
+    cardsBack.textContent = card.back || "[No answer]";
+
+    updateCardsStats();
+  }
+
+  // Restore from storage
+  (function initFlashcardsFromStorage() {
+    const stored = loadFlashcardsStorage();
+    if (stored && stored.length) {
+      flashcards = stored;
+      currentCardIndex = 0;
+      renderCurrentCard();
+    }
+  })();
+
+  cardsBtn.addEventListener("click", async () => {
+    const text = cardsInput.value.trim();
+    if (!text) {
+      alert("Paste content first.");
+      return;
+    }
+
+    cardsResult.textContent = "Thinking...";
+
+    try {
+      if (typeof runFlashcards !== "function") {
+        throw new Error(
+          "runFlashcards() is not defined. Check your TASK HELPERS section."
+        );
+      }
+
+      const ans = await runFlashcards(text);
+      const answerText = typeof ans === "string" ? ans : String(ans ?? "");
+
+      // show raw so you can copy/debug if needed
+      cardsResult.textContent = answerText;
+
+      const parsed = parseFlashcardsFromText(answerText);
+      if (!parsed.length) {
+        cardsViewer.style.display = "none";
+        alert("I couldn't detect any Q/A pairs in the AI output.");
+        addNotebookItem("Cards", answerText);
+        return;
+      }
+
+      flashcards = parsed;
+      currentCardIndex = 0;
+      saveFlashcards(flashcards);
+      renderCurrentCard();
+
+      addNotebookItem("Cards", answerText);
+    } catch (err) {
+      console.error("Flashcards error:", err);
+      cardsResult.textContent = "⚠️ Flashcards error: " + err.message;
+    }
+  });
+
+  cardsClearBtn.addEventListener("click", () => {
+    cardsInput.value = "";
+    cardsResult.textContent = "";
+    flashcards = [];
+    currentCardIndex = 0;
+    showingBack = false;
+    saveFlashcards(flashcards);
+    if (cardsViewer) cardsViewer.style.display = "none";
+  });
+
+  cardsFlipBtn.addEventListener("click", () => {
+    if (!flashcards.length) return;
+    showingBack = !showingBack;
+    cardsFront.style.display = showingBack ? "none" : "block";
+    cardsBack.style.display = showingBack ? "block" : "none";
+  });
+
+  function goToNextCard() {
+    if (!flashcards.length) return;
+    currentCardIndex = (currentCardIndex + 1) % flashcards.length;
+    renderCurrentCard();
+  }
+
+  cardsGotItBtn.addEventListener("click", () => {
+    if (!flashcards.length) return;
+    const card = flashcards[currentCardIndex];
+    card.status = "got";
+    card.seen = (card.seen || 0) + 1;
+    card.correct = (card.correct || 0) + 1;
+    card.lastSeen = Date.now();
+    saveFlashcards(flashcards);
+    goToNextCard();
+  });
+
+  cardsNeedWorkBtn.addEventListener("click", () => {
+    if (!flashcards.length) return;
+    const card = flashcards[currentCardIndex];
+    card.status = "need_work";
+    card.seen = (card.seen || 0) + 1;
+    card.lastSeen = Date.now();
+    saveFlashcards(flashcards);
+    goToNextCard();
+  });
+
+  // QUIZ
+  const quizInput = document.getElementById("quizInput");
+  const quizBtn = document.getElementById("quizBtn");
+  const quizClearBtn = document.getElementById("quizClearBtn");
+  const quizResult = document.getElementById("quizResult");
+
+  quizBtn.addEventListener("click", async () => {
+    const text = quizInput.value.trim();
+    if (!text) {
+      alert("Paste content first.");
+      return;
+    }
+    quizResult.textContent = "Thinking...";
+    const ans = await runQuiz(text);
+    const clean = sanitizeAnswerText(ans);
+    quizResult.textContent = clean;
+    addNotebookItem("Quiz", clean);
+  });
+
+  quizClearBtn.addEventListener("click", () => {
+    quizInput.value = "";
+    quizResult.textContent = "";
+  });
+
+  // SIMPLIFY + HINT BUTTONS
+  document.querySelectorAll(".pill-button").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const action = btn.dataset.action;
+      const targetId = btn.dataset.target;
+      if (!action || !targetId) return;
+
+      const outputEl = document.getElementById(targetId);
+      if (!outputEl) return;
+
+      const currentAnswer = outputEl.textContent.trim();
+      if (!currentAnswer) {
+        alert("Nothing to process yet.");
+        return;
+      }
+
+      if (action === "simplify") {
+        outputEl.textContent = "Simplifying...";
+        const ans = await runSimplify(currentAnswer);
+        const clean = sanitizeAnswerText(ans);
+        outputEl.textContent = clean;
+        addNotebookItem("Simplified", clean);
+      } else if (action === "hint") {
+        const questionText = snapText.value || mathInput.value || "";
+        const ans = await runHint(questionText, currentAnswer);
+        const cleanHint = sanitizeAnswerText(ans);
+        outputEl.textContent = currentAnswer + "\n\nHint:\n" + cleanHint;
+        addNotebookItem("Hint", cleanHint);
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
