@@ -1434,7 +1434,7 @@ text = text.replace(/\\boxed\{([^}]+)\}/g, "$1");
     const mode = window.__cheatMode ? "cheat" : "learn";
 
     try {
-      const res = await fetch("api/solve", {
+      const res = await fetch("/api/solve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1599,7 +1599,7 @@ text = text.replace(/\\boxed\{([^}]+)\}/g, "$1");
     };
 
     try {
-      const res = await fetch("api/ocr", {
+      const res = await fetch("/api/ocr", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
