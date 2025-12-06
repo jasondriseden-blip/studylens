@@ -495,7 +495,39 @@ pre .hint-label {
   letter-spacing: 0.08em;
   opacity: 0.8;
 }
+/* Emphasize key lines inside outputs */
+pre .step-line {
+  display: block;
+  font-weight: 700;
+  margin: 6px 0 2px;
+}
 
+pre .answer-label {
+  font-weight: 600;
+}
+
+pre .answer-value {
+  font-weight: 700;
+}
+
+pre .hint-label {
+  display: block;
+  margin-top: 10px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.8;
+}
+
+pre .section-heading {
+  display: block;
+  margin-top: 10px;
+  margin-bottom: 4px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
 
     .pill-button {
       border-radius: 999px;
@@ -587,6 +619,29 @@ pre .hint-label {
       padding: 3px 8px;
       font-size: 0.7rem;
     }
+/* Notebook: make the top line feel like a heading/meta bar */
+.notebook-item {
+  line-height: 1.5;
+}
+
+.notebook-item-header {
+  margin-bottom: 6px;
+}
+
+.notebook-meta {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+/* The actual saved text body */
+.notebook-item > div:last-child {
+  font-size: 0.82rem;
+  color: var(--on-surface);
+  white-space: pre-wrap;
+}
 
     .flashcard {
       margin-top: 8px;
@@ -606,6 +661,36 @@ pre .hint-label {
       word-wrap: break-word;
       width: 100%;
     }
+/* Flashcards: make questions and answers visually different */
+#cardsStats {
+  font-size: 0.78rem;
+  margin-bottom: 6px;
+  opacity: 0.85;
+}
+
+#cardsCard.flashcard {
+  border-width: 1px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.25);
+}
+
+/* Question side (front) */
+#cardsFront {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* Answer side (back) */
+#cardsBack {
+  font-weight: 500;
+  color: var(--on-surface);
+  opacity: 0.95;
+}
+
+/* Make multiline flashcards a bit easier to read */
+.flashcard-side {
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
 
     .side-drawer {
       width: 220px;
@@ -1600,7 +1685,6 @@ text = text.replace(/\\boxed\{([^}]+)\}/g, "$1");
 function renderAnswer(preEl, text) {
   if (!preEl) return;
 
-  // Escape HTML to keep things safe
   const escaped = String(text || "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -1609,7 +1693,9 @@ function renderAnswer(preEl, text) {
   const lines = escaped.split("\n");
 
   const htmlLines = lines.map((line) => {
-    // Highlight "Final answer: ..."
+    const trimmed = line.trim();
+
+    // Final answer: ...
     const finalMatch = line.match(/^(Final answer:\s*)(.*)$/i);
     if (finalMatch) {
       const label = finalMatch[1];
@@ -1617,13 +1703,18 @@ function renderAnswer(preEl, text) {
       return `<span class="answer-label">${label}</span><span class="answer-value"> ${value}</span>`;
     }
 
-    // Highlight "Step 1:", "Step 2", etc.
-    if (/^Step\s+\d+/i.test(line.trim())) {
+    // Step 1:, Step 2, etc.
+    if (/^Step\s+\d+/i.test(trimmed)) {
       return `<span class="step-line">${line}</span>`;
     }
 
-    // Highlight "Hint:"
-    if (/^Hint:\s*$/i.test(line.trim())) {
+    // Section headings like "Summary:", "Answer Key:", etc.
+    if (/^(Summary|Answer Key|Multiple Choice|Short Answer|True\/False)\s*:/i.test(trimmed)) {
+      return `<span class="section-heading">${line}</span>`;
+    }
+
+    // "Hint:"
+    if (/^Hint:\s*$/i.test(trimmed)) {
       return `<span class="hint-label">Hint</span>`;
     }
 
@@ -1632,6 +1723,7 @@ function renderAnswer(preEl, text) {
 
   preEl.innerHTML = htmlLines.join("\n");
 }
+
 
 
   // ---------- AI ENGINE (BACKEND HOOK POINT) ----------
@@ -1977,34 +2069,36 @@ const snapSolveBtn = document.getElementById("snapActionSolveBtn");
     }
     snapResult.textContent = "Thinking...";
     const ans = await runSnapSolve(text);
-    const clean = sanitizeAnswerText(ans);
-    snapResult.textContent = clean;
-    addNotebookItem("Snap", clean);
+      const clean = sanitizeAnswerText(ans);
+  renderAnswer(snapResult, clean);   // 👈 instead of snapResult.textContent = clean;
+  addNotebookItem("Snap", clean);
+
   });
 
-  // MATH
-  const mathInput = document.getElementById("mathInput");
-  const mathSolveBtn = document.getElementById("mathSolveBtn");
-  const mathClearBtn = document.getElementById("mathClearBtn");
-  const mathResult = document.getElementById("mathResult");
+// MATH
+const mathInput = document.getElementById("mathInput");
+const mathSolveBtn = document.getElementById("mathSolveBtn");
+const mathClearBtn = document.getElementById("mathClearBtn");
+const mathResult = document.getElementById("mathResult");
 
-  mathSolveBtn.addEventListener("click", async () => {
-    const text = mathInput.value.trim();
-    if (!text) {
-      alert("Type a math problem first.");
-      return;
-    }
-    mathResult.textContent = "Thinking...";
-    const ans = await runMathSolver(text);
-    const clean = sanitizeAnswerText(ans);
-	renderAnswer(mathResult, clean);
-    addNotebookItem("Math", clean);
-  });
+mathSolveBtn.addEventListener("click", async () => {
+  const text = mathInput.value.trim();
+  if (!text) {
+    alert("Type a math problem first.");
+    return;
+  }
+  mathResult.textContent = "Thinking...";
+  const ans = await runMathSolver(text);
+  const clean = sanitizeAnswerText(ans);
+  renderAnswer(mathResult, clean);   // 👈 was mathResult.textContent = clean;
+  addNotebookItem("Math", clean);
+});
 
-  mathClearBtn.addEventListener("click", () => {
-    mathInput.value = "";
-    mathResult.textContent = "";
-  });
+mathClearBtn.addEventListener("click", () => {
+  mathInput.value = "";
+  mathResult.textContent = "";
+});
+
 
   // STUDY
   const studyInput = document.getElementById("studyInput");
@@ -2020,9 +2114,10 @@ const snapSolveBtn = document.getElementById("snapActionSolveBtn");
     }
     studyResult.textContent = "Thinking...";
     const ans = await runStudyGuide(text);
-    const clean = sanitizeAnswerText(ans);
-    studyResult.textContent = clean;
-    addNotebookItem("Study", clean);
+      const clean = sanitizeAnswerText(ans);
+  renderAnswer(studyResult, clean);   // 👈 instead of studyResult.textContent = clean;
+  addNotebookItem("Study", clean);
+
   });
 
   studyClearBtn.addEventListener("click", () => {
@@ -2044,9 +2139,10 @@ const snapSolveBtn = document.getElementById("snapActionSolveBtn");
     }
     essayResult.textContent = "Thinking...";
     const ans = await runEssayHelper(text);
-    const clean = sanitizeAnswerText(ans);
-    essayResult.textContent = clean;
-    addNotebookItem("Essay", clean);
+      const clean = sanitizeAnswerText(ans);
+  renderAnswer(essayResult, clean);   // 👈
+  addNotebookItem("Essay", clean);
+
   });
 
   essayClearBtn.addEventListener("click", () => {
@@ -2292,9 +2388,10 @@ const snapSolveBtn = document.getElementById("snapActionSolveBtn");
     }
     quizResult.textContent = "Thinking...";
     const ans = await runQuiz(text);
-    const clean = sanitizeAnswerText(ans);
-    quizResult.textContent = clean;
-    addNotebookItem("Quiz", clean);
+      const clean = sanitizeAnswerText(ans);
+  renderAnswer(quizResult, clean);   // 👈
+  addNotebookItem("Quiz", clean);
+
   });
 
   quizClearBtn.addEventListener("click", () => {
