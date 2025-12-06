@@ -2750,19 +2750,50 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
     SUPABASE_URL,
     SUPABASE_ANON_KEY
   );
+
   async function testIncrementUsage() {
-  const { error } = await supabaseClient.rpc('increment_usage', {
-    p_action: 'check',
-    p_amount: 1,
-  });
+    const { error } = await supabaseClient.rpc('increment_usage', {
+      p_action: 'check',
+      p_amount: 1,
+    });
 
-  if (error) {
-    console.error('increment_usage failed', error);
-  } else {
-    console.log('increment_usage succeeded');
+    if (error) {
+      console.error('increment_usage failed', error);
+    } else {
+      console.log('increment_usage succeeded');
+    }
   }
-}
 
+  // 🔹 NEW: read current usage for the logged-in user
+  async function showCurrentUsage() {
+    // 1) Get the current logged-in user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabaseClient.auth.getUser();
+
+    if (userError || !user) {
+      console.error('no logged-in user', userError);
+      return;
+    }
+
+    // 2) Ask for this month’s usage row for that user
+    const periodStart = '2025-12-01'; // first day of this month
+
+    const { data, error } = await supabaseClient
+      .from('usage_counters')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('period_start', periodStart)
+      .eq('action', 'check')
+      .maybeSingle();
+
+    if (error) {
+      console.error('error reading usage', error);
+    } else {
+      console.log('current usage row:', data);
+    }
+  }
 
   // --- handle OAuth tokens in URL (hash OR query) ---
   async function handleAuthFromUrl() {
@@ -2809,16 +2840,15 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
       userPlanLabel.textContent = "Guest · 5 free tries";
       authButton.textContent = "Sign in";
       authButton.dataset.authState = "signed-out";
-      } else {
-    // Logged in – keep header short but still show "signed in as"
-    const email = data.user.email || "";
-    const namePart = email.split("@")[0] || "your account"; // e.g. "jasondriseden"
+    } else {
+      // Logged in – keep header short but still show "signed in as"
+      const email = data.user.email || "";
+      const namePart = email.split("@")[0] || "your account"; // e.g. "jasondriseden"
 
-    userPlanLabel.textContent = `Free plan · signed in as ${namePart}`;
-    authButton.textContent = "Sign out";
-    authButton.dataset.authState = "signed-in";
-  }
-
+      userPlanLabel.textContent = `Free plan · signed in as ${namePart}`;
+      authButton.textContent = "Sign out";
+      authButton.dataset.authState = "signed-in";
+    }
   }
 
   // Handle click on the auth button (Sign in / Sign out) – GOOGLE OAUTH
@@ -2875,6 +2905,7 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
     updateAuthUI();
   });
 </script>
+
 
 
 
