@@ -2679,7 +2679,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     const STORAGE_KEY = "passinggrade-anon-uses";
 
     // 🔹 New: monthly free limit for logged-in users
-    const FREE_MONTHLY_LIMIT = 50; // change this number whenever you want
+    const FREE_MONTHLY_LIMIT = 10; // change this number whenever you want
 
     function getAnonUses() {
       try {
@@ -2699,10 +2699,11 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     }
 
     function showAnonLimitReached() {
-      alert(
-        "You’ve used PassingGrade 5 times.\n\nTap ‘Sign in’ at the top right to create a free account and get 50 questions every month."
-      );
-    }
+  alert(
+    "You’ve used PassingGrade 5 times.\n\nTap ‘Sign in’ at the top right to create a free account and get 10 questions every month."
+  );
+}
+
 
     // Call this before doing any AI action (for guests)
     function canUseAIOnceAnon() {
@@ -2931,7 +2932,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       }
 
       const currentCount = row?.count || 0;
-      usageText = ` · ${currentCount}/50 OCR this month`;
+      usageText = ` · ${currentCount}/10 OCR this month`;
     } catch (e) {
       console.error("usage label exception", e);
     }
