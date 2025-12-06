@@ -2076,8 +2076,18 @@ text.trim();
     });
   }
 
-  // Run OCR on whichever file we last picked (NO tracking added here)
+  // Run OCR on whichever file we last picked – ONLY this counts usage
   snapOCRBtn.addEventListener("click", async () => {
+    // usage gate ONLY here
+    if (window.__canUseAIOnce) {
+      const allowed = await window.__canUseAIOnce();
+      if (!allowed) {
+        return;
+      }
+    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+      return;
+    }
+
     if (!lastSnapFile) {
       alert("Choose or take an image first.");
       return;
@@ -2100,20 +2110,8 @@ text.trim();
     }
   });
 
-  // Solve / Explain
+  // Solve / Explain (no counting here)
   snapSolveBtn.addEventListener("click", async () => {
-    // ✅ Auth-aware usage gate:
-    // - If __canUseAIOnce exists, use it (logged-in → Supabase tracking, anon → localStorage limit)
-    // - Otherwise, fall back to the old anon-only limiter
-    if (window.__canUseAIOnce) {
-      const allowed = await window.__canUseAIOnce();
-      if (!allowed) {
-        return;
-      }
-    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
-      return;
-    }
-
     const text = snapText.value.trim();
     if (!text) {
       alert("No text to solve.");
@@ -2127,23 +2125,13 @@ text.trim();
   });
 
 
-  // MATH
+  // MATH (no counting here)
   const mathInput = document.getElementById("mathInput");
   const mathSolveBtn = document.getElementById("mathSolveBtn");
   const mathClearBtn = document.getElementById("mathClearBtn");
   const mathResult = document.getElementById("mathResult");
 
   mathSolveBtn.addEventListener("click", async () => {
-    // ✅ Auth-aware usage gate:
-    if (window.__canUseAIOnce) {
-      const allowed = await window.__canUseAIOnce();
-      if (!allowed) {
-        return;
-      }
-    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
-      return;
-    }
-
     const text = mathInput.value.trim();
     if (!text) {
       alert("Type a math problem first.");
@@ -2161,23 +2149,13 @@ text.trim();
     mathResult.textContent = "";
   });
 
-  // STUDY
+  // STUDY (no counting here)
   const studyInput = document.getElementById("studyInput");
   const studyGuideBtn = document.getElementById("studyGuideBtn");
   const studyClearBtn = document.getElementById("studyClearBtn");
   const studyResult = document.getElementById("studyResult");
 
   studyGuideBtn.addEventListener("click", async () => {
-    // ✅ Auth-aware usage gate:
-    if (window.__canUseAIOnce) {
-      const allowed = await window.__canUseAIOnce();
-      if (!allowed) {
-        return;
-      }
-    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
-      return;
-    }
-
     const text = studyInput.value.trim();
     if (!text) {
       alert("Paste some notes or text first.");
@@ -2195,23 +2173,13 @@ text.trim();
     studyResult.textContent = "";
   });
 
-  // ESSAY
+  // ESSAY (no counting here)
   const essayInput = document.getElementById("essayInput");
   const essayBtn = document.getElementById("essayBtn");
   const essayClearBtn = document.getElementById("essayClearBtn");
   const essayResult = document.getElementById("essayResult");
 
   essayBtn.addEventListener("click", async () => {
-    // ✅ Auth-aware usage gate:
-    if (window.__canUseAIOnce) {
-      const allowed = await window.__canUseAIOnce();
-      if (!allowed) {
-        return;
-      }
-    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
-      return;
-    }
-
     const text = essayInput.value.trim();
     if (!text) {
       alert("Paste your essay or prompt first.");
@@ -2365,17 +2333,8 @@ text.trim();
     }
   })();
 
+  // no counting here
   cardsBtn.addEventListener("click", async () => {
-    // ✅ Auth-aware usage gate:
-    if (window.__canUseAIOnce) {
-      const allowed = await window.__canUseAIOnce();
-      if (!allowed) {
-        return;
-      }
-    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
-      return;
-    }
-
     const text = cardsInput.value.trim();
     if (!text) {
       alert("Paste content first.");
@@ -2470,17 +2429,8 @@ text.trim();
   const quizClearBtn = document.getElementById("quizClearBtn");
   const quizResult = document.getElementById("quizResult");
 
+  // no counting here
   quizBtn.addEventListener("click", async () => {
-    // ✅ Auth-aware usage gate:
-    if (window.__canUseAIOnce) {
-      const allowed = await window.__canUseAIOnce();
-      if (!allowed) {
-        return;
-      }
-    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
-      return;
-    }
-
     const text = quizInput.value.trim();
     if (!text) {
       alert("Paste content first.");
@@ -2505,16 +2455,7 @@ text.trim();
 // SIMPLIFY + HINT BUTTONS (styled with renderAnswer)
 document.querySelectorAll(".pill-button").forEach((btn) => {
   btn.addEventListener("click", async () => {
-    // ✅ Auth-aware usage gate:
-    if (window.__canUseAIOnce) {
-      const allowed = await window.__canUseAIOnce();
-      if (!allowed) {
-        return;
-      }
-    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
-      return;
-    }
-
+    // no counting here
     const action = btn.dataset.action;
     const targetId = btn.dataset.target;
     if (!action || !targetId) return;
@@ -2737,6 +2678,9 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     const ANON_LIMIT = 5;
     const STORAGE_KEY = "passinggrade-anon-uses";
 
+    // 🔹 New: monthly free limit for logged-in users
+    const FREE_MONTHLY_LIMIT = 50; // change this number whenever you want
+
     function getAnonUses() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -2760,7 +2704,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       );
     }
 
-    // Call this before doing any AI action
+    // Call this before doing any AI action (for guests)
     function canUseAIOnceAnon() {
       const uses = getAnonUses();
       if (uses >= ANON_LIMIT) {
@@ -2776,7 +2720,8 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
     // 🔹 Auth-aware helper:
     // - Not logged in  -> use anon localStorage limiter
-    // - Logged in      -> call Supabase increment_usage and allow
+    // - Logged in      -> check monthly DB count, block if over free limit, otherwise increment_usage
+    //   (now only used for OCR, and tracks action="ocr")
     async function canUseAIOnce() {
       try {
         if (!window.supabaseClient) {
@@ -2794,11 +2739,41 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           return window.__canUseAIOnceAnon();
         }
 
-        // Logged in -> bump usage in Supabase (no limit enforced yet)
+        // Figure out the first day of this month as YYYY-MM-01
+        const now = new Date();
+        const month = String(now.getMonth() + 1).padStart(2, "0");
+        const periodStart = `${now.getFullYear()}-${month}-01`;
+
+        // Read this month's OCR usage row
+        const { data: row, error: selectError } = await window.supabaseClient
+          .from("usage_counters")
+          .select("count")
+          .eq("user_id", user.id)
+          .eq("period_start", periodStart)
+          .eq("action", "ocr")
+          .maybeSingle();
+
+        if (selectError) {
+          console.error("error reading usage", selectError);
+          // Don't block on read error – allow and still try to increment
+        }
+
+        const currentCount = row?.count || 0;
+
+        if (currentCount >= FREE_MONTHLY_LIMIT) {
+          alert(
+            "You’ve used your " +
+              FREE_MONTHLY_LIMIT +
+              " free questions for this month.\n\nUpgrade your plan to keep using PassingGrade."
+          );
+          return false;
+        }
+
+        // Logged in and under limit -> bump OCR usage in Supabase
         const { error: rpcError } = await window.supabaseClient.rpc(
           "increment_usage",
           {
-            p_action: "check",
+            p_action: "ocr",
             p_amount: 1,
           }
         );
@@ -2820,6 +2795,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
   })();
 </script>
 
+
 <!-- Supabase client library (from CDN) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -2838,7 +2814,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
   async function testIncrementUsage() {
     const { error } = await supabaseClient.rpc('increment_usage', {
-      p_action: 'check',
+      p_action: 'ocr',
       p_amount: 1,
     });
 
@@ -2862,7 +2838,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       return;
     }
 
-    // 2) Ask for this month’s usage row for that user
+    // 2) Ask for this month’s OCR usage row for that user
     const periodStart = '2025-12-01'; // first day of this month
 
     const { data, error } = await supabaseClient
@@ -2870,7 +2846,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       .select('*')
       .eq('user_id', user.id)
       .eq('period_start', periodStart)
-      .eq('action', 'check')
+      .eq('action', 'ocr')
       .maybeSingle();
 
     if (error) {
@@ -2990,6 +2966,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     updateAuthUI();
   });
 </script>
+
 
 
 
