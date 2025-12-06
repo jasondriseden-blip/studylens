@@ -399,12 +399,14 @@ html[data-theme="dark"] .brand-logo-dark  { display: block; }
     }
 
     .btn-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 9px;
-      margin-bottom: 4px;
-    }
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 9px;
+  margin-bottom: 4px;
+  justify-content: flex-end;   /* 👈 move buttons to the right side */
+}
+
 
     button {
       border-radius: 999px;
@@ -2402,37 +2404,41 @@ mathClearBtn.addEventListener("click", () => {
 
 <!-- BLOCK 9: Simplify + Hint “pill” buttons -->
 <script>
-  // SIMPLIFY + HINT BUTTONS
-  document.querySelectorAll(".pill-button").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const action = btn.dataset.action;
-      const targetId = btn.dataset.target;
-      if (!action || !targetId) return;
+// SIMPLIFY + HINT BUTTONS (styled with renderAnswer)
+document.querySelectorAll(".pill-button").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const action = btn.dataset.action;
+    const targetId = btn.dataset.target;
+    if (!action || !targetId) return;
 
-      const outputEl = document.getElementById(targetId);
-      if (!outputEl) return;
+    const outputEl = document.getElementById(targetId);
+    if (!outputEl) return;
 
-      const currentAnswer = outputEl.textContent.trim();
-      if (!currentAnswer) {
-        alert("Nothing to process yet.");
-        return;
-      }
+    // plain text version of whatever is currently shown
+    const currentPlain = outputEl.textContent.trim();
+    if (!currentPlain) {
+      alert("Nothing to process yet.");
+      return;
+    }
 
-      if (action === "simplify") {
-        outputEl.textContent = "Simplifying...";
-        const ans = await runSimplify(currentAnswer);
-        const clean = sanitizeAnswerText(ans);
-        outputEl.textContent = clean;
-        addNotebookItem("Simplified", clean);
-      } else if (action === "hint") {
-        const questionText = snapText.value || mathInput.value || "";
-        const ans = await runHint(questionText, currentAnswer);
-        const cleanHint = sanitizeAnswerText(ans);
-        outputEl.textContent = currentAnswer + "\n\nHint:\n" + cleanHint;
-        addNotebookItem("Hint", cleanHint);
-      }
-    });
+    if (action === "simplify") {
+      outputEl.textContent = "Simplifying...";
+      const ans = await runSimplify(currentPlain);
+      const clean = sanitizeAnswerText(ans);
+      renderAnswer(outputEl, clean);
+      addNotebookItem("Simplified", clean);
+    } else if (action === "hint") {
+      const questionText = snapText.value || mathInput.value || "";
+      const ans = await runHint(questionText, currentPlain);
+      const cleanHint = sanitizeAnswerText(ans);
+
+      const combined = currentPlain + "\n\nHint:\n" + cleanHint;
+      renderAnswer(outputEl, combined);
+      addNotebookItem("Hint", cleanHint);
+    }
   });
+});
+
 </script>
 
 
