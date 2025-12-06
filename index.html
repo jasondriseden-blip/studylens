@@ -1470,9 +1470,11 @@ text = text.replace(/\\boxed\{([^}]+)\}/g, "$1");
         "If there are multiple parts, label each answer clearly (a), b), c), etc.).\n\nProblem:\n" +
         text.trim()
       : "You are a step-by-step math tutor for a middle/high school student.\n" +
-        "Solve the problem clearly. Show each step and the final answer.\n\n" +
-        "Problem:\n" +
-        text.trim();
+"Solve the problem clearly. Show each step, and END with a line exactly like:\n" +
+"`Final answer: <number>`\n\n" +
+"Problem:\n" +
+text.trim();
+
     return callAI({ prompt, task: "math" });
   }
 
