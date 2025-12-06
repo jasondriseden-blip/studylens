@@ -2699,11 +2699,10 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     }
 
     function showAnonLimitReached() {
-  alert(
-    "You’ve used PassingGrade 5 times.\n\nTap ‘Sign in’ at the top right to create a free account and get 10 questions every month."
-  );
-}
-
+      alert(
+        "You’ve used PassingGrade 5 times.\n\nTap ‘Sign in’ at the top right to create a free account and get 10 questions every month."
+      );
+    }
 
     // Call this before doing any AI action (for guests)
     function canUseAIOnceAnon() {
@@ -2720,9 +2719,9 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     window.__canUseAIOnceAnon = canUseAIOnceAnon;
 
     // 🔹 Auth-aware helper:
-    // - Not logged in  -> use anon localStorage limiter
-    // - Logged in      -> check monthly DB count, block if over free limit, otherwise increment_usage
-    //   (now only used for OCR, and tracks action="ocr")
+    // - Not logged in            -> use anon localStorage limiter
+    // - Logged in as YOU (Pro)   -> unlimited, but still increments OCR usage
+    // - Logged in as others      -> 10/month OCR limit using Supabase
     async function canUseAIOnce() {
       try {
         if (!window.supabaseClient) {
@@ -2739,6 +2738,31 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           // Not logged in -> still use the anon localStorage limit
           return window.__canUseAIOnceAnon();
         }
+
+        const email = user.email || "";
+        const isPaid = email === "jasondriseden@gmail.com";
+
+        // 🔹 Pro plan (your email) -> no 10/month cap, but still track OCR usage
+        if (isPaid) {
+          const { error: rpcErrorPaid } = await window.supabaseClient.rpc(
+            "increment_usage",
+            {
+              p_action: "ocr",
+              p_amount: 1,
+            }
+          );
+
+          if (rpcErrorPaid) {
+            console.error(
+              "increment_usage failed for paid user",
+              rpcErrorPaid
+            );
+          }
+
+          return true;
+        }
+
+        // 🔹 Everyone else = 10/month OCR limit
 
         // Figure out the first day of this month as YYYY-MM-01
         const now = new Date();
@@ -2795,6 +2819,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     window.__canUseAIOnce = canUseAIOnce;
   })();
 </script>
+
 
 
 
