@@ -3115,5 +3115,18 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
 
 
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const upgradeBtn = document.getElementById("upgradeButton");
+    if (!upgradeBtn) return;
+
+    upgradeBtn.addEventListener("click", () => {
+      // TODO: replace this with your real Stripe Payment Link URL
+      window.location.href = "https://buy.stripe.com/YOUR_PAYMENT_LINK_HERE";
+    });
+  });
+</script>
+
+
 </body>
 </html>
