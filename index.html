@@ -235,6 +235,40 @@ html[data-theme="dark"] .brand-logo-dark  { display: block; }
       align-items: center;
       gap: 10px;
     }
+/* ---- Auth status + sign-in button ---- */
+.auth-row {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.user-plan-label {
+  white-space: nowrap;
+}
+
+.auth-button {
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  background: transparent;
+  color: var(--on-surface);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: none;
+}
+
+.auth-button:hover {
+  border-color: var(--primary);
+  background: rgba(99, 102, 241, 0.08);
+}
 
     .chip {
       font-size: 0.74rem;
@@ -675,19 +709,21 @@ pre .section-heading {
 #cardsCard.flashcard {
   border-width: 1px;
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.25);
+  padding:1em;
 }
 
 /* Question side (front) */
 #cardsFront {
   font-weight: 700;
-  color: var(--primary);
+  color: var(--primary - variant);
+  font-size:1.02em;
 }
 
 /* Answer side (back) */
 #cardsBack {
   font-weight: 500;
   color: var(--on-surface);
-  opacity: 0.95;
+  opacity: 1;
 }
 
 /* Make multiline flashcards a bit easier to read */
@@ -946,36 +982,48 @@ pre .section-heading {
         </div>
       </div>
 
-      <div class="header-right">
-        <div class="header-top-row">
-          <!-- Learn / Cheat mode chip -->
-          <div class="chip learn-mode" id="modeChip">
-            <span class="chip-dot"></span>
-            <span class="mode-label">Learn ON</span>
-          </div>
+       <div class="header-right">
+  <div class="header-top-row">
+    <!-- Learn / Cheat mode chip -->
+    <div class="chip learn-mode" id="modeChip">
+      <span class="chip-dot"></span>
+      <span class="mode-label">Learn mode ON</span>
+    </div>
 
-          <button class="theme-toggle" id="themeToggle" type="button">
-            <svg id="iconSun" viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M12 4a1 1 0 0 1 1 1V6a1 1 0 1 1-2 0V5a1 1 0 0 1 1-1Zm0 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-4a1 1 0 0 1-1 1h-1a1 1 0 1 1 0-2h1a1 1 0 0 1 1 1ZM6 13a1 1 0 1 1 0-2H5a1 1 0 1 1 0 2h1Zm11.07-5.07a1 1 0 0 1-1.41 0L14.9 7.17a1 1 0 0 1 1.42-1.41l.76.76a1 1 0 0 1 0 1.41Zm-9.54 9.54a1 1 0 0 1-1.41 0l-.76-.76A1 1 0 0 1 6.24 15.3l.76.76a1 1 0 0 1 0 1.41ZM18 17.24a1 1 0 0 1 0-1.41l.76-.76a1 1 0 1 1 1.41 1.41l-.76.76a1 1 0 0 1-1.41 0ZM6.24 8.7a1 1 0 0 1-1.41-1.41l.76-.76A1 1 0 0 1 7 7.24l-.76.76Z"
-              />
-            </svg>
-            <svg id="iconMoon" viewBox="0 0 24 24" style="display: none">
-              <path
-                fill="currentColor"
-                d="M20.3 14.8A7.5 7.5 0 0 1 11.2 3.7 1 1 0 0 0 10 2.49 9.5 9.5 0 1 0 21.51 14a1 1 0 0 0-1.21-1.22Z"
-              />
-            </svg>
-            <span id="themeLabel">Dark</span>
-          </button>
+    <button class="theme-toggle" id="themeToggle" type="button">
+      <svg id="iconSun" viewBox="0 0 24 24">
+        <path
+          fill="currentColor"
+          d="M12 4a1 1 0 0 1 1 1V6a1 1 0 1 1-2 0V5a1 1 0 0 1 1-1Zm0 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-4a1 1 0 0 1-1 1h-1a1 1 0 1 1 0-2h1a1 1 0 0 1 1 1ZM6 13a1 1 0 1 1 0-2H5a1 1 0 1 1 0 2h1Zm11.07-5.07a1 1 0 0 1-1.41 0L14.9 7.17a1 1 0 0 1 1.42-1.41l.76.76a1 1 0 0 1 0 1.41Zm-9.54 9.54a1 1 0 0 1-1.41 0l-.76-.76A1 1 0 0 1 6.24 15.3l.76.76a1 1 0 0 1 0 1.41ZM18 17.24a1 1 0 0 1 0-1.41l.76-.76a1 1 0 1 1 1.41 1.41l-.76.76a1 1 0 0 1-1.41 0ZM6.24 8.7a1 1 0 0 1-1.41-1.41l.76-.76A1 1 0 0 1 7 7.24l-.76.76Z"
+        />
+      </svg>
+      <svg id="iconMoon" viewBox="0 0 24 24" style="display: none">
+        <path
+          fill="currentColor"
+          d="M20.3 14.8A7.5 7.5 0 0 1 11.2 3.7 1 1 0 0 0 10 2.49 9.5 9.5 0 1 0 21.51 14a1 1 0 0 0-1.21-1.22Z"
+        />
+      </svg>
+      <span id="themeLabel">Dark</span>
+    </button>
 
-          <button class="drawer-toggle" id="drawerToggle" type="button">
-            <span class="material-symbols-outlined">view_sidebar</span>
-            <span>Tools</span>
-          </button>
-        </div>
-      </div>
+    <button class="drawer-toggle" id="drawerToggle" type="button">
+      <span class="material-symbols-outlined">view_sidebar</span>
+      <span>Tools</span>
+    </button>
+  </div>
+
+  <!-- NEW: auth status + sign-in button -->
+  <div class="auth-row">
+    <span id="userPlanLabel" class="user-plan-label">
+      Guest · 5 free tries
+    </span>
+    <button id="authButton" class="auth-button" type="button">
+      Sign in
+    </button>
+  </div>
+</div>
+
+
     </header>
 
     <div class="top-bar">
@@ -1981,7 +2029,7 @@ text.trim();
   const snapClearBtn = document.getElementById("snapClearBtn");
   const snapText = document.getElementById("snapText");
   const snapResult = document.getElementById("snapResult");
-const snapSolveBtn = document.getElementById("snapActionSolveBtn");
+  const snapSolveBtn = document.getElementById("snapActionSolveBtn");
 
   const snapCameraBtn = document.getElementById("snapCameraBtn");
   const snapUploadBtn = document.getElementById("snapUploadBtn");
@@ -2068,6 +2116,11 @@ const snapSolveBtn = document.getElementById("snapActionSolveBtn");
 
   // Solve / Explain
   snapSolveBtn.addEventListener("click", async () => {
+    // anonymous 5-use guard
+    if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+      return;
+    }
+
     const text = snapText.value.trim();
     if (!text) {
       alert("No text to solve.");
@@ -2075,36 +2128,39 @@ const snapSolveBtn = document.getElementById("snapActionSolveBtn");
     }
     snapResult.textContent = "Thinking...";
     const ans = await runSnapSolve(text);
-      const clean = sanitizeAnswerText(ans);
-  renderAnswer(snapResult, clean);   // 👈 instead of snapResult.textContent = clean;
-  addNotebookItem("Snap", clean);
-
+    const clean = sanitizeAnswerText(ans);
+    renderAnswer(snapResult, clean);   // 👈 instead of snapResult.textContent = clean;
+    addNotebookItem("Snap", clean);
   });
 
-// MATH
-const mathInput = document.getElementById("mathInput");
-const mathSolveBtn = document.getElementById("mathSolveBtn");
-const mathClearBtn = document.getElementById("mathClearBtn");
-const mathResult = document.getElementById("mathResult");
+  // MATH
+  const mathInput = document.getElementById("mathInput");
+  const mathSolveBtn = document.getElementById("mathSolveBtn");
+  const mathClearBtn = document.getElementById("mathClearBtn");
+  const mathResult = document.getElementById("mathResult");
 
-mathSolveBtn.addEventListener("click", async () => {
-  const text = mathInput.value.trim();
-  if (!text) {
-    alert("Type a math problem first.");
-    return;
-  }
-  mathResult.textContent = "Thinking...";
-  const ans = await runMathSolver(text);
-  const clean = sanitizeAnswerText(ans);
-  renderAnswer(mathResult, clean);   // 👈 was mathResult.textContent = clean;
-  addNotebookItem("Math", clean);
-});
+  mathSolveBtn.addEventListener("click", async () => {
+    // anonymous 5-use guard
+    if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+      return;
+    }
 
-mathClearBtn.addEventListener("click", () => {
-  mathInput.value = "";
-  mathResult.textContent = "";
-});
+    const text = mathInput.value.trim();
+    if (!text) {
+      alert("Type a math problem first.");
+      return;
+    }
+    mathResult.textContent = "Thinking...";
+    const ans = await runMathSolver(text);
+    const clean = sanitizeAnswerText(ans);
+    renderAnswer(mathResult, clean);   // 👈 was mathResult.textContent = clean;
+    addNotebookItem("Math", clean);
+  });
 
+  mathClearBtn.addEventListener("click", () => {
+    mathInput.value = "";
+    mathResult.textContent = "";
+  });
 
   // STUDY
   const studyInput = document.getElementById("studyInput");
@@ -2113,6 +2169,11 @@ mathClearBtn.addEventListener("click", () => {
   const studyResult = document.getElementById("studyResult");
 
   studyGuideBtn.addEventListener("click", async () => {
+    // anonymous 5-use guard
+    if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+      return;
+    }
+
     const text = studyInput.value.trim();
     if (!text) {
       alert("Paste some notes or text first.");
@@ -2120,10 +2181,9 @@ mathClearBtn.addEventListener("click", () => {
     }
     studyResult.textContent = "Thinking...";
     const ans = await runStudyGuide(text);
-      const clean = sanitizeAnswerText(ans);
-  renderAnswer(studyResult, clean);   // 👈 instead of studyResult.textContent = clean;
-  addNotebookItem("Study", clean);
-
+    const clean = sanitizeAnswerText(ans);
+    renderAnswer(studyResult, clean);   // 👈 instead of studyResult.textContent = clean;
+    addNotebookItem("Study", clean);
   });
 
   studyClearBtn.addEventListener("click", () => {
@@ -2138,6 +2198,11 @@ mathClearBtn.addEventListener("click", () => {
   const essayResult = document.getElementById("essayResult");
 
   essayBtn.addEventListener("click", async () => {
+    // anonymous 5-use guard
+    if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+      return;
+    }
+
     const text = essayInput.value.trim();
     if (!text) {
       alert("Paste your essay or prompt first.");
@@ -2145,10 +2210,9 @@ mathClearBtn.addEventListener("click", () => {
     }
     essayResult.textContent = "Thinking...";
     const ans = await runEssayHelper(text);
-      const clean = sanitizeAnswerText(ans);
-  renderAnswer(essayResult, clean);   // 👈
-  addNotebookItem("Essay", clean);
-
+    const clean = sanitizeAnswerText(ans);
+    renderAnswer(essayResult, clean);   // 👈
+    addNotebookItem("Essay", clean);
   });
 
   essayClearBtn.addEventListener("click", () => {
@@ -2156,6 +2220,7 @@ mathClearBtn.addEventListener("click", () => {
     essayResult.textContent = "";
   });
 </script>
+
 
 <!-- BLOCK 7: Flashcards generation + interactive viewer -->
 <script>
@@ -2629,6 +2694,155 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
       });
     });
   })();
+</script>
+<script>
+  (function () {
+    // ---- Anonymous usage limiter (5 total uses before requiring login) ----
+
+    const ANON_LIMIT = 5;
+    const STORAGE_KEY = "passinggrade-anon-uses";
+
+    function getAnonUses() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? parseInt(raw, 10) || 0 : 0;
+      } catch {
+        return 0;
+      }
+    }
+
+    function setAnonUses(count) {
+      try {
+        localStorage.setItem(STORAGE_KEY, String(count));
+      } catch {
+        // ignore
+      }
+    }
+
+    function showAnonLimitReached() {
+  alert(
+    "You’ve used PassingGrade 5 times.\n\nTap ‘Sign in’ at the top right to create a free account and get 50 questions every month."
+  );
+}
+
+
+    // Call this before doing any AI action
+    function canUseAIOnceAnon() {
+      const uses = getAnonUses();
+      if (uses >= ANON_LIMIT) {
+        showAnonLimitReached();
+        return false;
+      }
+      setAnonUses(uses + 1);
+      return true;
+    }
+
+    // Expose so we can call from existing handlers
+    window.__canUseAIOnceAnon = canUseAIOnceAnon;
+  })();
+</script>
+
+
+
+
+<!-- Supabase client library (from CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
+
+
+
+
+<!-- PassingGrade auth setup (Supabase) -->
+<script>
+  // TODO: replace these with your real values from Supabase → Settings → API
+  const SUPABASE_URL = "https://rwjijfffirbpmkhcptrb.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3amlqZmZmaXJicG1raGNwdHJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwMzYxNDgsImV4cCI6MjA4MDYxMjE0OH0.Lfv2HGMbdyyjF_SUA-7rWWN5XpvaLX8I36-upjH8_nQ";
+
+  // Create a single Supabase client for the page
+  const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
+
+  // Simple helper to update the header status text + button label
+  async function updateAuthUI() {
+    const userPlanLabel = document.getElementById("userPlanLabel");
+    const authButton = document.getElementById("authButton");
+
+    if (!userPlanLabel || !authButton) return;
+
+    // Check if user is logged in
+    const { data, error } = await supabaseClient.auth.getUser();
+
+    if (error || !data.user) {
+      // Not logged in
+      userPlanLabel.textContent = "Guest · 5 free tries";
+      authButton.textContent = "Sign in";
+      authButton.dataset.authState = "signed-out";
+    } else {
+      // Logged in (for now always show Free; later we'll read real plan from backend)
+      const email = data.user.email || "Account";
+      userPlanLabel.textContent = `Free plan · signed in as ${email}`;
+      authButton.textContent = "Sign out";
+      authButton.dataset.authState = "signed-in";
+    }
+  }
+
+  // Handle click on the auth button (Sign in / Sign out) – EMAIL ONLY
+  async function handleAuthButtonClick() {
+    const authButton = document.getElementById("authButton");
+    if (!authButton) return;
+
+    const state = authButton.dataset.authState || "signed-out";
+
+    if (state === "signed-in") {
+      // Sign out
+      await supabaseClient.auth.signOut();
+      await updateAuthUI();
+      alert("Signed out.");
+      return;
+    }
+
+    // Signed out → Email sign-in (magic link)
+    const email = window.prompt("Enter your email to sign in to PassingGrade:");
+    if (!email) {
+      return; // user cancelled
+    }
+
+    try {
+      const { error } = await supabaseClient.auth.signInWithOtp({
+        email: email,
+        options: {
+    emailRedirectTo: "https://passinggrade.app"
+        }
+      });
+
+      if (error) {
+        console.error("Email sign-in error:", error);
+        alert("Error sending sign-in link. Please try again.");
+        return;
+      }
+
+      alert(
+        "Check your email for a sign-in link. Open it, and you’ll be logged in to PassingGrade."
+      );
+    } catch (err) {
+      console.error("OTP error:", err);
+      alert("Error starting sign-in. Please try again.");
+    }
+  }
+
+  // Wire things up once the DOM is ready
+  document.addEventListener("DOMContentLoaded", () => {
+    const authButton = document.getElementById("authButton");
+    if (authButton) {
+      authButton.addEventListener("click", handleAuthButtonClick);
+    }
+
+    // On page load, set the correct label / button text
+    updateAuthUI();
+  });
 </script>
 
 </body>
