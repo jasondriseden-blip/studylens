@@ -1691,8 +1691,7 @@ function sanitizeAnswerText(raw) {
   text = text.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "$1/$2");
   text = text.replace(/\\sqrt\{([^}]+)\}/g, "√($1)");
   text = text.replace(/√\(([^()]+)\)/g, "√$1");
-text = text.replace(/\\boxed\{([^}]+)\}/g, "$1");
-
+  text = text.replace(/\\boxed\{([^}]+)\}/g, "$1");
 
   text = text.replace(/\\\(|\\\)/g, "");
   text = text.replace(/\\\[|\\\]/g, "");
@@ -2077,7 +2076,7 @@ text.trim();
     });
   }
 
-  // Run OCR on whichever file we last picked
+  // Run OCR on whichever file we last picked (NO tracking added here)
   snapOCRBtn.addEventListener("click", async () => {
     if (!lastSnapFile) {
       alert("Choose or take an image first.");
@@ -2101,31 +2100,31 @@ text.trim();
     }
   });
 
-// Solve / Explain
-snapSolveBtn.addEventListener("click", async () => {
-  // ✅ Auth-aware usage gate:
-  // - If __canUseAIOnce exists, use it (logged-in → Supabase tracking, anon → localStorage limit)
-  // - Otherwise, fall back to the old anon-only limiter
-  if (window.__canUseAIOnce) {
-    const allowed = await window.__canUseAIOnce();
-    if (!allowed) {
+  // Solve / Explain
+  snapSolveBtn.addEventListener("click", async () => {
+    // ✅ Auth-aware usage gate:
+    // - If __canUseAIOnce exists, use it (logged-in → Supabase tracking, anon → localStorage limit)
+    // - Otherwise, fall back to the old anon-only limiter
+    if (window.__canUseAIOnce) {
+      const allowed = await window.__canUseAIOnce();
+      if (!allowed) {
+        return;
+      }
+    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
       return;
     }
-  } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
-    return;
-  }
 
-  const text = snapText.value.trim();
-  if (!text) {
-    alert("No text to solve.");
-    return;
-  }
-  snapResult.textContent = "Thinking...";
-  const ans = await runSnapSolve(text);
-  const clean = sanitizeAnswerText(ans);
-  renderAnswer(snapResult, clean); // 👈 instead of snapResult.textContent = clean;
-  addNotebookItem("Snap", clean);
-});
+    const text = snapText.value.trim();
+    if (!text) {
+      alert("No text to solve.");
+      return;
+    }
+    snapResult.textContent = "Thinking...";
+    const ans = await runSnapSolve(text);
+    const clean = sanitizeAnswerText(ans);
+    renderAnswer(snapResult, clean); // 👈 instead of snapResult.textContent = clean;
+    addNotebookItem("Snap", clean);
+  });
 
 
   // MATH
@@ -2135,8 +2134,13 @@ snapSolveBtn.addEventListener("click", async () => {
   const mathResult = document.getElementById("mathResult");
 
   mathSolveBtn.addEventListener("click", async () => {
-    // anonymous 5-use guard
-    if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+    // ✅ Auth-aware usage gate:
+    if (window.__canUseAIOnce) {
+      const allowed = await window.__canUseAIOnce();
+      if (!allowed) {
+        return;
+      }
+    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
       return;
     }
 
@@ -2164,8 +2168,13 @@ snapSolveBtn.addEventListener("click", async () => {
   const studyResult = document.getElementById("studyResult");
 
   studyGuideBtn.addEventListener("click", async () => {
-    // anonymous 5-use guard
-    if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+    // ✅ Auth-aware usage gate:
+    if (window.__canUseAIOnce) {
+      const allowed = await window.__canUseAIOnce();
+      if (!allowed) {
+        return;
+      }
+    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
       return;
     }
 
@@ -2193,8 +2202,13 @@ snapSolveBtn.addEventListener("click", async () => {
   const essayResult = document.getElementById("essayResult");
 
   essayBtn.addEventListener("click", async () => {
-    // anonymous 5-use guard
-    if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+    // ✅ Auth-aware usage gate:
+    if (window.__canUseAIOnce) {
+      const allowed = await window.__canUseAIOnce();
+      if (!allowed) {
+        return;
+      }
+    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
       return;
     }
 
@@ -2352,6 +2366,16 @@ snapSolveBtn.addEventListener("click", async () => {
   })();
 
   cardsBtn.addEventListener("click", async () => {
+    // ✅ Auth-aware usage gate:
+    if (window.__canUseAIOnce) {
+      const allowed = await window.__canUseAIOnce();
+      if (!allowed) {
+        return;
+      }
+    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+      return;
+    }
+
     const text = cardsInput.value.trim();
     if (!text) {
       alert("Paste content first.");
@@ -2447,6 +2471,16 @@ snapSolveBtn.addEventListener("click", async () => {
   const quizResult = document.getElementById("quizResult");
 
   quizBtn.addEventListener("click", async () => {
+    // ✅ Auth-aware usage gate:
+    if (window.__canUseAIOnce) {
+      const allowed = await window.__canUseAIOnce();
+      if (!allowed) {
+        return;
+      }
+    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+      return;
+    }
+
     const text = quizInput.value.trim();
     if (!text) {
       alert("Paste content first.");
@@ -2454,9 +2488,9 @@ snapSolveBtn.addEventListener("click", async () => {
     }
     quizResult.textContent = "Thinking...";
     const ans = await runQuiz(text);
-      const clean = sanitizeAnswerText(ans);
-  renderAnswer(quizResult, clean);   // 👈
-  addNotebookItem("Quiz", clean);
+    const clean = sanitizeAnswerText(ans);
+    renderAnswer(quizResult, clean);   // 👈
+    addNotebookItem("Quiz", clean);
 
   });
 
@@ -2471,6 +2505,16 @@ snapSolveBtn.addEventListener("click", async () => {
 // SIMPLIFY + HINT BUTTONS (styled with renderAnswer)
 document.querySelectorAll(".pill-button").forEach((btn) => {
   btn.addEventListener("click", async () => {
+    // ✅ Auth-aware usage gate:
+    if (window.__canUseAIOnce) {
+      const allowed = await window.__canUseAIOnce();
+      if (!allowed) {
+        return;
+      }
+    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+      return;
+    }
+
     const action = btn.dataset.action;
     const targetId = btn.dataset.target;
     if (!action || !targetId) return;
@@ -2502,9 +2546,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     }
   });
 });
-
 </script>
-
 
 <!-- BLOCK X: Snap hint row — send OCR text to other tools -->
 <script>
@@ -2541,14 +2583,12 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     wireSnapAction("snapActionEssayBtn", "essayInput", "essay");
 
     // Send to Flashcards
-wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
+    wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
 
     // Send to Quiz Maker
     wireSnapAction("snapActionQuizBtn", "quizInput", "quiz");
   })();
 </script>
-
-
 
 <!-- BLOCK: Completion animations (non-invasive wrappers) -->
 <script>
@@ -2658,7 +2698,6 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
   })();
 </script>
 
-
 <script>
   (function () {
     // in case __animatePulse isn't defined for some reason
@@ -2690,6 +2729,7 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
     });
   })();
 </script>
+
 <script>
   (function () {
     // ---- Anonymous usage limiter (5 total uses before requiring login) ----
@@ -2780,16 +2820,8 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
   })();
 </script>
 
-
-
-
-
 <!-- Supabase client library (from CDN) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-
-
-
 
 <!-- PassingGrade auth setup (Supabase) -->
 <script>
@@ -2958,6 +2990,7 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
     updateAuthUI();
   });
 </script>
+
 
 
 
