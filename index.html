@@ -2723,8 +2723,8 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
     // 🔹 Auth-aware helper:
     // - Not logged in            -> use anon localStorage limiter
-    // - Logged in as YOU (Pro)   -> unlimited, but still increments OCR usage
-    // - Logged in as others      -> 10/month OCR limit using Supabase
+    // - Logged in & plan='pro'   -> unlimited, but still increments OCR usage
+    // - Logged in & plan!='pro'  -> 10/month OCR limit using Supabase
     async function canUseAIOnce() {
       try {
         if (!window.supabaseClient) {
@@ -2742,10 +2742,27 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           return window.__canUseAIOnceAnon();
         }
 
-        const email = user.email || "";
-        const isPaid = email === "jasondriseden@gmail.com";
+        // 🔹 Look up this user's plan from user_plans
+        let isPaid = false;
 
-        // 🔹 Pro plan (your email) -> no 10/month cap, but still track OCR usage
+        try {
+          const { data: planRow, error: planError } = await window.supabaseClient
+            .from("user_plans")
+            .select("plan")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+          if (planError) {
+            console.error("error reading user_plans", planError);
+          }
+
+          const plan = planRow?.plan || "free";
+          isPaid = plan === "pro";
+        } catch (planEx) {
+          console.error("exception reading user_plans", planEx);
+        }
+
+        // 🔹 Pro plan -> no 10/month cap, but still track OCR usage
         if (isPaid) {
           const { error: rpcErrorPaid } = await window.supabaseClient.rpc(
             "increment_usage",
@@ -2822,6 +2839,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     window.__canUseAIOnce = canUseAIOnce;
   })();
 </script>
+
 
 
 
