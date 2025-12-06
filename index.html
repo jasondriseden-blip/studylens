@@ -225,23 +225,24 @@ html[data-theme="dark"] .brand-logo-dark  { display: block; }
     }
 
     .theme-toggle,
-    .drawer-toggle {
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      padding: 7px 13px; /* slightly bigger */
-      background: #6a7152;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.78rem;
-      color: #000);
-      cursor: pointer;
-      transition:
-        border-color var(--transition-fast),
-        color var(--transition-fast),
-        background var(--transition-fast),
-        transform 0.08s ease-out;
-    }
+.drawer-toggle {
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  padding: 7px 13px; /* slightly bigger */
+  background: var(--card-bg);   /* follows light/dark theme */
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--on-surface);     /* readable on both themes */
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    background var(--transition-fast),
+    transform 0.08s ease-out;
+}
+
 
     .theme-toggle svg {
       width: 18px;
@@ -253,12 +254,13 @@ html[data-theme="dark"] .brand-logo-dark  { display: block; }
     }
 
     .theme-toggle:hover,
-    .drawer-toggle:hover {
-      border-color: var(--primary);
-      color: var(--on-surface);
-      background: rgba(99, 102, 241, 0.12);
-      transform: translateY(-1px);
-    }
+.drawer-toggle:hover {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--primary), var(--primary-variant));
+  color: var(--on-primary);
+  transform: translateY(-1px);
+}
+
 
     .top-bar {
       display: flex;
@@ -2369,6 +2371,39 @@ const snapSolveBtn = document.getElementById("snapActionSolveBtn");
         return result;
       };
     }
+  })();
+</script>
+
+
+<script>
+  (function () {
+    // in case __animatePulse isn't defined for some reason
+    if (!window.__animatePulse) {
+      window.__animatePulse = function (el) {
+        if (!el) return;
+        el.classList.remove("pulse-once");
+        void el.offsetWidth;
+        el.classList.add("pulse-once");
+      };
+    }
+
+    // All the "big action" buttons
+    const buttons = document.querySelectorAll([
+      "#snapOCRBtn",
+      "#snapActionSolveBtn",
+      "#mathSolveBtn",
+      "#studyGuideBtn",
+      "#essayBtn",
+      "#cardsBtn",
+      "#quizBtn"
+    ].join(","));
+
+    buttons.forEach((btn) => {
+      if (!btn) return;
+      btn.addEventListener("click", () => {
+        window.__animatePulse(btn);
+      });
+    });
   })();
 </script>
 
