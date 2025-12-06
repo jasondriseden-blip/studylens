@@ -43,7 +43,7 @@
     rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=DM+Sans:wght@400;500;600&family=Material+Symbols+Outlined:wght@400&display=swap"
   />
-<link rel="icon" href="favicon.ico" />
+<link rel="icon" href="favicon.png" />
 <link rel="icon" type="image/png" href="favicon.png" />
 <link rel="apple-touch-icon" href="icon.png" />
 
@@ -2752,7 +2752,6 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
 
 
 
-
 <!-- PassingGrade auth setup (Supabase) -->
 <script>
   // TODO: replace these with your real values from Supabase → Settings → API
@@ -2814,7 +2813,7 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
       const { error } = await supabaseClient.auth.signInWithOtp({
         email: email,
         options: {
-          emailRedirectTo: window.location.origin
+          emailRedirectTo: "https://passinggrade.app"
         }
       });
 
@@ -2844,6 +2843,7 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
     updateAuthUI();
   });
 </script>
+
 
 </body>
 </html>
