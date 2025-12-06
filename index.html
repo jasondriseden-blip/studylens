@@ -1403,7 +1403,8 @@ function sanitizeAnswerText(raw) {
   text = text.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "$1/$2");
   text = text.replace(/\\sqrt\{([^}]+)\}/g, "√($1)");
   text = text.replace(/√\(([^()]+)\)/g, "√$1");
-  text = text.replace(/\\boxed\{([^}]+)\}/g, "");
+text = text.replace(/\\boxed\{([^}]+)\}/g, "$1");
+
 
   text = text.replace(/\\\(|\\\)/g, "");
   text = text.replace(/\\\[|\\\]/g, "");
