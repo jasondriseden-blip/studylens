@@ -2750,6 +2750,19 @@ wireSnapAction("snapActionCardsBtn", "cardsInput", "flashcards");
     SUPABASE_URL,
     SUPABASE_ANON_KEY
   );
+  async function testIncrementUsage() {
+  const { error } = await supabaseClient.rpc('increment_usage', {
+    p_action: 'check',
+    p_amount: 1,
+  });
+
+  if (error) {
+    console.error('increment_usage failed', error);
+  } else {
+    console.log('increment_usage succeeded');
+  }
+}
+
 
   // --- handle OAuth tokens in URL (hash OR query) ---
   async function handleAuthFromUrl() {
