@@ -811,11 +811,11 @@
   }
 
  @media (max-width: 700px) {
-  /* Header becomes a vertical stack */
+  /* Header: vertical stack */
   header {
     flex-direction: column;
     align-items: stretch;
-    gap: 6px;
+    gap: 8px;
     padding: 10px 12px;
   }
 
@@ -849,60 +849,63 @@
     box-shadow: none;
   }
 
-  /* Right side: rows under the logo */
+  /* Right side: stacked under logo */
   .header-right {
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
     margin-top: 2px;
   }
 
-  /* Row 1 under logo: Learn + Theme + Tools, neatly spaced */
+  /* Row: Learn chip (full width) + buttons on a clean row */
   .header-top-row {
     width: 100%;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between; /* chip left, buttons on the right */
+    justify-content: flex-end;   /* buttons hug the right */
     gap: 8px;
-    flex-wrap: nowrap;
   }
 
+  /* Learn chip becomes its own full-width line under logo */
   .chip.learn-mode {
-    flex: 1;
-    max-width: 60%;
+    flex: 1 1 100%;
+    order: -1;                   /* move above buttons */
     padding: 5px 10px;
-    white-space: nowrap;
+    font-size: 0.74rem;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 0.74rem;
+    white-space: nowrap;
   }
 
   .theme-toggle,
   .drawer-toggle {
-    margin: 0;          /* no weird offsets */
-    flex-shrink: 0;     /* keep button size consistent */
+    flex: 0 0 auto;
   }
 
-  /* Row 2 under that: "signed in as..." + Sign in/out */
+  /* Row below: plan text + sign in/out */
   .auth-row {
     width: 100%;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
     gap: 8px;
-    margin-top: 2px;
+    margin-top: 0;
     font-size: 0.75rem;
   }
 
   .user-plan-label {
-    max-width: 65%;
+    flex: 1 1 auto;
+    max-width: none;
+    white-space: normal;       /* long emails can wrap */
     text-align: left;
-    line-height: 1.2;
+    line-height: 1.3;
   }
 
   .auth-button {
+    flex: 0 0 auto;
     padding: 6px 12px;
     font-size: 0.78rem;
   }
