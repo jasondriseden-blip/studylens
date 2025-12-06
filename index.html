@@ -10,7 +10,7 @@
     rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=DM+Sans:wght@400;500;600&family=Material+Symbols+Outlined:wght@400&display=swap"
   />
-<link rel="icon" href="/favicon.ico" />
+<link rel="icon" href="favicon.ico" />
 <link rel="apple-touch-icon" href="icon.png" />
   <style>
     :root {
@@ -229,12 +229,12 @@ html[data-theme="dark"] .brand-logo-dark  { display: block; }
       border-radius: 999px;
       border: 1px solid rgba(148, 163, 184, 0.5);
       padding: 7px 13px; /* slightly bigger */
-      background: rgb(238 242 255);
+      background: #6a7152;
       display: inline-flex;
       align-items: center;
       gap: 8px;
       font-size: 0.78rem;
-      color: var(--muted);
+      color: #000);
       cursor: pointer;
       transition:
         border-color var(--transition-fast),
@@ -757,6 +757,26 @@ html[data-theme="dark"] .brand-logo-dark  { display: block; }
         justify-content: flex-end;
       }
     }
+	/* ---- Subtle "completed" pulse animation ---- */
+@keyframes pulse-highlight {
+  0% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+    transform: scale(1);
+  }
+  35% {
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.35);
+    transform: scale(1.01);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+    transform: scale(1);
+  }
+}
+
+.pulse-once {
+  animation: pulse-highlight 0.7s ease-out;
+}
+
   </style>
 </head>
 <body>
@@ -2242,6 +2262,115 @@ const snapSolveBtn = document.getElementById("snapActionSolveBtn");
   })();
 </script>
 
+
+
+<!-- BLOCK: Completion animations (non-invasive wrappers) -->
+<script>
+  (function () {
+    function animatePulse(el) {
+      if (!el) return;
+      el.classList.remove("pulse-once");
+      // force reflow so animation can retrigger
+      void el.offsetWidth;
+      el.classList.add("pulse-once");
+    }
+
+    // make available if you ever want to call it manually
+    window.__animatePulse = animatePulse;
+
+    // After OCR completes -> highlight snapText
+    if (typeof window.runFakeOCR === "function") {
+      const _runFakeOCR = window.runFakeOCR;
+      window.runFakeOCR = async function (file) {
+        const result = await _runFakeOCR(file);
+        setTimeout(() => {
+          const snapText = document.getElementById("snapText");
+          animatePulse(snapText);
+        }, 0);
+        return result;
+      };
+    }
+
+    // After Snap & Solve completes -> highlight snapResult
+    if (typeof window.runSnapSolve === "function") {
+      const _runSnapSolve = window.runSnapSolve;
+      window.runSnapSolve = async function (text) {
+        const result = await _runSnapSolve(text);
+        setTimeout(() => {
+          const snapResult = document.getElementById("snapResult");
+          animatePulse(snapResult);
+        }, 0);
+        return result;
+      };
+    }
+
+    // After Math Solver -> highlight mathResult
+    if (typeof window.runMathSolver === "function") {
+      const _runMathSolver = window.runMathSolver;
+      window.runMathSolver = async function (text) {
+        const result = await _runMathSolver(text);
+        setTimeout(() => {
+          const el = document.getElementById("mathResult");
+          animatePulse(el);
+        }, 0);
+        return result;
+      };
+    }
+
+    // After Study Guide -> highlight studyResult
+    if (typeof window.runStudyGuide === "function") {
+      const _runStudyGuide = window.runStudyGuide;
+      window.runStudyGuide = async function (text) {
+        const result = await _runStudyGuide(text);
+        setTimeout(() => {
+          const el = document.getElementById("studyResult");
+          animatePulse(el);
+        }, 0);
+        return result;
+      };
+    }
+
+    // After Essay Helper -> highlight essayResult
+    if (typeof window.runEssayHelper === "function") {
+      const _runEssayHelper = window.runEssayHelper;
+      window.runEssayHelper = async function (text) {
+        const result = await _runEssayHelper(text);
+        setTimeout(() => {
+          const el = document.getElementById("essayResult");
+          animatePulse(el);
+        }, 0);
+        return result;
+      };
+    }
+
+    // After Quiz Maker -> highlight quizResult
+    if (typeof window.runQuiz === "function") {
+      const _runQuiz = window.runQuiz;
+      window.runQuiz = async function (text) {
+        const result = await _runQuiz(text);
+        setTimeout(() => {
+          const el = document.getElementById("quizResult");
+          animatePulse(el);
+        }, 0);
+        return result;
+      };
+    }
+
+    // After Flashcards generation -> highlight viewer (or raw result)
+    if (typeof window.runFlashcards === "function") {
+      const _runFlashcards = window.runFlashcards;
+      window.runFlashcards = async function (text) {
+        const result = await _runFlashcards(text);
+        setTimeout(() => {
+          const viewer = document.getElementById("cardsViewer");
+          const resultEl = document.getElementById("cardsResult");
+          animatePulse(viewer || resultEl);
+        }, 0);
+        return result;
+      };
+    }
+  })();
+</script>
 
 </body>
 </html>
