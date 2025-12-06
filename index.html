@@ -830,19 +830,24 @@ html[data-theme="dark"] .brand-logo-dark  { display: block; }
     </header>
 
     <div class="top-bar">
-      <select id="subjectSelect">
-        <option value="general">Subject: Auto</option>
-        <option value="math">Math</option>
-        <option value="science">Science</option>
-        <option value="english">English</option>
-        <option value="history">History</option>
-      </select>
-      <select id="modelSelect">
-        <option value="smart">Model: Smart</option>
-        <option value="openai">ChatGPT</option>
-        <option value="gemini">Gemini</option>
-      </select>
-    </div>
+  <select id="subjectSelect">
+    <option value="general">Subject: Auto (recommended)</option>
+    <option value="math">Math</option>
+    <option value="science">Science</option>
+    <option value="english">English</option>
+    <option value="history">History</option>
+  </select>
+
+  <!-- Single model option, still uses value="smart" so backend stays the same -->
+  <select id="modelSelect">
+    <option value="smart">Model: OpenAI (smart auto)</option>
+  </select>
+</div>
+
+<p class="desc" style="margin: 4px 0 0; font-size: 0.72rem;">
+  Subject just gives the AI a hint (Math, Science, etc.). You can leave it on <strong>Auto</strong>.
+</p>
+
 
     <div class="main-layout">
       <div class="content">
