@@ -814,6 +814,9 @@
     border: 1px solid rgb(55 65 81);
     color: var(--on-surface);
   }
+  .mobile-break {
+  display: none;
+}
 
  @media (max-width: 700px) {
   /* make header a positioning parent */
@@ -824,7 +827,9 @@
     gap: 8px;
     padding: 16px 12px 12px;
   }
-
+.mobile-break {
+    display: inline;
+  }
   .title-block {
     width: 100%;
   }
@@ -835,7 +840,7 @@
 
   .brand-logo {
     display: block;
-    height: 60px;
+    height: 45px;
     width: auto;
   }
 
@@ -846,12 +851,13 @@
     background: transparent;
     box-shadow: none;
     height: auto;
+	margin-top: .8em;
   }
 
   .subtitle {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: var(--muted);
-    margin-top: 6px;
+
   }
 
   /* left side: guest / plan + buttons */
@@ -1099,7 +1105,7 @@
       <h1 class="visually-hidden">StudyLens</h1>
     </div>
     <div class="subtitle">
-      Snap, solve, study & write. Built for students.
+Snap, solve, study & write.<span class="mobile-break"><br></span> Built for students.
     </div>
   </div>
 
