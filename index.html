@@ -3936,137 +3936,6 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
 
 
-
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const upgradeBtn = document.getElementById("upgradeButton");
-    if (!upgradeBtn) return;
-
-    upgradeBtn.addEventListener("click", async () => {
-      // ✅ Require login before starting checkout
-      try {
-        const { data, error } = await supabaseClient.auth.getUser();
-
-        if (error || !data.user) {
-          alert("Please sign in first before upgrading to Pro.");
-          return;
-        }
-      } catch (e) {
-        console.error("Error checking auth before upgrade", e);
-        alert("Could not verify your login. Please sign in again and try.");
-        return;
-      }
-
-      const originalText = upgradeBtn.textContent;
-      upgradeBtn.disabled = true;
-      upgradeBtn.textContent = "Opening checkout...";
-
-      try {
-        const res = await fetch("/api/create-checkout-session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        });
-
-        if (!res.ok) {
-          throw new Error("Network error: " + res.status);
-        }
-
-        const data = await res.json();
-        if (!data.url) {
-          throw new Error("No checkout URL returned");
-        }
-
-        // Go to Stripe Checkout
-        window.location.href = data.url;
-      } catch (err) {
-        console.error("Upgrade error", err);
-        alert("Could not start checkout. Please try again in a moment.");
-        upgradeBtn.disabled = false;
-        upgradeBtn.textContent = originalText;
-      }
-    });
-  });
-</script>
-
-
-
-
-
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const upgradeBtn = document.getElementById("upgradeButton");
-    if (!upgradeBtn) return;
-
-    upgradeBtn.addEventListener("click", () => {
-      // TODO: replace this with your real Stripe Payment Link URL
-      window.location.href = "https://buy.stripe.com/4gMfZh1BN90S7sIgAq8Ra00";
-    });
-  });
-</script>
-
-
-
-
-<script>
-  (function () {
-    const upgradeBtn = document.getElementById("upgradeButton");
-    if (!upgradeBtn) return;
-
-    upgradeBtn.addEventListener("click", async () => {
-      try {
-        if (!window.supabaseClient) {
-          alert("Error: Supabase is not ready yet. Try reloading the page.");
-          return;
-        }
-
-        // 1) Make sure the user is signed in
-        const {
-          data: { user },
-          error,
-        } = await window.supabaseClient.auth.getUser();
-
-        if (error || !user) {
-          alert("Please sign in first, then tap Upgrade again.");
-          const authButton = document.getElementById("authButton");
-          if (authButton) authButton.focus();
-          return;
-        }
-
-        const originalText = upgradeBtn.textContent;
-        upgradeBtn.disabled = true;
-        upgradeBtn.textContent = "Redirecting...";
-
-        // 2) Tell the backend who this user is
-        const res = await fetch("/api/create-checkout-session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId: user.id,
-            email: user.email,
-          }),
-        });
-
-        if (!res.ok) {
-          throw new Error("Request failed (" + res.status + ")");
-        }
-
-        const data = await res.json();
-        if (!data || !data.url) {
-          throw new Error("No checkout URL returned");
-        }
-
-        // 3) Go to Stripe Checkout
-        window.location.href = data.url;
-      } catch (err) {
-        console.error("Upgrade error:", err);
-        alert("Error starting checkout: " + err.message);
-        upgradeBtn.disabled = false;
-        upgradeBtn.textContent = "Upgrade to Pro";
-      }
-    });
-  })();
-</script>
-
 <script>
   document.addEventListener("DOMContentLoaded", () => {
     const upgradeBtn = document.getElementById("upgradeButton");
@@ -4084,11 +3953,12 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
         const user = data.user;
 
         // Look up their plan by email
-        const { data: planRow, error: planError } = await supabaseClient
-          .from("user_plans")
-          .select("plan")
-          .eq("email", user.email)
-          .maybeSingle();
+        // Look up their plan by user_id
+const { data: planRow, error: planError } = await supabaseClient
+  .from("user_plans")
+  .select("plan")
+  .eq("user_id", user.id)
+  .maybeSingle();
 
         if (!planError && planRow && planRow.plan === "pro") {
           // ✅ Already Pro: hide Upgrade button, show badge
@@ -4100,7 +3970,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       }
     })();
 
-    // 🔹 2) Keep your existing Upgrade click handler (with login check)
+    // 🔹 2) Upgrade click handler
     if (!upgradeBtn) return;
 
     upgradeBtn.addEventListener("click", async () => {
@@ -4148,35 +4018,6 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
   });
 </script>
 
-<script>
-  let currentPlan = "free"; // default
-
-  document.addEventListener("DOMContentLoaded", async () => {
-    const upgradeBtn = document.getElementById("upgradeButton");
-    const proBadge = document.getElementById("proBadge");
-
-    try {
-      const { data, error } = await supabaseClient.auth.getUser();
-      if (error || !data.user) return;
-
-      const userEmail = data.user.email;
-
-      const { data: planData } = await supabaseClient
-        .from("user_plans")
-        .select("plan")
-        .eq("email", userEmail)
-        .maybeSingle();
-
-      if (planData?.plan === "pro") {
-        currentPlan = "pro";
-        if (upgradeBtn) upgradeBtn.style.display = "none";
-        if (proBadge) proBadge.style.display = "inline";
-      }
-    } catch (e) {
-      console.error("Error checking plan", e);
-    }
-  });
-</script>
 
 
 </body>
