@@ -816,11 +816,11 @@
   }
 
  @media (max-width: 700px) {
-  /* Header stacks vertically */
+  /* Header stacked, no overlap */
   header {
     flex-direction: column;
     align-items: stretch;
-    gap: 6px;
+    gap: 8px;
     padding: 16px 12px 12px;
   }
 
@@ -832,16 +832,10 @@
     justify-content: flex-start;
   }
 
-  .subtitle {
-    font-size: 0.75rem;
-    color: var(--muted);
-    margin-top: 6px; /* more space under the logo */
-  }
-
-  /* Logo size on mobile */
+  /* Logo + tagline */
   .brand-logo {
     display: block;
-    height: 60px;   /* was 50px */
+    height: 60px;      /* taller logo */
     width: auto;
   }
 
@@ -849,9 +843,15 @@
     display: inline-flex;
     align-items: center;
     justify-content: flex-start;
-    height: 60px;   /* match the logo height so it’s not cramped */
     background: transparent;
     box-shadow: none;
+    height: auto;
+  }
+
+  .subtitle {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 6px;   /* more space under logo */
   }
 
   /* Right side under logo */
@@ -863,20 +863,19 @@
     margin-top: 4px;
   }
 
-  /* Row 1: plan text + Upgrade + Sign in */
+  /* Row 1: plan + sign/upgrade LEFT */
   .auth-row {
     width: 100%;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin-top: 0;
+    justify-content: flex-start;
+    gap: 6px;
     font-size: 0.75rem;
   }
 
   #userPlanLabel {
-    flex: 1 1 auto;
-    min-width: 0;
+    flex: 1 1 100%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -887,119 +886,31 @@
   .btn-upgrade,
   #authButton {
     flex: 0 0 auto;
-    padding: 6px 10px;
+    padding: 5px 12px;
     font-size: 0.78rem;
-  }
-
-  /* Row 2: Learn toggle + theme + tools */
-  .header-top-row {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-  }
-
-  @media (max-width: 700px) {
-  /* Header stacks vertically */
-  header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 6px;
-    padding: 16px 12px 12px;
-  }
-
-  .title-block {
-    width: 100%;
-  }
-
-  .title-row {
-    justify-content: flex-start;
-  }
-
-  .subtitle {
-    font-size: 0.75rem;
-    color: var(--muted);
-    margin-top: 6px;          /* moved down a bit */
-  }
-
-  /* Logo size on mobile */
-  .brand-logo {
-    display: block;
-    height: 60px;             /* 60px tall logo */
-    width: auto;
-  }
-
-  .brand-logo-wrap {
-    display: inline-flex;
-    align-items: center;
-    justify-content: flex-start;
-    height: 60px;
-    background: transparent;
-    box-shadow: none;
-  }
-
-  /* Right side under logo */
-  .header-right {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-top: 4px;
-  }
-
-  /* Row 1: plan text + Upgrade + Sign in (wrapped nicely) */
-  .auth-row {
-    width: 100%;
-    display: flex;
-    flex-wrap: wrap;              /* allow 2 rows */
-    align-items: center;
-    gap: 8px;
-    margin-top: 0;
-    font-size: 0.75rem;
-  }
-
-  /* Label always on its own line (first row) */
-  #userPlanLabel {
-    flex: 1 0 100%;               /* takes full width row */
+    width: auto !important;
     min-width: 0;
-    white-space: normal;
-    text-align: left;
-    line-height: 1.3;
   }
 
-  /* Buttons live together on the second row */
-  .btn-upgrade,
-  #authButton {
-    flex: 1 1 0;                  /* share the second row */
-    min-width: 0;
-    padding: 6px 10px;
-    font-size: 0.78rem;
-    text-align: center;
-  }
+  /* Row 2: learn chip + toggles, tools → RIGHT */
+ /* Row 2: keep Learn + toggles grouped on the right, not stretched */
+.header-top-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;  /* was space-between */
+  gap: 6px;                   /* closer together */
+}
 
-  /* Row 2: Learn toggle + theme + tools */
-  .header-top-row {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 8px;
-  }
+/* Learn chip: shrink to content, don’t stretch */
+.chip.learn-mode {
+  flex: 0 0 auto;             /* was flex: something bigger */
+  max-width: none;
+  padding: 4px 10px;
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
 
-  .chip.learn-mode {
-    flex: 0 0 auto;               /* compact pill */
-    padding: 5px 10px;
-    font-size: 0.74rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-  }
-
-  .theme-toggle {
-    margin-left: auto;            /* pushes theme + tools to the right */
-  }
 
   .theme-toggle,
   .drawer-toggle {
@@ -1010,16 +921,14 @@
     font-size: 0.8rem;
   }
 
-  /* Hide text labels for compact icons on tiny screens */
   .theme-toggle span#themeLabel {
     display: none;
   }
 
   .drawer-toggle span:not(.material-symbols-outlined) {
-    display: none; /* hides "Tools" text, keeps icon */
+    display: none;
   }
 
-  /* Keep existing logo theme effects */
   [data-theme="light"] .brand-logo {
     filter: drop-shadow(0 6px 14px rgba(148, 163, 184, 0.6));
   }
@@ -1030,6 +939,7 @@
       drop-shadow(0 0 12px rgba(59, 130, 246, 0.4));
   }
 }
+
 
 
   .theme-toggle,
@@ -3819,7 +3729,6 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     // Read plan from user_plans (free / pro)
     const plan = await fetchUserPlan(user.id);
     const isPro = plan === "pro";
-    const planLabel = isPro ? "Pro plan" : "Free plan";
 
     let usageText = "";
 
@@ -3855,7 +3764,13 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       console.error("usage label exception", e);
     }
 
-    userPlanLabel.textContent = `${planLabel} · signed in as ${namePart}${usageText}`;
+    // Build label: no "Pro plan" text for Pro users
+    let label = `signed in as ${namePart}`;
+    if (!isPro) {
+      label = `Free plan · ${label}`;
+    }
+
+    userPlanLabel.textContent = `${label}${usageText}`;
     authButton.textContent = "Sign out";
     authButton.dataset.authState = "signed-in";
   }
@@ -3928,6 +3843,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     }
   };
 </script>
+
 
 
 
