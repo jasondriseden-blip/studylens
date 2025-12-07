@@ -111,7 +111,7 @@
     min-height: 100vh;
     display: flex;
     justify-content: center;
-	padding-top: 0.75rem;
+    padding-top: 0.75rem;
   }
 
   .app {
@@ -460,6 +460,7 @@
     flex-wrap: wrap;
     gap: 6px;
     margin-top: 6px;
+	justify-content: flex-end;
   }
 
   .hint-row button {
@@ -1043,8 +1044,8 @@
 
     <div class="main-layout">
       <div class="content">
-        <!-- SNAP & SOLVE -->
-        <section id="snap" class="tab-content active">
+        <!-- SNAP & SOLVE (always visible main input) -->
+        <section id="snap">
           <div class="card">
             <h2>Snap & Solve</h2>
             <p class="desc">
@@ -1103,7 +1104,7 @@
               "
             />
 
-            <label for="snapText">Recognized text (you can edit this)</label>
+            <label for="snapText">Recognized text (main input for all tools — you can also type here)</label>
             <textarea
               id="snapText"
               placeholder="OCR text will appear here..."
@@ -1174,10 +1175,11 @@
               Type or paste a math question → step-by-step solution.
             </p>
 
-            <label for="mathInput">Math problem</label>
+            <label for="snapText">Math problem (uses the main text box above)</label>
             <textarea
               id="mathInput"
               placeholder="Example: Solve 3x + 7 = 22"
+              style="display:none;"
             ></textarea>
 
             <div class="btn-row">
@@ -1217,10 +1219,11 @@
               Turn messy notes or textbook text into a clean study guide.
             </p>
 
-            <label for="studyInput">Notes or textbook text</label>
+            <label for="snapText">Notes or textbook text (uses the main text box above)</label>
             <textarea
               id="studyInput"
               placeholder="Paste your notes or textbook text here..."
+              style="display:none;"
             ></textarea>
 
             <div class="btn-row">
@@ -1260,10 +1263,11 @@
               Fix grammar, improve structure, or generate a draft from a prompt.
             </p>
 
-            <label for="essayInput">Essay text or assignment prompt</label>
+            <label for="snapText">Essay text or assignment prompt (uses the main text box above)</label>
             <textarea
               id="essayInput"
               placeholder="Paste your essay or describe what you need to write..."
+              style="display:none;"
             ></textarea>
 
             <div class="btn-row">
@@ -1302,10 +1306,11 @@
       Paste content → get term/question → answer flashcards.
     </p>
 
-    <label for="cardsInput">Source text for flashcards</label>
+    <label for="snapText">Source text for flashcards (uses the main text box above)</label>
     <textarea
       id="cardsInput"
       placeholder="Paste notes, vocabulary lists, or textbook text..."
+      style="display:none;"
     ></textarea>
 
     <div class="btn-row">
@@ -1366,10 +1371,11 @@
               Turn notes into multiple-choice and short-answer questions.
             </p>
 
-            <label for="quizInput">Material to quiz on</label>
+            <label for="snapText">Material to quiz on (uses the main text box above)</label>
             <textarea
               id="quizInput"
               placeholder="Paste notes or textbook section..."
+              style="display:none;"
             ></textarea>
 
             <div class="btn-row">
@@ -2140,9 +2146,9 @@ text.trim();
   const mathResult = document.getElementById("mathResult");
 
   mathSolveBtn.addEventListener("click", async () => {
-    const text = mathInput.value.trim();
+    const text = snapText.value.trim();
     if (!text) {
-      alert("Type a math problem first.");
+      alert("Type or paste a math problem into the main text box first.");
       return;
     }
     mathResult.textContent = "Thinking...";
@@ -2153,7 +2159,6 @@ text.trim();
   });
 
   mathClearBtn.addEventListener("click", () => {
-    mathInput.value = "";
     mathResult.textContent = "";
   });
 
@@ -2164,9 +2169,9 @@ text.trim();
   const studyResult = document.getElementById("studyResult");
 
   studyGuideBtn.addEventListener("click", async () => {
-    const text = studyInput.value.trim();
+    const text = snapText.value.trim();
     if (!text) {
-      alert("Paste some notes or text first.");
+      alert("Paste some notes or text into the main text box first.");
       return;
     }
     studyResult.textContent = "Thinking...";
@@ -2177,7 +2182,6 @@ text.trim();
   });
 
   studyClearBtn.addEventListener("click", () => {
-    studyInput.value = "";
     studyResult.textContent = "";
   });
 
@@ -2188,9 +2192,9 @@ text.trim();
   const essayResult = document.getElementById("essayResult");
 
   essayBtn.addEventListener("click", async () => {
-    const text = essayInput.value.trim();
+    const text = snapText.value.trim();
     if (!text) {
-      alert("Paste your essay or prompt first.");
+      alert("Paste your essay or prompt into the main text box first.");
       return;
     }
     essayResult.textContent = "Thinking...";
@@ -2201,7 +2205,6 @@ text.trim();
   });
 
   essayClearBtn.addEventListener("click", () => {
-    essayInput.value = "";
     essayResult.textContent = "";
   });
 </script>
@@ -2343,9 +2346,9 @@ text.trim();
 
   // no counting here
   cardsBtn.addEventListener("click", async () => {
-    const text = cardsInput.value.trim();
+    const text = snapText.value.trim();
     if (!text) {
-      alert("Paste content first.");
+      alert("Paste content into the main text box first.");
       return;
     }
 
@@ -2385,7 +2388,6 @@ text.trim();
   });
 
   cardsClearBtn.addEventListener("click", () => {
-    cardsInput.value = "";
     cardsResult.textContent = "";
     flashcards = [];
     currentCardIndex = 0;
@@ -2439,9 +2441,9 @@ text.trim();
 
   // no counting here
   quizBtn.addEventListener("click", async () => {
-    const text = quizInput.value.trim();
+    const text = snapText.value.trim();
     if (!text) {
-      alert("Paste content first.");
+      alert("Paste content into the main text box first.");
       return;
     }
     quizResult.textContent = "Thinking...";
@@ -2453,7 +2455,6 @@ text.trim();
   });
 
   quizClearBtn.addEventListener("click", () => {
-    quizInput.value = "";
     quizResult.textContent = "";
   });
 </script>
