@@ -1949,6 +1949,11 @@ themeToggle.addEventListener("click", () => {
     subjects.forEach((subj) => {
       const row = document.createElement("div");
       row.className = "notebook-subject-row";
+      // make dropdown position correctly
+      row.style.position = "relative";
+      row.style.display = "inline-flex";
+      row.style.alignItems = "center";
+      row.style.gap = "4px";
 
       const subjBtn = document.createElement("button");
       subjBtn.type = "button";
@@ -1970,6 +1975,15 @@ themeToggle.addEventListener("click", () => {
       const dropdown = document.createElement("div");
       dropdown.className = "notebook-subject-dropdown";
       dropdown.style.display = "none";
+      dropdown.style.position = "absolute";
+      dropdown.style.right = "0";
+      dropdown.style.top = "110%";
+      dropdown.style.background = "var(--surface)";
+      dropdown.style.border = "1px solid var(--outline)";
+      dropdown.style.borderRadius = "999px";
+      dropdown.style.padding = "4px 6px";
+      dropdown.style.zIndex = "20";
+      dropdown.style.whiteSpace = "nowrap";
 
       const editBtn = document.createElement("button");
       editBtn.type = "button";
@@ -2253,36 +2267,6 @@ themeToggle.addEventListener("click", () => {
   // NEW: subject chips (filter / dropdown / edit / delete) using delegation
   if (notebookSubjectsEl) {
     notebookSubjectsEl.addEventListener("click", (e) => {
-      // 1) ⋯ menu -> delete this subject + its notes (with confirm)
-      const menuBtn = e.target.closest(".notebook-subject-menu");
-      if (menuBtn) {
-        const row = menuBtn.closest(".notebook-subject-row");
-        const subjBtn = row?.querySelector(".notebook-subject-btn");
-        const subj = subjBtn?.dataset.subject;
-        if (!subj) return;
-
-        const ok = confirm(
-          `Delete subject "${subj}" and all its saved notes? You can undo once from the Notebook.`
-        );
-        if (!ok) return;
-
-        const items = loadNotebook();
-        notebookLastSnapshot = items.slice(); // for undo
-
-        const remaining = items.filter(
-          (it) => (it.subject || "general").trim() !== subj
-        );
-
-        if (notebookSubjectFilter === subj) {
-          notebookSubjectFilter = "all";
-        }
-
-        saveNotebook(remaining);
-        renderNotebook();
-        return;
-      }
-
-      // 2) Subject pill itself -> just filter
       const subjectBtn = e.target.closest(".notebook-subject-btn");
       if (subjectBtn) {
         const subj = subjectBtn.dataset.subject;
@@ -2290,6 +2274,7 @@ themeToggle.addEventListener("click", () => {
         notebookSubjectFilter =
           notebookSubjectFilter === subj ? "all" : subj;
         renderNotebook();
+        return;
       }
 
       const menuBtn = e.target.closest(".notebook-subject-menu");
