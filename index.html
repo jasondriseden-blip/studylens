@@ -3142,13 +3142,36 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
     upgradeBtn.addEventListener("click", async () => {
       try {
-        upgradeBtn.disabled = true;
+        if (!window.supabaseClient) {
+          alert("Error: Supabase is not ready yet. Try reloading the page.");
+          return;
+        }
+
+        // 1) Make sure the user is signed in
+        const {
+          data: { user },
+          error,
+        } = await window.supabaseClient.auth.getUser();
+
+        if (error || !user) {
+          alert("Please sign in first, then tap Upgrade again.");
+          const authButton = document.getElementById("authButton");
+          if (authButton) authButton.focus();
+          return;
+        }
+
         const originalText = upgradeBtn.textContent;
+        upgradeBtn.disabled = true;
         upgradeBtn.textContent = "Redirecting...";
 
+        // 2) Tell the backend who this user is
         const res = await fetch("/api/create-checkout-session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: user.id,
+            email: user.email,
+          }),
         });
 
         if (!res.ok) {
@@ -3160,7 +3183,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           throw new Error("No checkout URL returned");
         }
 
-        // Go to Stripe Checkout
+        // 3) Go to Stripe Checkout
         window.location.href = data.url;
       } catch (err) {
         console.error("Upgrade error:", err);
@@ -3171,6 +3194,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     });
   })();
 </script>
+
 
 </body>
 </html>
