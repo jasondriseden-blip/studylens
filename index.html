@@ -3599,6 +3599,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <!-- PassingGrade auth setup (Supabase) -->
+<!-- PassingGrade auth setup (Supabase) -->
 <script>
   const SUPABASE_URL = "https://rwjijfffirbpmkhcptrb.supabase.co";
   const SUPABASE_ANON_KEY =
@@ -3687,13 +3688,13 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     }
   }
 
-  // Internal helper to read a specific user's plan
-  async function fetchUserPlan(userId) {
+  // Internal helper to read a specific user's plan (by EMAIL)
+  async function fetchUserPlan(email) {
     try {
       const { data, error } = await supabaseClient
         .from("user_plans")
         .select("plan")
-        .eq("user_id", userId)
+        .eq("email", email)
         .maybeSingle();
 
       if (error) {
@@ -3742,8 +3743,8 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     const email = user.email || "";
     const namePart = email.split("@")[0] || "your account";
 
-    // Read plan from user_plans (free / pro)
-    const plan = await fetchUserPlan(user.id);
+    // Read plan from user_plans (free / pro) by EMAIL
+    const plan = await fetchUserPlan(email);
     const isPro = plan === "pro";
 
     let usageText = "";
@@ -3790,9 +3791,6 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     authButton.textContent = "Sign out";
     authButton.dataset.authState = "signed-in";
   }
-
-  // 🔹 expose so other scripts (usage limiter) can call it
-  window.updateAuthUI = updateAuthUI;
 
   // Handle click on the auth button (Sign in / Sign out) – GOOGLE OAUTH
   async function handleAuthButtonClick() {
@@ -3854,14 +3852,15 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
         return null;
       }
 
-      const userId = data.user.id;
-      return await fetchUserPlan(userId);
+      const email = data.user.email;
+      return await fetchUserPlan(email);
     } catch (e) {
       console.error("getCurrentUserPlan exception", e);
       return "free";
     }
   };
 </script>
+
 
 
 
