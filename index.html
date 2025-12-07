@@ -2251,8 +2251,38 @@ themeToggle.addEventListener("click", () => {
   }
 
   // NEW: subject chips (filter / dropdown / edit / delete) using delegation
-  if (notebookSubjectsEl) {
+    if (notebookSubjectsEl) {
     notebookSubjectsEl.addEventListener("click", (e) => {
+      // 1) ⋯ menu -> delete this subject + its notes (with confirm)
+      const menuBtn = e.target.closest(".notebook-subject-menu");
+      if (menuBtn) {
+        const row = menuBtn.closest(".notebook-subject-row");
+        const subjBtn = row?.querySelector(".notebook-subject-btn");
+        const subj = subjBtn?.dataset.subject;
+        if (!subj) return;
+
+        const ok = confirm(
+          `Delete subject "${subj}" and all its saved notes? You can undo once from the Notebook.`
+        );
+        if (!ok) return;
+
+        const items = loadNotebook();
+        notebookLastSnapshot = items.slice(); // for undo
+
+        const remaining = items.filter(
+          (it) => (it.subject || "general").trim() !== subj
+        );
+
+        if (notebookSubjectFilter === subj) {
+          notebookSubjectFilter = "all";
+        }
+
+        saveNotebook(remaining);
+        renderNotebook();
+        return;
+      }
+
+      // 2) Subject pill itself -> just filter
       const subjectBtn = e.target.closest(".notebook-subject-btn");
       if (subjectBtn) {
         const subj = subjectBtn.dataset.subject;
@@ -2260,8 +2290,9 @@ themeToggle.addEventListener("click", () => {
         notebookSubjectFilter =
           notebookSubjectFilter === subj ? "all" : subj;
         renderNotebook();
-        return;
       }
+    });
+  }
 
       const menuBtn = e.target.closest(".notebook-subject-menu");
       if (menuBtn) {
