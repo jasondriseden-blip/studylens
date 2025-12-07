@@ -619,51 +619,55 @@
     white-space: pre-wrap;
   }
 
-  .flashcard {
-    margin-top: 8px;
-    padding: 14px 12px;
-    border-radius: 14px;
-    border: 1px solid var(--outline);
-    background: var(--field-bg);
-    min-height: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+ .flashcard {
+  margin-top: 8px;
+  padding: 14px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--outline);
+  background: var(--field-bg);
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;       /* center content inside the card */
+}
 
-  .flashcard-side {
-    font-size: 0.9rem;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    width: 100%;
-    line-height: 1.6;
-  }
+.flashcard-side {
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  width: 100%;
+  line-height: 1.6;
+  text-align: center;       /* center front/back text */
+}
 
-  /* Flashcards: make questions and answers visually different */
-  #cardsStats {
-    font-size: 0.78rem;
-    margin-bottom: 6px;
-    opacity: 0.85;
-  }
+/* Flashcards: make questions and answers visually different */
+#cardsStats {
+  font-size: 0.78rem;
+  margin-bottom: 6px;
+  opacity: 0.85;
+  text-align: center;       /* center stats line */
+}
 
-  #cardsCard.flashcard {
-    border-width: 1px;
-    padding: 5em;
-  }
+#cardsCard.flashcard {
+  border-width: 1px;
+  padding: 5em;
+}
 
-  /* Question side (front) */
-  #cardsFront {
-    font-weight: 700;
-    color: var(--primary-variant);
-    font-size: 1.02em;
-  }
+/* Question side (front) */
+#cardsFront {
+  font-weight: 700;
+  color: var(--primary-variant);
+  font-size: 1.02em;
+}
 
-  /* Answer side (back) */
-  #cardsBack {
-    font-weight: 500;
-    color: var(--on-surface);
-    opacity: 1;
-  }
+/* Answer side (back) */
+#cardsBack {
+  font-weight: 500;
+  color: var(--on-surface);
+  opacity: 1;
+}
+
 
   .side-drawer {
     width: 220px;
@@ -2823,21 +2827,22 @@ snapSolveBtn.addEventListener("click", async () => {
     }));
   }
 
-  function updateCardsStats() {
-    if (!flashcards.length) {
-      cardsStats.textContent = "No cards yet. Create some above.";
-      return;
-    }
-    const total = flashcards.length;
-    const got = flashcards.filter((c) => c.status === "got").length;
-    const need = flashcards.filter((c) => c.status === "need_work").length;
-    const indexLabel = currentCardIndex + 1;
-
-    cardsStats.textContent =
-      `Card ${indexLabel} of ${total}` +
-      ` • Got it: ${got}` +
-      ` • Need work: ${need}`;
+ function updateCardsStats() {
+  if (!flashcards.length) {
+    cardsStats.textContent = "No cards yet. Create some above.";
+    return;
   }
+  const total = flashcards.length;
+  const got = flashcards.filter((c) => c.status === "got").length;
+  const need = flashcards.filter((c) => c.status === "need_work").length;
+  const indexLabel = currentCardIndex + 1;
+
+  cardsStats.textContent =
+    `Card ${indexLabel} of ${total}` +
+    ` • Got it ${got}` +
+    ` • Need work ${need}`;
+}
+
 
   function renderCurrentCard() {
     if (!cardsViewer) return;
