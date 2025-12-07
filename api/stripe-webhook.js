@@ -33,7 +33,6 @@ module.exports = async (req, res) => {
           (session.customer_details && session.customer_details.email) ||
           null;
 
-        // 🔹 NEW: get userId from metadata so it matches what the header looks up
         const userId = metadata.user_id || metadata.userId || null;
 
         if (!email && !userId) {
@@ -47,7 +46,6 @@ module.exports = async (req, res) => {
             "userId=" + userId
           );
 
-          // Build row to upsert
           const row = {
             plan: "pro",
           };
@@ -55,9 +53,10 @@ module.exports = async (req, res) => {
           if (userId) row.user_id = userId;
 
           try {
+            // 🔹 KEY CHANGE: upsert by email, not user_id
             const { error } = await supabase
               .from("user_plans")
-              .upsert(row, { onConflict: "user_id" });
+              .upsert(row, { onConflict: "email" });
 
             if (error) {
               console.error("Error updating user_plans to pro:", error);
