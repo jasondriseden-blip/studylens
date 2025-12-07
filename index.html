@@ -2827,7 +2827,7 @@ snapSolveBtn.addEventListener("click", async () => {
     }));
   }
 
- function updateCardsStats() {
+function updateCardsStats() {
   if (!flashcards.length) {
     cardsStats.textContent = "No cards yet. Create some above.";
     return;
@@ -2839,9 +2839,10 @@ snapSolveBtn.addEventListener("click", async () => {
 
   cardsStats.textContent =
     `Card ${indexLabel} of ${total}` +
-    ` • Got it ${got}` +
-    ` • Need work ${need}`;
+    ` • Got it ${got}` +          // ← no colon
+    ` • Need work ${need}`;       // ← no colon
 }
+
 
 
   function renderCurrentCard() {
