@@ -27,41 +27,38 @@ module.exports = async (req, res) => {
       if (session) {
         const metadata = session.metadata || {};
 
-        // Get email from metadata or customer_details
         const email =
           metadata.user_email ||
           (session.customer_details && session.customer_details.email) ||
           null;
 
-        const userId = metadata.user_id || metadata.userId || null;
+        const userId = metadata.user_id || null;
 
-        if (!email && !userId) {
+        console.log("Webhook metadata:", { email, userId });
+
+        if (!userId) {
           console.warn(
-            "No email or userId found on session; skipping user_plans update."
+            "No user_id in metadata; cannot update user_plans by user_id."
           );
         } else {
-          console.log(
-            "Updating user_plans for:",
-            "email=" + email,
-            "userId=" + userId
-          );
-
-          const row = {
-            plan: "pro",
-          };
-          if (email) row.email = email;
-          if (userId) row.user_id = userId;
+          console.log("Updating user_plans for user_id:", userId);
 
           try {
-            // 🔹 KEY CHANGE: upsert by email, not user_id
             const { error } = await supabase
               .from("user_plans")
-              .upsert(row, { onConflict: "email" });
+              .upsert(
+                {
+                  user_id: userId,
+                  plan: "pro",
+                  stripe_customer_id: session.customer || null,
+                },
+                { onConflict: "user_id" } // 👈 match existing PK/unique
+              );
 
             if (error) {
               console.error("Error updating user_plans to pro:", error);
             } else {
-              console.log("✅ Upgraded user to pro:", row);
+              console.log("✅ Upgraded user to pro (by user_id):", userId);
             }
           } catch (dbErr) {
             console.error("Supabase upsert exception:", dbErr);
