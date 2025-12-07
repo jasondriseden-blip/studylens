@@ -18,7 +18,7 @@ module.exports = async (req, res) => {
     console.log("🔔 Stripe webhook received:", event.type);
 
     // For now, just acknowledge. We'll add Supabase logic after we confirm this works.
-    return res.status(200).json({ received: true });
+    return res.status(200).jsongit commit -m "Move Stripe webhook to /api"{ received: true });
   } catch (err) {
     console.error("Stripe webhook error:", err);
     return res.status(400).json({ error: "Webhook handler error" });

@@ -2880,7 +2880,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     }
   }
 
-  // 🔹 Read current OCR usage for the logged-in user (console helper)
+  // Read current OCR usage for the logged-in user (console helper)
   async function showCurrentUsage() {
     const {
       data: { user },
@@ -2892,7 +2892,10 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       return;
     }
 
-    const periodStart = "2025-12-01"; // first day of this month for now
+    // First day of this month (dynamic)
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const periodStart = `${now.getFullYear()}-${month}-01`;
 
     const { data, error } = await supabaseClient
       .from("usage_counters")
@@ -2939,11 +2942,31 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     }
   }
 
+  // Internal helper to read a specific user's plan
+  async function fetchUserPlan(userId) {
+    try {
+      const { data, error } = await supabaseClient
+        .from("user_plans")
+        .select("plan")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error("error loading user plan", error);
+        return "free";
+      }
+
+      return data?.plan || "free";
+    } catch (e) {
+      console.error("fetchUserPlan exception", e);
+      return "free";
+    }
+  }
+
   // Simple helper to update the header status text + button label
   async function updateAuthUI() {
     const userPlanLabel = document.getElementById("userPlanLabel");
     const authButton = document.getElementById("authButton");
-    const upgradeButton = document.getElementById("upgradeButton");
 
     if (!userPlanLabel || !authButton) return;
 
@@ -2955,49 +2978,22 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       userPlanLabel.textContent = "Guest · 5 free OCR scans";
       authButton.textContent = "Sign in";
       authButton.dataset.authState = "signed-out";
-
-      // Guest: show the Upgrade button (so they know Pro exists)
-      if (upgradeButton) {
-        upgradeButton.style.display = "inline-flex";
-        upgradeButton.disabled = false;
-        upgradeButton.textContent = "Upgrade to Pro";
-      }
-
       return;
     }
 
-    // Logged in – show email name + plan + OCR usage
     const user = data.user;
     const email = user.email || "";
-    const namePart = email.split("@")[0] || "your account"; // e.g. "jasondriseden"
+    const namePart = email.split("@")[0] || "your account";
 
-    // 🔹 Read plan from user_plans
-    let plan = "free";
-    let isPaid = false;
-
-    try {
-      const { data: planRow, error: planError } = await supabaseClient
-        .from("user_plans")
-        .select("plan")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (planError) {
-        console.error("usage label user_plans error", planError);
-      }
-
-      plan = planRow?.plan || "free";
-      isPaid = plan === "pro";
-    } catch (e) {
-      console.error("usage label user_plans exception", e);
-    }
-
-    const planLabel = isPaid ? "Pro plan" : "Free plan";
+    // Read plan from user_plans (free / pro)
+    const plan = await fetchUserPlan(user.id);
+    const isPro = plan === "pro";
+    const planLabel = isPro ? "Pro plan" : "Free plan";
 
     let usageText = "";
 
     try {
-      // Same month logic as your gate: YYYY-MM-01
+      // Same month logic as limiter: YYYY-MM-01
       const now = new Date();
       const month = String(now.getMonth() + 1).padStart(2, "0");
       const periodStart = `${now.getFullYear()}-${month}-01`;
@@ -3017,9 +3013,8 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
       const currentCount = row?.count || 0;
 
-      // 🔹 Different label for Pro vs Free
-      if (isPaid) {
-        // Pro: no "/10"
+      if (isPro) {
+        // Pro: no /10 cap
         usageText = ` · ${currentCount} OCR this month`;
       } else {
         // Free: show count out of 10
@@ -3032,19 +3027,6 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     userPlanLabel.textContent = `${planLabel} · signed in as ${namePart}${usageText}`;
     authButton.textContent = "Sign out";
     authButton.dataset.authState = "signed-in";
-
-    // 🔹 Handle Upgrade button visibility for logged-in users
-    if (upgradeButton) {
-      if (isPaid) {
-        // Pro users: hide the Upgrade button (already Pro)
-        upgradeButton.style.display = "none";
-      } else {
-        // Free logged-in users: show Upgrade button
-        upgradeButton.style.display = "inline-flex";
-        upgradeButton.disabled = false;
-        upgradeButton.textContent = "Upgrade to Pro";
-      }
-    }
   }
 
   // Handle click on the auth button (Sign in / Sign out) – GOOGLE OAUTH
@@ -3077,9 +3059,6 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
         alert("Error starting Google sign-in. Please try again.");
         return;
       }
-
-      // Supabase will redirect to Google, then back to your site.
-      // After redirect, handleAuthFromUrl() + updateAuthUI() will run.
     } catch (err) {
       console.error("OAuth error:", err);
       alert("Error starting sign-in. Please try again.");
@@ -3100,7 +3079,26 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     // 3) Update header (will now see the session if it was set)
     updateAuthUI();
   });
+
+  // Global helper: check the current logged-in user's plan (free/pro)
+  window.getCurrentUserPlan = async function () {
+    try {
+      const { data, error } = await supabaseClient.auth.getUser();
+      if (error || !data.user) {
+        console.warn("no logged-in user for getCurrentUserPlan", error);
+        return null;
+      }
+
+      const userId = data.user.id;
+      return await fetchUserPlan(userId);
+    } catch (e) {
+      console.error("getCurrentUserPlan exception", e);
+      return "free";
+    }
+  };
 </script>
+
+
 
 
 
@@ -3112,11 +3110,53 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     const upgradeBtn = document.getElementById("upgradeButton");
     if (!upgradeBtn) return;
 
-    upgradeBtn.addEventListener("click", () => {
-      alert("Upgrade to Pro is coming soon. For now this is just a placeholder button.");
+    upgradeBtn.addEventListener("click", async () => {
+      // ✅ Require login before starting checkout
+      try {
+        const { data, error } = await supabaseClient.auth.getUser();
+
+        if (error || !data.user) {
+          alert("Please sign in first before upgrading to Pro.");
+          return;
+        }
+      } catch (e) {
+        console.error("Error checking auth before upgrade", e);
+        alert("Could not verify your login. Please sign in again and try.");
+        return;
+      }
+
+      const originalText = upgradeBtn.textContent;
+      upgradeBtn.disabled = true;
+      upgradeBtn.textContent = "Opening checkout...";
+
+      try {
+        const res = await fetch("/api/create-checkout-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (!res.ok) {
+          throw new Error("Network error: " + res.status);
+        }
+
+        const data = await res.json();
+        if (!data.url) {
+          throw new Error("No checkout URL returned");
+        }
+
+        // Go to Stripe Checkout
+        window.location.href = data.url;
+      } catch (err) {
+        console.error("Upgrade error", err);
+        alert("Could not start checkout. Please try again in a moment.");
+        upgradeBtn.disabled = false;
+        upgradeBtn.textContent = originalText;
+      }
     });
   });
 </script>
+
+
 
 
 
@@ -3127,7 +3167,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
     upgradeBtn.addEventListener("click", () => {
       // TODO: replace this with your real Stripe Payment Link URL
-      window.location.href = "https://buy.stripe.com/YOUR_PAYMENT_LINK_HERE";
+      window.location.href = "https://buy.stripe.com/4gMfZh1BN90S7sIgAq8Ra00";
     });
   });
 </script>
