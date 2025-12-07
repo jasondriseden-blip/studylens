@@ -11,6 +11,12 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Get user info from the frontend
+    const { userId, email } = req.body || {};
+    if (!userId || !email) {
+      return res.status(400).json({ error: "Missing userId or email" });
+    }
+
     // Where to send the user after payment
     const origin = req.headers.origin || "https://passinggrade.app";
 
@@ -23,7 +29,12 @@ export default async function handler(req, res) {
           quantity: 1,
         },
       ],
-      // Stripe collects the email in Checkout – our webhook uses that
+      // attach user info so webhook can upgrade the right account
+      customer_email: email,
+      metadata: {
+        user_id: userId,
+        user_email: email,
+      },
       success_url: `${origin}/?checkout=success`,
       cancel_url: `${origin}/?checkout=cancelled`,
     });

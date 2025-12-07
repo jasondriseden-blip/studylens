@@ -1126,7 +1126,7 @@ Snap, solve, study & write.<span class="mobile-break"><br></span> Built for stud
    <div class="header-right">
     <!-- Row 1: plan + Sign in/out (top-right) -->
     <div class="auth-row">
-      <span id="userPlanLabel">Guest · 5 free OCR scans</span>
+      <span id="userPlanLabel">Guest · 5 free scans</span>
 
       <button id="upgradeButton" class="btn-upgrade">
         Upgrade to Pro
@@ -2363,6 +2363,7 @@ themeToggle.addEventListener("click", () => {
 </script>
 
 
+
 <!-- BLOCK 3: Answer sanitizing, AI backend call, and all task helpers -->
 <script>
 function sanitizeAnswerText(raw) {
@@ -3408,6 +3409,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
   })();
 </script>
 
+<!--Anonymous usage limiter-->
 <script>
   (function () {
     // ---- Anonymous usage limiter (5 total uses before requiring login) ----
@@ -3417,6 +3419,17 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
     // 🔹 New: monthly free limit for logged-in users
     const FREE_MONTHLY_LIMIT = 10; // change this number whenever you want
+
+    // 🔹 Helper: refresh header label if updateAuthUI exists
+    function refreshUsageLabel() {
+      try {
+        if (typeof window.updateAuthUI === "function") {
+          window.updateAuthUI();
+        }
+      } catch (e) {
+        console.error("updateAuthUI from limiter failed", e);
+      }
+    }
 
     function getAnonUses() {
       try {
@@ -3449,6 +3462,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
         return false;
       }
       setAnonUses(uses + 1);
+      refreshUsageLabel();   // 🔹 update header for guests
       return true;
     }
 
@@ -3513,6 +3527,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
             );
           }
 
+          refreshUsageLabel();   // 🔹 update header for Pro users too
           return true;
         }
 
@@ -3561,6 +3576,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           console.error("increment_usage failed", rpcError);
         }
 
+        refreshUsageLabel();   // 🔹 update header for free logged-in users
         return true;
       } catch (err) {
         console.error("canUseAIOnce error", err);
@@ -3704,7 +3720,19 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
     // Not logged in
     if (error || !data.user) {
-      userPlanLabel.textContent = "Guest · 5 free OCR scans";
+      // 🔹 Read guest usage from the same localStorage key the limiter uses
+      let anonUses = 0;
+      try {
+        const raw = localStorage.getItem("passinggrade-anon-uses");
+        anonUses = raw ? parseInt(raw, 10) || 0 : 0;
+      } catch (e) {
+        anonUses = 0;
+      }
+      const limit = 5;
+
+      userPlanLabel.textContent =
+        `Guest · ${anonUses}/${limit} free OCR scans`;
+
       authButton.textContent = "Sign in";
       authButton.dataset.authState = "signed-out";
       return;
@@ -3762,6 +3790,9 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     authButton.textContent = "Sign out";
     authButton.dataset.authState = "signed-in";
   }
+
+  // 🔹 expose so other scripts (usage limiter) can call it
+  window.updateAuthUI = updateAuthUI;
 
   // Handle click on the auth button (Sign in / Sign out) – GOOGLE OAUTH
   async function handleAuthButtonClick() {
@@ -3840,6 +3871,8 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
 
 
+
+
 <script>
   document.addEventListener("DOMContentLoaded", () => {
     const upgradeBtn = document.getElementById("upgradeButton");
@@ -3858,11 +3891,11 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
         // Look up their plan by email
         // Look up their plan by user_id
-const { data: planRow, error: planError } = await supabaseClient
-  .from("user_plans")
-  .select("plan")
-  .eq("user_id", user.id)
-  .maybeSingle();
+        const { data: planRow, error: planError } = await supabaseClient
+          .from("user_plans")
+          .select("plan")
+          .eq("user_id", user.id)
+          .maybeSingle();
 
         if (!planError && planRow && planRow.plan === "pro") {
           // ✅ Already Pro: hide Upgrade button, show badge
@@ -3879,6 +3912,7 @@ const { data: planRow, error: planError } = await supabaseClient
 
     upgradeBtn.addEventListener("click", async () => {
       // Require login
+      let user;
       try {
         const { data, error } = await supabaseClient.auth.getUser();
 
@@ -3886,6 +3920,8 @@ const { data: planRow, error: planError } = await supabaseClient
           alert("Please sign in first before upgrading to Pro.");
           return;
         }
+
+        user = data.user;
       } catch (e) {
         console.error("Error checking auth before upgrade", e);
         alert("Could not verify your login. Please sign in again and try.");
@@ -3900,6 +3936,10 @@ const { data: planRow, error: planError } = await supabaseClient
         const res = await fetch("/api/create-checkout-session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: user.id,
+            email: user.email,
+          }),
         });
 
         if (!res.ok) {
@@ -3923,6 +3963,24 @@ const { data: planRow, error: planError } = await supabaseClient
 </script>
 
 
+<!--MAKE TEXT AREAS GROW-->
+<script>
+  (function () {
+    function autoResize(ta) {
+      if (!ta) return;
+      ta.style.height = "auto";
+      ta.style.height = ta.scrollHeight + "px";
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const textareas = document.querySelectorAll("textarea");
+      textareas.forEach((ta) => {
+        autoResize(ta);
+        ta.addEventListener("input", () => autoResize(ta));
+      });
+    });
+  })();
+</script>
 
 </body>
 
