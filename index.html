@@ -1234,7 +1234,10 @@
       <button id="upgradeButton" class="btn-upgrade">
         Upgrade to Pro
       </button>
-
+<!-- Optional: something to show when they’re Pro -->
+<span id="proBadge" style="display:none; font-weight:bold;">
+  Pro account ✅
+</span>
       <button id="authButton">Sign in</button>
     </div>
 
@@ -4063,6 +4066,118 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     });
   })();
 </script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const upgradeBtn = document.getElementById("upgradeButton");
+    const proBadge = document.getElementById("proBadge");
+
+    // 🔹 1) Check plan on page load
+    (async () => {
+      try {
+        const { data, error } = await supabaseClient.auth.getUser();
+        if (error || !data.user) {
+          // not logged in -> leave button visible, they can click & get "please sign in" message
+          return;
+        }
+
+        const user = data.user;
+
+        // Look up their plan by email
+        const { data: planRow, error: planError } = await supabaseClient
+          .from("user_plans")
+          .select("plan")
+          .eq("email", user.email)
+          .maybeSingle();
+
+        if (!planError && planRow && planRow.plan === "pro") {
+          // ✅ Already Pro: hide Upgrade button, show badge
+          if (upgradeBtn) upgradeBtn.style.display = "none";
+          if (proBadge) proBadge.style.display = "inline-block";
+        }
+      } catch (e) {
+        console.error("Error checking user plan", e);
+      }
+    })();
+
+    // 🔹 2) Keep your existing Upgrade click handler (with login check)
+    if (!upgradeBtn) return;
+
+    upgradeBtn.addEventListener("click", async () => {
+      // Require login
+      try {
+        const { data, error } = await supabaseClient.auth.getUser();
+
+        if (error || !data.user) {
+          alert("Please sign in first before upgrading to Pro.");
+          return;
+        }
+      } catch (e) {
+        console.error("Error checking auth before upgrade", e);
+        alert("Could not verify your login. Please sign in again and try.");
+        return;
+      }
+
+      const originalText = upgradeBtn.textContent;
+      upgradeBtn.disabled = true;
+      upgradeBtn.textContent = "Opening checkout...";
+
+      try {
+        const res = await fetch("/api/create-checkout-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (!res.ok) {
+          throw new Error("Network error: " + res.status);
+        }
+
+        const data = await res.json();
+        if (!data.url) {
+          throw new Error("No checkout URL returned");
+        }
+
+        window.location.href = data.url;
+      } catch (err) {
+        console.error("Upgrade error", err);
+        alert("Could not start checkout. Please try again in a moment.");
+        upgradeBtn.disabled = false;
+        upgradeBtn.textContent = originalText;
+      }
+    });
+  });
+</script>
+
+<script>
+  let currentPlan = "free"; // default
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    const upgradeBtn = document.getElementById("upgradeButton");
+    const proBadge = document.getElementById("proBadge");
+
+    try {
+      const { data, error } = await supabaseClient.auth.getUser();
+      if (error || !data.user) return;
+
+      const userEmail = data.user.email;
+
+      const { data: planData } = await supabaseClient
+        .from("user_plans")
+        .select("plan")
+        .eq("email", userEmail)
+        .maybeSingle();
+
+      if (planData?.plan === "pro") {
+        currentPlan = "pro";
+        if (upgradeBtn) upgradeBtn.style.display = "none";
+        if (proBadge) proBadge.style.display = "inline";
+      }
+    } catch (e) {
+      console.error("Error checking plan", e);
+    }
+  });
+</script>
+
 
 </body>
 
