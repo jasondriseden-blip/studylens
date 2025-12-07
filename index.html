@@ -1085,7 +1085,6 @@
 .notebook-filter {
   opacity: 0.85;
 }
-
 /* Active notebook filter = highlighted */
 .notebook-filter.active {
   background: var(--primary-soft, rgba(59,130,246,0.12));
@@ -1099,9 +1098,11 @@
 .notebook-filter.active .material-symbols-outlined {
   color: inherit;
 }
+
 /* Layout for each subject row */
 .notebook-subject-row {
-  display: flex;
+  position: relative;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
   margin-bottom: 4px;
@@ -1125,10 +1126,16 @@
   color: var(--primary, #3b82f6);
 }
 
-/* Edit/Delete: small, subtle, and HIDDEN by default */
+/* Little three-dot menu next to subject chip */
+.notebook-subject-menu {
+  padding: 2px 8px;
+  min-width: auto;
+}
+
+/* Base edit/delete style (hidden by default) */
 .notebook-subject-edit,
 .notebook-subject-delete {
-  display: none;                 /* hidden for all rows by default */
+  display: none;
   padding: 2px 6px;
   border-radius: 999px;
   border: 1px solid transparent;
@@ -1138,12 +1145,57 @@
   cursor: pointer;
 }
 
-/* Slightly different look for edit/delete */
+/* Dropdown container */
+.notebook-subject-dropdown {
+  display: none;             /* JS toggles this */
+  position: absolute;
+  right: 0;
+  top: 110%;
+  background: var(--surface);
+  border: 1px solid var(--outline);
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
+  z-index: 30;
+  min-width: 170px;
+  display: none;
+  flex-direction: column;    /* 🔹 stack buttons */
+  gap: 6px;                  /* space between them */
+}
+
+/* Subject dropdown buttons: same width, look like two pills */
+.notebook-subject-dropdown .notebook-subject-edit,
+.notebook-subject-dropdown .notebook-subject-delete {
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+  font-size: 0.78rem;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: #ededed;
+  gap: 6px;
+}
+
+/* Edit = neutral */
+.notebook-subject-edit {
+  color: var(--on-surface, #0f172a);
+}
+
+/* Delete = red text */
+.notebook-subject-delete {
+  color: #dc2626;
+}
+
+/* Hover states */
 .notebook-subject-edit:hover,
 .notebook-subject-delete:hover {
   opacity: 1;
-  border-color: var(--outline-soft, rgba(148,163,184,0.5));
-  backgroun
+  border-color: var(--outline-soft, rgba(148, 163, 184, 0.5));
+  background: #ffffff;
+}
+
+
 
 </style>
 
@@ -1977,10 +2029,10 @@ themeToggle.addEventListener("click", () => {
       dropdown.style.position = "absolute";
       dropdown.style.right = "0";
       dropdown.style.top = "110%";
-      dropdown.style.background = "var(--surface)";
+      dropdown.style.background = "#fff";
       dropdown.style.border = "1px solid var(--outline)";
-      dropdown.style.borderRadius = "999px";
-      dropdown.style.padding = "4px 6px";
+      dropdown.style.borderRadius = "0px";
+      dropdown.style.padding = "1em";
       dropdown.style.zIndex = "20";
       dropdown.style.whiteSpace = "nowrap";
 
@@ -2001,10 +2053,11 @@ themeToggle.addEventListener("click", () => {
 
       // 🔹 direct handler for this menu button
       menuBtn.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        const isShowing = dropdown.style.display === "block";
-        dropdown.style.display = isShowing ? "none" : "block";
-      });
+  ev.stopPropagation();
+  const isShowing = dropdown.style.display === "flex";
+  dropdown.style.display = isShowing ? "none" : "flex";
+});
+
 
       row.appendChild(subjBtn);
       row.appendChild(menuBtn);
