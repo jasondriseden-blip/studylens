@@ -651,7 +651,7 @@
 
 #cardsCard.flashcard {
   border-width: 1px;
-  padding: 5em;
+  padding: 5em 1em;
 }
 
 /* Question side (front) */
@@ -1081,7 +1081,70 @@
   .pulse-once {
     animation: pulse-highlight 0.7s ease-out;
   }
-  
+  /* Base (optional tweak if you want) */
+.notebook-filter {
+  opacity: 0.85;
+}
+
+/* Active notebook filter = highlighted */
+.notebook-filter.active {
+  background: var(--primary-soft, rgba(59,130,246,0.12));
+  color: var(--primary, #3b82f6);
+  border-color: var(--primary, #3b82f6);
+  opacity: 1;
+  box-shadow: 0 0 0 1px rgba(59,130,246,0.4);
+}
+
+/* Make the icon match the text when active */
+.notebook-filter.active .material-symbols-outlined {
+  color: inherit;
+}
+/* Layout for each subject row */
+.notebook-subject-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+/* Subject chip: primary pill style */
+.notebook-subject-btn {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--outline);
+  background: var(--field-bg);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Active subject stands out */
+.notebook-subject-btn.active {
+  border-color: var(--primary, #3b82f6);
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--primary, #3b82f6);
+}
+
+/* Edit/Delete: small, subtle, and HIDDEN by default */
+.notebook-subject-edit,
+.notebook-subject-delete {
+  display: none;                 /* hidden for all rows by default */
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-size: 0.7rem;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+/* Slightly different look for edit/delete */
+.notebook-subject-edit:hover,
+.notebook-subject-delete:hover {
+  opacity: 1;
+  border-color: var(--outline-soft, rgba(148,163,184,0.5));
+  backgroun
+
 </style>
 
 </head>
@@ -1568,15 +1631,46 @@
 
 
         <section id="notebook" class="tab-content">
-				<div class="hint-row" id="notebookFilterRow">
-  <button class="pill-button notebook-filter active" data-filter="all">All</button>
-  <button class="pill-button notebook-filter" data-filter="Snap">Snap</button>
-  <button class="pill-button notebook-filter" data-filter="Math">Math</button>
-  <button class="pill-button notebook-filter" data-filter="Study">Study</button>
-  <button class="pill-button notebook-filter" data-filter="Essay">Essay</button>
-  <button class="pill-button notebook-filter" data-filter="Quiz">Quiz</button>
-</div>
+
           <div class="card">
+		          <section id="notebook" class="tab-content">
+			<div class="hint-row" id="notebookFilterRow">
+  <button class="pill-button notebook-filter active" data-filter="all">
+    <span class="material-symbols-outlined" style="font-size: 16px;">filter_alt</span>
+    <span>All</span>
+  </button>
+
+  <button class="pill-button notebook-filter" data-filter="Snap">
+    <span class="material-symbols-outlined" style="font-size: 16px;">photo_camera</span>
+    <span>Solve</span>
+  </button>
+
+  <button class="pill-button notebook-filter" data-filter="Math">
+    <span class="material-symbols-outlined" style="font-size: 16px;">calculate</span>
+    <span>Math</span>
+  </button>
+
+  <button class="pill-button notebook-filter" data-filter="Study">
+    <span class="material-symbols-outlined" style="font-size: 16px;">menu_book</span>
+    <span>Study</span>
+  </button>
+
+  <button class="pill-button notebook-filter" data-filter="Essay">
+    <span class="material-symbols-outlined" style="font-size: 16px;">draw</span>
+    <span>Essay</span>
+  </button>
+
+  <button class="pill-button notebook-filter" data-filter="Quiz">
+    <span class="material-symbols-outlined" style="font-size: 16px;">quiz</span>
+    <span>Quiz</span>
+  </button>
+
+  <button class="pill-button notebook-filter" data-filter="Cards">
+    <span class="material-symbols-outlined" style="font-size: 16px;">style</span>
+    <span>Flashcards</span>
+  </button>
+</div>
+
             <h2>Notebook</h2>
             <p class="desc">
               Recent saved results from Snap, Math, Study, Essay, etc.
@@ -2618,18 +2712,8 @@ activateTab(savedTab);
     });
   }
 
-  // Run OCR on whichever file we last picked – ONLY this counts usage
+  // Run OCR on whichever file we last picked – DOES NOT affect usage counts
   snapOCRBtn.addEventListener("click", async () => {
-    // usage gate ONLY here
-    if (window.__canUseAIOnce) {
-      const allowed = await window.__canUseAIOnce();
-      if (!allowed) {
-        return;
-      }
-    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
-      return;
-    }
-
     if (!lastSnapFile) {
       alert("Choose or take an image first.");
       return;
@@ -2652,28 +2736,36 @@ activateTab(savedTab);
     }
   });
 
- // Solve / Explain (no counting here)
-snapSolveBtn.addEventListener("click", async () => {
-  const text = snapText.value.trim();
-  if (!text) {
-    alert("No text to solve.");
-    return;
-  }
+  // Solve / Explain (usage counted based on snapText)
+  snapSolveBtn.addEventListener("click", async () => {
+    const text = snapText.value.trim();
+    if (!text) {
+      alert("No text to solve.");
+      return;
+    }
 
-  // switch to the Solve tool section
-  if (typeof activateTab === "function") {
-    activateTab("solve");
-  }
+    // usage gate
+    if (window.__canUseAIOnce) {
+      const allowed = await window.__canUseAIOnce();
+      if (!allowed) return;
+    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+      return;
+    }
 
-  snapResult.textContent = "Thinking...";
-  const ans = await runSnapSolve(text);
-  const clean = sanitizeAnswerText(ans);
-  renderAnswer(snapResult, clean); // 👈 instead of snapResult.textContent = clean;
-  addNotebookItem("Snap", clean);
-});
+    // switch to the Solve tool section
+    if (typeof activateTab === "function") {
+      activateTab("solve");
+    }
+
+    snapResult.textContent = "Thinking...";
+    const ans = await runSnapSolve(text);
+    const clean = sanitizeAnswerText(ans);
+    renderAnswer(snapResult, clean); // 👈 instead of snapResult.textContent = clean;
+    addNotebookItem("Snap", clean);
+  });
 
 
-  // MATH (no counting here)
+  // MATH (usage counted based on snapText)
   const mathInput = document.getElementById("mathInput");
   const mathSolveBtn = document.getElementById("mathSolveBtn");
   const mathClearBtn = document.getElementById("mathClearBtn");
@@ -2685,6 +2777,15 @@ snapSolveBtn.addEventListener("click", async () => {
       alert("Type or paste a math problem into the main text box first.");
       return;
     }
+
+    // usage gate
+    if (window.__canUseAIOnce) {
+      const allowed = await window.__canUseAIOnce();
+      if (!allowed) return;
+    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+      return;
+    }
+
     mathResult.textContent = "Thinking...";
     const ans = await runMathSolver(text);
     const clean = sanitizeAnswerText(ans);
@@ -2696,7 +2797,7 @@ snapSolveBtn.addEventListener("click", async () => {
     mathResult.textContent = "";
   });
 
-  // STUDY (no counting here)
+  // STUDY (usage counted based on snapText)
   const studyInput = document.getElementById("studyInput");
   const studyGuideBtn = document.getElementById("studyGuideBtn");
   const studyClearBtn = document.getElementById("studyClearBtn");
@@ -2708,6 +2809,15 @@ snapSolveBtn.addEventListener("click", async () => {
       alert("Paste some notes or text into the main text box first.");
       return;
     }
+
+    // usage gate
+    if (window.__canUseAIOnce) {
+      const allowed = await window.__canUseAIOnce();
+      if (!allowed) return;
+    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+      return;
+    }
+
     studyResult.textContent = "Thinking...";
     const ans = await runStudyGuide(text);
     const clean = sanitizeAnswerText(ans);
@@ -2719,7 +2829,7 @@ snapSolveBtn.addEventListener("click", async () => {
     studyResult.textContent = "";
   });
 
-  // ESSAY (no counting here)
+  // ESSAY (usage counted based on snapText)
   const essayInput = document.getElementById("essayInput");
   const essayBtn = document.getElementById("essayBtn");
   const essayClearBtn = document.getElementById("essayClearBtn");
@@ -2731,6 +2841,15 @@ snapSolveBtn.addEventListener("click", async () => {
       alert("Paste your essay or prompt into the main text box first.");
       return;
     }
+
+    // usage gate
+    if (window.__canUseAIOnce) {
+      const allowed = await window.__canUseAIOnce();
+      if (!allowed) return;
+    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+      return;
+    }
+
     essayResult.textContent = "Thinking...";
     const ans = await runEssayHelper(text);
     const clean = sanitizeAnswerText(ans);
@@ -2893,11 +3012,19 @@ function renderCurrentCard() {
     }
   })();
 
-  // no counting here
+  // usage counted based on snapText
   cardsBtn.addEventListener("click", async () => {
     const text = snapText.value.trim();
     if (!text) {
       alert("Paste content into the main text box first.");
+      return;
+    }
+
+    // usage gate
+    if (window.__canUseAIOnce) {
+      const allowed = await window.__canUseAIOnce();
+      if (!allowed) return;
+    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
       return;
     }
 
@@ -2988,13 +3115,22 @@ function renderCurrentCard() {
   const quizClearBtn = document.getElementById("quizClearBtn");
   const quizResult = document.getElementById("quizResult");
 
-  // no counting here
+  // usage counted based on snapText
   quizBtn.addEventListener("click", async () => {
     const text = snapText.value.trim();
     if (!text) {
       alert("Paste content into the main text box first.");
       return;
     }
+
+    // usage gate
+    if (window.__canUseAIOnce) {
+      const allowed = await window.__canUseAIOnce();
+      if (!allowed) return;
+    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+      return;
+    }
+
     quizResult.textContent = "Thinking...";
     const ans = await runQuiz(text);
     const clean = sanitizeAnswerText(ans);
@@ -3777,6 +3913,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     });
   })();
 </script>
+
 </body>
 
 
