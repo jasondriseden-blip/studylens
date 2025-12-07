@@ -816,8 +816,9 @@
   }
 
  @media (max-width: 700px) {
-  /* Header stacked, no overlap */
+  /* make header a positioning parent */
   header {
+    position: relative;
     flex-direction: column;
     align-items: stretch;
     gap: 8px;
@@ -832,10 +833,9 @@
     justify-content: flex-start;
   }
 
-  /* Logo + tagline */
   .brand-logo {
     display: block;
-    height: 60px;      /* taller logo */
+    height: 60px;
     width: auto;
   }
 
@@ -851,25 +851,25 @@
   .subtitle {
     font-size: 0.8rem;
     color: var(--muted);
-    margin-top: 6px;   /* more space under logo */
+    margin-top: 6px;
   }
 
-  /* Right side under logo */
+  /* left side: guest / plan + buttons */
   .header-right {
     width: 100%;
     display: flex;
     flex-direction: column;
     gap: 6px;
     margin-top: 4px;
+    padding-top: 10px;   /* ← was 42px, make this 0–12px */
   }
 
-  /* Row 1: plan + sign/upgrade LEFT */
   .auth-row {
     width: 100%;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: flex-end;
     gap: 6px;
     font-size: 0.75rem;
   }
@@ -892,25 +892,23 @@
     min-width: 0;
   }
 
-  /* Row 2: learn chip + toggles, tools → RIGHT */
- /* Row 2: keep Learn + toggles grouped on the right, not stretched */
-.header-top-row {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;  /* was space-between */
-  gap: 6px;                   /* closer together */
-}
+  /* 🔹 controls pinned to very top-right of header */
+  .header-top-row {
+    position: absolute;
+    top: 16px;          /* roughly level with top of logo text */
+    right: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
 
-/* Learn chip: shrink to content, don’t stretch */
-.chip.learn-mode {
-  flex: 0 0 auto;             /* was flex: something bigger */
-  max-width: none;
-  padding: 4px 10px;
-  font-size: 0.74rem;
-  white-space: nowrap;
-}
-
+  .chip.learn-mode {
+    flex: 0 0 auto;
+    padding: 4px 10px;
+    font-size: 0.74rem;
+    white-space: nowrap;
+  }
 
   .theme-toggle,
   .drawer-toggle {
@@ -940,37 +938,6 @@
   }
 }
 
-
-
-  .theme-toggle,
-  .drawer-toggle {
-    flex: 0 0 auto;
-    padding: 6px;
-    min-width: 40px;
-    justify-content: center;
-    font-size: 0.8rem;
-  }
-
-  /* Hide text labels for compact icons on tiny screens */
-  .theme-toggle span#themeLabel {
-    display: none;
-  }
-
-  .drawer-toggle span:not(.material-symbols-outlined) {
-    display: none; /* hides "Tools" text, keeps icon */
-  }
-
-  /* Keep existing logo theme effects */
-  [data-theme="light"] .brand-logo {
-    filter: drop-shadow(0 6px 14px rgba(148, 163, 184, 0.6));
-  }
-
-  [data-theme="dark"] .brand-logo {
-    filter:
-      brightness(1.08)
-      drop-shadow(0 0 12px rgba(59, 130, 246, 0.4));
-  }
-}
 
   /* ---- Subtle "completed" pulse animation ---- */
   @keyframes pulse-highlight {
