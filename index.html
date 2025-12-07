@@ -2845,30 +2845,43 @@ function updateCardsStats() {
 
 
 
-  function renderCurrentCard() {
-    if (!cardsViewer) return;
+function renderCurrentCard() {
+  if (!cardsViewer) return;
 
-    if (!flashcards.length) {
-      cardsViewer.style.display = "none";
-      return;
-    }
-
-    if (currentCardIndex < 0 || currentCardIndex >= flashcards.length) {
-      currentCardIndex = 0;
-    }
-
-    const card = flashcards[currentCardIndex];
-    cardsViewer.style.display = "block";
-    showingBack = false;
-
-    cardsFront.style.display = "block";
-    cardsBack.style.display = "none";
-
-    cardsFront.textContent = card.front || "[No question]";
-    cardsBack.textContent = card.back || "[No answer]";
-
-    updateCardsStats();
+  if (!flashcards.length) {
+    cardsViewer.style.display = "none";
+    return;
   }
+
+  if (currentCardIndex < 0 || currentCardIndex >= flashcards.length) {
+    currentCardIndex = 0;
+  }
+
+  const card = flashcards[currentCardIndex];
+  cardsViewer.style.display = "block";
+  showingBack = false;
+
+  cardsFront.style.display = "block";
+  cardsBack.style.display = "none";
+
+  // 🔹 Strip leading "Q:" / "A:" (or any colon/semicolon right after Q/A)
+  const rawFront = card.front || "[No question]";
+  const rawBack  = card.back  || "[No answer]";
+
+  const frontText = rawFront
+    .replace(/^Q\s*[:;.-]*\s*/i, "")   // remove leading Q: / Q; / Q. etc
+    .trim();
+
+  const backText = rawBack
+    .replace(/^A\s*[:;.-]*\s*/i, "")   // remove leading A: / A; / A. etc
+    .trim();
+
+  cardsFront.textContent = frontText || "[No question]";
+  cardsBack.textContent  = backText  || "[No answer]";
+
+  updateCardsStats();
+}
+
 
   // Restore from storage
   (function initFlashcardsFromStorage() {
