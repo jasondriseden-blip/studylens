@@ -2251,7 +2251,7 @@ themeToggle.addEventListener("click", () => {
   }
 
   // NEW: subject chips (filter / dropdown / edit / delete) using delegation
-    if (notebookSubjectsEl) {
+  if (notebookSubjectsEl) {
     notebookSubjectsEl.addEventListener("click", (e) => {
       // 1) ⋯ menu -> delete this subject + its notes (with confirm)
       const menuBtn = e.target.closest(".notebook-subject-menu");
@@ -2291,8 +2291,6 @@ themeToggle.addEventListener("click", () => {
           notebookSubjectFilter === subj ? "all" : subj;
         renderNotebook();
       }
-    });
-  }
 
       const menuBtn = e.target.closest(".notebook-subject-menu");
       if (menuBtn) {
