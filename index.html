@@ -76,8 +76,8 @@
     --outline: var(--outline-dark);
     --field-bg: rgba(15, 23, 42, 0.95);
     --chip-bg: #020617;
-    --code-bg: #ffffff; /* white outputs */
-    --code-fg: #020617;
+  --code-bg: #020617;   /* dark output background */
+  --code-fg: #e5e7eb;   /* light text */
     --muted: #9ca3af;
     --header-bg: radial-gradient(circle at top left, #111827, #020617);
     --sidebar-bg: #020617;
@@ -925,13 +925,7 @@
     font-size: 0.8rem;
   }
 
-  .theme-toggle span#themeLabel {
-    display: none;
-  }
 
-  .drawer-toggle span:not(.material-symbols-outlined) {
-    display: none;
-  }
 
   [data-theme="light"] .brand-logo {
     filter: drop-shadow(0 6px 14px rgba(148, 163, 184, 0.6));
@@ -1093,6 +1087,11 @@
     background var(--transition-fast);
 }
 
+label[for="saveSubjectInput"] {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
 
 
 </style>
@@ -1261,27 +1260,28 @@ Snap, solve, study & write.<span class="mobile-break"><br></span> Built for stud
               placeholder="OCR text will appear here..."
             ></textarea>
 
-            <!-- NEW: custom subject / folder name for saving work -->
-            <div class="hint-row" style="margin-top: 4px;">
-              <span class="desc" style="margin: 0; font-size: 0.75rem;">
-                Save this work under:
-              </span>
-              <input
-                id="saveSubjectInput"
-                type="text"
-                value="general"
-                placeholder="e.g. Algebra test 2"
-                style="
-                  margin-left: 8px;
-                  font-size: 0.9rem;
-                  padding: 8px 10px;
-                  border-radius: 999px;
-                  border: 1px solid rgba(148, 163, 184, 0.7);
-                  flex: 0 0 auto;
-                  min-width: 110px;
-                "
-              />
-            </div>
+           <!-- NEW: custom subject / folder name for saving work -->
+<div class="hint-row" style="margin-top: 4px; justify-content: flex-start;">
+  <span class="desc" style="margin: 0; font-size: 0.75rem;">
+    Save this work under:
+  </span>
+  <input
+    id="saveSubjectInput"
+    type="text"
+    value="General"
+    placeholder="e.g. Algebra test 2"
+    style="
+      margin-left: 8px;
+      font-size: 0.9rem;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      flex: 0 0 auto;
+      min-width: 110px;
+    "
+  />
+</div>
+
 
             <div class="hint-row" style="margin-top: 16px;">
   <span class="desc" style="margin: 0; font-size: 0.75rem;">
