@@ -1007,8 +1007,13 @@
     <div class="auth-row">
       
 	  <span id="userPlanLabel">Guest · 5 free OCR scans</span>
-<button id="upgradeButton" class="upgrade-btn">Upgrade to Pro</button>
+
+<button id="upgradeButton" class="btn-upgrade">
+  Upgrade to Pro
+</button>
+
 <button id="authButton">Sign in</button>
+
 
 
     </div>
@@ -3127,6 +3132,45 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
   });
 </script>
 
+
+
+
+<script>
+  (function () {
+    const upgradeBtn = document.getElementById("upgradeButton");
+    if (!upgradeBtn) return;
+
+    upgradeBtn.addEventListener("click", async () => {
+      try {
+        upgradeBtn.disabled = true;
+        const originalText = upgradeBtn.textContent;
+        upgradeBtn.textContent = "Redirecting...";
+
+        const res = await fetch("/api/create-checkout-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (!res.ok) {
+          throw new Error("Request failed (" + res.status + ")");
+        }
+
+        const data = await res.json();
+        if (!data || !data.url) {
+          throw new Error("No checkout URL returned");
+        }
+
+        // Go to Stripe Checkout
+        window.location.href = data.url;
+      } catch (err) {
+        console.error("Upgrade error:", err);
+        alert("Error starting checkout: " + err.message);
+        upgradeBtn.disabled = false;
+        upgradeBtn.textContent = "Upgrade to Pro";
+      }
+    });
+  })();
+</script>
 
 </body>
 </html>
