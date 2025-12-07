@@ -1949,7 +1949,6 @@ themeToggle.addEventListener("click", () => {
     subjects.forEach((subj) => {
       const row = document.createElement("div");
       row.className = "notebook-subject-row";
-      // make dropdown position correctly
       row.style.position = "relative";
       row.style.display = "inline-flex";
       row.style.alignItems = "center";
@@ -1999,6 +1998,13 @@ themeToggle.addEventListener("click", () => {
 
       dropdown.appendChild(editBtn);
       dropdown.appendChild(delBtn);
+
+      // 🔹 direct handler for this menu button
+      menuBtn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const isShowing = dropdown.style.display === "block";
+        dropdown.style.display = isShowing ? "none" : "block";
+      });
 
       row.appendChild(subjBtn);
       row.appendChild(menuBtn);
@@ -2264,7 +2270,7 @@ themeToggle.addEventListener("click", () => {
     });
   }
 
-  // NEW: subject chips (filter / dropdown / edit / delete) using delegation
+  // NEW: subject chips (filter / edit / delete) using delegation (menu handled directly)
   if (notebookSubjectsEl) {
     notebookSubjectsEl.addEventListener("click", (e) => {
       const subjectBtn = e.target.closest(".notebook-subject-btn");
@@ -2274,17 +2280,6 @@ themeToggle.addEventListener("click", () => {
         notebookSubjectFilter =
           notebookSubjectFilter === subj ? "all" : subj;
         renderNotebook();
-        return;
-      }
-
-      const menuBtn = e.target.closest(".notebook-subject-menu");
-      if (menuBtn) {
-        const row = menuBtn.closest(".notebook-subject-row");
-        if (!row) return;
-        const dropdown = row.querySelector(".notebook-subject-dropdown");
-        if (!dropdown) return;
-        const isShowing = dropdown.style.display === "block";
-        dropdown.style.display = isShowing ? "none" : "block";
         return;
       }
 
