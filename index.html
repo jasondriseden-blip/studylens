@@ -3688,13 +3688,13 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     }
   }
 
-  // Internal helper to read a specific user's plan (by EMAIL now)
-  async function fetchUserPlan(email) {
+  // Internal helper to read a specific user's plan (by USER_ID now)
+  async function fetchUserPlan(userId) {
     try {
       const { data, error } = await supabaseClient
         .from("user_plans")
         .select("plan")
-        .eq("email", email)
+        .eq("user_id", userId)
         .maybeSingle();
 
       if (error) {
@@ -3743,8 +3743,8 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     const email = user.email || "";
     const namePart = email.split("@")[0] || "your account";
 
-    // Read plan from user_plans (free / pro) BY EMAIL
-    const plan = await fetchUserPlan(email);
+    // Read plan from user_plans (free / pro) BY USER_ID
+    const plan = await fetchUserPlan(user.id);
     const isPro = plan === "pro";
 
     let usageText = "";
@@ -3852,25 +3852,14 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
         return null;
       }
 
-      const email = data.user.email || "";
-      return await fetchUserPlan(email);
+      const user = data.user;
+      return await fetchUserPlan(user.id);
     } catch (e) {
       console.error("getCurrentUserPlan exception", e);
       return "free";
     }
   };
 </script>
-
-
-
-
-
-
-
-
-
-
-
 
 <script>
   document.addEventListener("DOMContentLoaded", () => {
@@ -3960,6 +3949,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     });
   });
 </script>
+
 
 
 <!--MAKE TEXT AREAS GROW-->
