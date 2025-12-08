@@ -421,35 +421,43 @@
     justify-content: flex-end;
   }
 
-  button {
-        border-radius: 10px;
-    border: none;
-    padding: 9px 16px;
-    font-size: 0.85rem;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    background: #333;
-    color: var(--on-primary);
-    transition: transform 0.08s ease-out,
-      box-shadow 0.08s ease-out,
-      opacity 0.08s,
-      background 0.12s ease-out;
-    font-weight: 500;
-}  
-button.secondary {
-    background: transparent;
-    color: var(--on-surface);
-    box-shadow: none;
-    border: 1px solid rgba(148, 163, 184, 0.7);
-  }
+ button {
+  border-radius: 999px;
+  border: none;
+  padding: 9px 16px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--primary);        /* 👈 use theme color in dark */
+  color: var(--on-primary);
+  transition: transform 0.08s ease-out,
+    box-shadow 0.08s ease-out,
+    opacity 0.08s,
+    background 0.12s ease-out;
+  font-weight: 500;
+}
 
-  button:active {
-    transform: translateY(1px) scale(0.99);
-    opacity: 0.96;
-    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.25);
-  }
+button.secondary {
+  background: transparent;
+  color: var(--on-surface);
+  box-shadow: none;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+}
+
+button:active {
+  transform: translateY(1px) scale(0.99);
+  opacity: 0.96;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.25);
+}
+
+/* 👇 NEW: override for light theme */
+html[data-theme="light"] button:not(.secondary) {
+  background: #333;
+  color: var(--on-primary);
+}
+
 
   .hint-row {
     display: flex;
@@ -832,9 +840,7 @@ button.secondary {
     gap: 8px;
     padding: 16px 12px 12px;
   }
-.mobile-break {
-    display: inline;
-  }
+
   .title-block {
     width: 100%;
   }
@@ -894,14 +900,7 @@ button.secondary {
     line-height: 1.3;
   }
 
-  .btn-upgrade,
-  #authButton {
-        flex: 0 0 auto;
-    padding: 12px;
-    font-size: 0.78rem;
-    width: auto !important;
-    min-width: 0;
-  }
+
 
   /* 🔹 controls pinned to very top-right of header */
   .header-top-row {
@@ -1206,637 +1205,816 @@ label[for="saveSubjectInput"] {
 
 
 <body>
-  <div class="app">
-<header>
-  <div class="title-block">
-    <div class="title-row">
-      <div class="brand-logo-wrap">
-        <img
-          src="studylens-light.png"
-          class="brand-logo brand-logo-light"
-          alt="StudyLens"
-        />
-        <img
-          src="studylens-dark-highvis.png"
-          class="brand-logo brand-logo-dark"
-          alt="StudyLens"
-        />
+<div class="app">
+  <header>
+    <div class="title-block">
+      <div class="title-row">
+        <div class="brand-logo-wrap">
+          <img
+            src="studylens-light.png"
+            class="brand-logo brand-logo-light"
+            alt="StudyLens"
+          />
+          <img
+            src="studylens-dark-highvis.png"
+            class="brand-logo brand-logo-dark"
+            alt="StudyLens"
+          />
+        </div>
+        <h1 class="visually-hidden">StudyLens</h1>
       </div>
-      <h1 class="visually-hidden">StudyLens</h1>
-    </div>
-    <div class="subtitle">
-Snap, solve, study & write.<span class="mobile-break"><br></span> Built for students.
-    </div>
-  </div>
-
-   <div class="header-right">
-    <!-- Row 1: plan + Sign in/out (top-right) -->
-    <div class="auth-row">
-      <span id="userPlanLabel">Guest · 10 free uses</span>
-
-      <button id="upgradeButton" class="btn-upgrade">
-        Upgrade to Pro
-      </button>
-<!-- Optional: something to show when they’re Pro -->
-<span id="proBadge" style="display:none; font-weight:bold;">
-  Pro account ✅
-</span>
-      <button id="authButton">Sign in</button>
+      <div class="subtitle">
+        Snap, solve, study & write.<span class="mobile-break"><br></span> Built
+        for students.
+      </div>
     </div>
 
-    <!-- Row 2: Learn mode toggle + theme + Tools -->
-    <div class="header-top-row">
-      <!-- Learn mode toggle chip (now acts like a switch) -->
-      <div class="chip learn-mode" id="modeChip">
-        <span class="chip-dot"></span>
-        <span class="mode-label">Learn mode ON</span>
+    <div class="header-right">
+      <!-- Row 1: plan label only -->
+      <div class="auth-row">
+        <span id="userPlanLabel">Guest · 10 free uses</span>
+        <span id="proBadge" style="display:none; font-weight:bold;">
+          Pro account ✅
+        </span>
       </div>
 
-      <button class="theme-toggle" id="themeToggle" type="button">
-        <svg id="iconSun" viewBox="0 0 24 24">
-          <path
-            fill="currentColor"
-            d="M12 4a1 1 0 0 1 1 1V6a1 1 0 1 1-2 0V5a1 1 0 0 1 1-1Zm0 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-4a1 1 0 0 1-1 1h-1a1 1 0 1 1 0-2h1a1 1 0 0 1 1 1ZM6 13a1 1 0 1 1 0-2H5a1 1 0 1 1 0 2h1Zm11.07-5.07a1 1 0 0 1-1.41 0L14.9 7.17a1 1 0 0 1 1.42-1.41l.76.76a1 1 0 0 1 0 1.41Zm-9.54 9.54a1 1 0 0 1-1.41 0l-.76-.76A1 1 0 0 1 6.24 15.3l.76.76a1 1 0 0 1 0 1.41ZM18 17.24a1 1 0 0 1 0-1.41l.76-.76a1 1 0 1 1 1.41 1.41l-.76.76a1 1 0 0 1-1.41 0ZM6.24 8.7a1 1 0 0 1-1.41-1.41l.76-.76A1 1 0 0 1 7 7.24l-.76.76Z"
-          />
-        </svg>
-        <svg id="iconMoon" viewBox="0 0 24 24" style="display: none">
-          <path
-            fill="currentColor"
-            d="M20.3 14.8A7.5 7.5 0 0 1 11.2 3.7 1 1 0 0 0 10 2.49 9.5 9.5 0 1 0 21.51 14a1 1 0 0 0-1.21-1.22Z"
-          />
-        </svg>
-        <span id="themeLabel">Dark</span>
-      </button>
+      <!-- Row 2: Modes & Tools dropdown (now also has Upgrade / Sign in) -->
+      <div class="header-top-row">
+        <details
+          class="header-menu"
+          style="position:relative; display:inline-block;"
+        >
+          <summary
+            class="pill-button"
+            style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;"
+          >
+            <span class="material-symbols-outlined" style="font-size:18px;"
+              >expand_more</span
+            >
+            <span>Modes &amp; Tools</span>
+          </summary>
 
-      <button class="drawer-toggle" id="drawerToggle" type="button">
-        <span class="material-symbols-outlined">view_sidebar</span>
-        <span>Tools</span>
-      </button>
-    </div>
-  </div>
-
-</header>
-
-
-    <div class="top-bar">
-  <select id="subjectSelect">
-    <option value="general">Subject: Auto</option>
-    <option value="math">Math</option>
-    <option value="science">Science</option>
-    <option value="english">English</option>
-    <option value="history">History</option>
-  </select>
-
-  <!-- Single model option, still uses value="smart" so backend stays the same -->
-  <select id="modelSelect">
-    <option value="smart">Model: OpenAI (smart auto)</option>
-  </select>
-</div>
-
-<p class="desc" style="margin: 4px 0 0; font-size: 0.72rem;">
-  Subject just gives the AI a hint (Math, Science, etc.). You can leave it on <strong>Auto</strong>.
-</p>
-
-
-   <div class="main-layout">
-  <div class="content">
-    <!-- SNAP & SOLVE (always visible main input) -->
-    <section id="snap">
-      <div class="card">
-        <h2>Snap & Solve</h2>
-        <p class="desc">
-          Take a photo or screenshot of homework → text → AI explanation.
-        </p>
-
-        <label for="snapInput">Homework image</label>
-
-        <!-- Hidden file inputs: gallery + camera -->
-        <input
-          type="file"
-          id="snapInputGallery"
-          accept="image/*"
-          style="display:none;"
-        />
-        <input
-          type="file"
-          id="snapInputCamera"
-          accept="image/*"
-          capture="environment"
-          style="display:none;"
-        />
-
-        <div class="main-layout">
-  <div class="content">
-    <!-- SNAP & SOLVE (always visible main input) -->
-    <section id="snap">
-      <div class="card">
-        <h2>Snap & Solve</h2>
-        <p class="desc">
-          Take a photo or screenshot of homework → text → AI explanation.
-        </p>
-
-        <label for="snapInput">Homework image</label>
-
-        <!-- Hidden file inputs: gallery + camera -->
-        <input
-          type="file"
-          id="snapInputGallery"
-          accept="image/*"
-          style="display:none;"
-        />
-        <input
-          type="file"
-          id="snapInputCamera"
-          accept="image/*"
-          capture="environment"
-          style="display:none;"
-        />
-
-        <!-- DROPDOWN WRAPPER FOR SNAP ACTIONS -->
-        <div class="btn-row snap-actions-wrapper">
-          <div class="snap-actions-dropdown">
+          <div
+            class="header-menu-inner"
+            style="
+              position:absolute;
+              top:calc(100% + 6px);
+              left:50%;
+              transform:translateX(-50%);
+              display:flex;
+              flex-direction:column;
+              gap:6px;
+              align-items:stretch;
+              width:150px;
+              z-index:30;
+              background: var(--card-bg);
+              padding: 16px;
+              border-radius: 12px;
+              box-shadow: 0 10px 24px rgba(15, 23, 42, 0.35);
+            "
+          >
             <button
-              class="pill-button snap-actions-toggle"
-              id="snapActionsToggle"
+              class="theme-toggle"
+              id="themeToggle"
+              type="button"
+              style="width:100%; justify-content:center;"
+            >
+              <svg id="iconSun" viewBox="0 0 24 24">
+                <path
+                  fill="currentColor"
+                  d="M12 4a1 1 0 0 1 1 1V6a1 1 0 1 1-2 0V5a1 1 0 0 1 1-1Zm0 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-4a1 1 0 0 1-1 1h-1a1 1 0 1 1 0-2h1a1 1 0 0 1 1 1ZM6 13a1 1 0 1 1 0-2H5a1 1 0 1 1 0 2h1Zm11.07-5.07a1 1 0 0 1-1.41 0L14.9 7.17a1 1 0 0 1 1.42-1.41l.76.76a1 1 0 0 1 0 1.41Zm-9.54 9.54a1 1 0 0 1-1.41 0l-.76-.76A1 1 0 0 1 6.24 15.3l.76.76a1 1 0 0 1 0 1.41ZM18 17.24a1 1 0 0 1 0-1.41l.76-.76a1 1 0 1 1 1.41 1.41l-.76.76a1 1 0 0 1-1.41 0ZM6.24 8.7a1 1 0 0 1-1.41-1.41l.76-.76A1 1 0 0 1 7 7.24l-.76.76Z"
+                />
+              </svg>
+              <svg id="iconMoon" viewBox="0 0 24 24" style="display: none">
+                <path
+                  fill="currentColor"
+                  d="M20.3 14.8A7.5 7.5 0 0 1 11.2 3.7 1 1 0 0 0 10 2.49 9.5 9.5 0 1 0 21.51 14a1 1 0 0 0-1.21-1.22Z"
+                />
+              </svg>
+              <span id="themeLabel">Dark</span>
+            </button>
+
+            <button
+              class="drawer-toggle"
+              id="drawerToggle"
+              type="button"
+              style="width:100%; justify-content:center;"
+            >
+              <span class="material-symbols-outlined">view_sidebar</span>
+              <span>Tools</span>
+            </button>
+
+            <!-- Upgrade + Sign in moved into dropdown -->
+            <button
+              id="upgradeButton"
+              class="drawer-toggle"
+              type="button"
+              style="width:100%; justify-content:center;"
+            >
+              Upgrade to Pro
+            </button>
+
+            <button
+              id="authButton"
+              class="drawer-toggle"
+              type="button"
+              style="width:100%; justify-content:center;"
+            >
+              Sign in
+            </button>
+
+            <!-- Learn mode toggle chip -->
+            <div
+              class="chip learn-mode"
+              id="modeChip"
+              style="width:100%; justify-content:space-between;"
+            >
+              <span class="chip-dot"></span>
+              <span class="mode-label">Learn mode ON</span>
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+
+  <div class="top-bar">
+    <select id="subjectSelect">
+      <option value="general">Subject: Auto</option>
+      <option value="math">Math</option>
+      <option value="science">Science</option>
+      <option value="english">English</option>
+      <option value="history">History</option>
+    </select>
+
+    <!-- Single model option, still uses value="smart" so backend stays the same -->
+    <select id="modelSelect">
+      <option value="smart">Model: OpenAI (smart auto)</option>
+    </select>
+  </div>
+
+  <p class="desc" style="margin: 4px 0 0; font-size: 0.72rem;">
+    Subject just gives the AI a hint (Math, Science, etc.). You can leave it on
+    <strong>Auto</strong>.
+  </p>
+
+  <div class="main-layout">
+    <div class="content">
+      <!-- SNAP & SOLVE (always visible main input) -->
+      <section id="snap" class="tab-content active">
+        <div class="card">
+          <h2>Snap</h2>
+          <p class="desc">
+            Take a photo or screenshot of homework → text → AI explanation.
+          </p>
+
+          <label for="snapInput">Homework image</label>
+
+          <!-- Hidden file inputs: gallery + camera -->
+          <input
+            type="file"
+            id="snapInputGallery"
+            accept="image/*"
+            style="display:none;"
+          />
+          <input
+            type="file"
+            id="snapInputCamera"
+            accept="image/*"
+            capture="environment"
+            style="display:none;"
+          />
+
+          <!-- DROPDOWN WRAPPER FOR SNAP ACTIONS -->
+          <div class="btn-row snap-actions-wrapper">
+            <div class="snap-actions-dropdown">
+              <button
+                class="pill-button snap-actions-toggle"
+                id="snapActionsToggle"
+                type="button"
+              >
+                <span
+                  class="material-symbols-outlined"
+                  style="font-size: 18px;"
+                >
+                  expand_more
+                </span>
+                <span>Image actions</span>
+              </button>
+
+              <div class="snap-actions-menu" id="snapActionsMenu">
+                <!-- Open camera / gallery -->
+                <button id="snapCameraBtn" type="button">
+                  <span class="material-symbols-outlined">photo_camera</span>
+                  <span>Take Photo</span>
+                </button>
+
+                <button
+                  id="snapUploadBtn"
+                  class="secondary"
+                  type="button"
+                >
+                  <span class="material-symbols-outlined">image</span>
+                  <span>Upload Image</span>
+                </button>
+
+                <button id="snapOCRBtn" type="button">
+                  <span class="material-symbols-outlined">scan</span>
+                  <span>Run OCR</span>
+                </button>
+
+                <button
+                  class="secondary"
+                  id="snapClearBtn"
+                  type="button"
+                >
+                  <span class="material-symbols-outlined">delete</span>
+                  <span>Clear</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Preview -->
+          <img
+            id="snapPreview"
+            alt="Homework preview"
+            style="
+              margin-top: 8px;
+              max-width: 100%;
+              border-radius: 12px;
+              display: none;
+            "
+          />
+
+          <div class="snap-text-header">
+            <label for="snapText">
+              Recognized text (main input for all tools — you can also type
+              here)
+            </label>
+
+            <button
+              id="copySnapTextBtn"
+              type="button"
+              aria-label="Copy text"
+            >
+              <span class="material-symbols-outlined">content_copy</span>
+              <span class="copy-label">Copy</span>
+            </button>
+          </div>
+
+          <textarea
+            id="snapText"
+            placeholder="OCR text will appear here..."
+          ></textarea>
+
+          <!--<button id="refreshOcrButton" type="button" disabled>↻ Refresh OCR</button>-->
+
+          <!-- NEW: custom subject / folder name for saving work -->
+          <div
+            class="hint-row"
+            style="margin-top: 14px; justify-content: flex-start;"
+          >
+            <span class="desc" style="margin: 0; font-size: 0.75rem;">
+              Save this work under:
+            </span>
+            <input
+              id="saveSubjectInput"
+              type="text"
+              value="General"
+              placeholder="e.g. Algebra test 2"
+              style="
+                margin-left: 8px;
+                font-size: 0.9rem;
+                padding: 8px 10px;
+                border-radius: 999px;
+                border: 1px solid rgba(148, 163, 184, 0.7);
+                flex: 0 0 auto;
+                min-width: 110px;
+              "
+            />
+          </div>
+
+          <div class="hint-row" style="margin-top: 16px;">
+            <span class="desc" style="margin: 0; font-size: 0.75rem;">
+              What do you want to do with this text?
+            </span>
+          </div>
+
+          <div class="hint-row" style="margin-top: 4px;">
+            <button
+              id="snapActionSolveBtn"
+              class="pill-button"
               type="button"
             >
-              <span class="material-symbols-outlined" style="font-size: 18px;">
-                expand_more
+              <span
+                class="material-symbols-outlined"
+                style="font-size: 16px;"
+              >
+                photo_camera
               </span>
-              <span>Image actions</span>
+              <span>Solve / Explain here</span>
             </button>
 
-            <div class="snap-actions-menu" id="snapActionsMenu">
-              <!-- Open camera / gallery -->
-              <button id="snapCameraBtn" type="button">
-                <span class="material-symbols-outlined">photo_camera</span>
-                <span>Take Photo</span>
-              </button>
-
-              <button id="snapUploadBtn" class="secondary" type="button">
-                <span class="material-symbols-outlined">image</span>
-                <span>Upload Image</span>
-              </button>
-
-              <button id="snapOCRBtn" type="button">
-                <span class="material-symbols-outlined">scan</span>
-                <span>Run OCR</span>
-              </button>
-
-              <button class="secondary" id="snapClearBtn" type="button">
-                <span class="material-symbols-outlined">delete</span>
-                <span>Clear</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Preview -->
-        <img
-          id="snapPreview"
-          alt="Homework preview"
-          style="
-            margin-top: 8px;
-            max-width: 100%;
-            border-radius: 12px;
-            display: none;
-          "
-        />
-
-        <div class="snap-text-header">
-          <label for="snapText">
-            Recognized text (main input for all tools — you can also type here)
-          </label>
-
-          <button id="copySnapTextBtn" type="button" aria-label="Copy text">
-            <span class="material-symbols-outlined">content_copy</span>
-            <span class="copy-label">Copy</span>
-          </button>
-        </div>
-
-        <textarea
-          id="snapText"
-          placeholder="OCR text will appear here..."
-        ></textarea>
-
-        <button id="refreshOcrButton" type="button" disabled>↻ Refresh OCR</button>
-
-
-      
-
-           <!-- NEW: custom subject / folder name for saving work -->
-<div class="hint-row" style="margin-top: 14px; justify-content: flex-start;">
-  <span class="desc" style="margin: 0; font-size: 0.75rem;">
-    Save this work under:
-  </span>
-  <input
-    id="saveSubjectInput"
-    type="text"
-    value="General"
-    placeholder="e.g. Algebra test 2"
-    style="
-      margin-left: 8px;
-      font-size: 0.9rem;
-      padding: 8px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.7);
-      flex: 0 0 auto;
-      min-width: 110px;
-    "
-  />
-</div>
-
-
-            <div class="hint-row" style="margin-top: 16px;">
-  <span class="desc" style="margin: 0; font-size: 0.75rem;">
-    What do you want to do with this text?
-  </span>
-</div>
-
-<div class="hint-row" style="margin-top: 4px;">
-  <button id="snapActionSolveBtn" class="pill-button" type="button">
-    <span class="material-symbols-outlined" style="font-size: 16px;">
-      photo_camera
-    </span>
-    <span>Solve / Explain here</span>
-  </button>
-
-  <button id="mathSolveBtn" class="pill-button" type="button">
-    <span class="material-symbols-outlined">calculate</span>
-    <span>Math Solver</span>
-  </button>
-
-  <button id="studyGuideBtn" class="pill-button" type="button">
-    <span class="material-symbols-outlined">menu_book</span>
-    <span>Study Guide</span>
-  </button>
-
-  <button id="essayBtn" class="pill-button" type="button">
-    <span class="material-symbols-outlined">draw</span>
-    <span>Essay Helper</span>
-  </button>
-
-  <button id="cardsBtn" class="pill-button" type="button">
-    <span class="material-symbols-outlined">style</span>
-    <span>Flashcards</span>
-  </button>
-
-
-
-</div>
-
-
-
-
-           
-
-           
-          </div>
-        </section>
-<!-- SOLVE RESULT (new tool section) -->
-<section id="solve" class="tab-content">
-  <div class="card">
-    <h2>Solve</h2>
-    <p class="desc">
-      Results from solving the text in the Snap area.
-    </p>
-<div class="hint-row">
-  <button
-    class="pill-button"
-    type="button"
-    data-action="simplify"
-    data-target="snapResult"
-  >
-    <span
-      class="material-symbols-outlined"
-      style="font-size: 16px;"
-    >lightbulb</span>
-    Explain simpler
-  </button>
-  <button
-    class="pill-button"
-    type="button"
-    data-action="hint"
-    data-target="snapResult"
-  >
-    <span
-      class="material-symbols-outlined"
-      style="font-size: 16px;"
-    >tips_and_updates</span>
-    Give me a hint
-  </button>
-</div>
-
-    <pre id="snapResult"></pre>
-  </div>
-</section>
-
-        <!-- MATH SOLVER -->
-        <section id="math" class="tab-content">
-          <div class="card">
-            <h2>Math Solver</h2>
-            <p class="desc">
-              Type or paste a math question → step-by-step solution.
-            </p>
-
-            <button id="copyMathInputBtn" type="button" aria-label="Copy text">
-              <span class="material-symbols-outlined">content_copy</span>
-            </button>
-            <label for="snapText">Math problem (uses the main text box above)</label>
-            <textarea
-              id="mathInput"
-              placeholder="Example: Solve 3x + 7 = 22"
-              style="display:none;"
-            ></textarea>
-
-            <!-- Action button removed here; only Clear remains -->
-            <div class="btn-row">
-              <button class="secondary" id="mathClearBtn" type="button">
-                <span class="material-symbols-outlined">delete</span>
-                <span>Clear</span>
-              </button>
-            </div>
-
-            <div class="hint-row">
-              <button
-                class="pill-button"
-                data-action="simplify"
-                data-target="mathResult"
-              >
-                <span
-                  class="material-symbols-outlined"
-                  style="font-size: 16px;"
-                >lightbulb</span>
-                Explain simpler
-              </button>
-            </div>
-
-            <pre id="mathResult"></pre>
-          </div>
-        </section>
-
-        <!-- STUDY GUIDE -->
-        <section id="study" class="tab-content">
-          <div class="card">
-            <h2>Study Guide</h2>
-            <p class="desc">
-              Turn messy notes or textbook text into a clean study guide.
-            </p>
-
-            <button id="copyStudyInputBtn" type="button" aria-label="Copy text">
-              <span class="material-symbols-outlined">content_copy</span>
-            </button>
-            <label for="snapText">Notes or textbook text (uses the main text box above)</label>
-            <textarea
-              id="studyInput"
-              placeholder="Paste your notes or textbook text here..."
-              style="display:none;"
-            ></textarea>
-
-            <!-- Action button removed here; only Clear remains -->
-            <div class="btn-row">
-              <button class="secondary" id="studyClearBtn" type="button">
-                <span class="material-symbols-outlined">delete</span>
-                <span>Clear</span>
-              </button>
-            </div>
-
-            <div class="hint-row">
-              <button
-                class="pill-button"
-                data-action="simplify"
-                data-target="studyResult"
-              >
-                <span
-                  class="material-symbols-outlined"
-                  style="font-size: 16px;"
-                >lightbulb</span>
-                Explain simpler
-              </button>
-            </div>
-
-            <pre id="studyResult"></pre>
-          </div>
-        </section>
-
-        <!-- ESSAY HELPER -->
-        <section id="essay" class="tab-content">
-          <div class="card">
-            <h2>Essay Helper</h2>
-            <p class="desc">
-              Fix grammar, improve structure, or generate a draft from a prompt.
-            </p>
-
-            <button id="copyEssayInputBtn" type="button" aria-label="Copy text">
-              <span class="material-symbols-outlined">content_copy</span>
-            </button>
-            <label for="snapText">Essay text or assignment prompt (uses the main text box above)</label>
-            <textarea
-              id="essayInput"
-              placeholder="Paste your essay or describe what you need to write..."
-              style="display:none;"
-            ></textarea>
-
-            <!-- Action button removed here; only Clear remains -->
-            <div class="btn-row">
-              <button class="secondary" id="essayClearBtn" type="button">
-                <span class="material-symbols-outlined">delete</span>
-                <span>Clear</span>
-              </button>
-            </div>
-
-            <div class="hint-row">
-              <button
-                class="pill-button"
-                data-action="simplify"
-                data-target="essayResult"
-              >
-                <span
-                  class="material-symbols-outlined"
-                  style="font-size: 16px;"
-                >lightbulb</span>
-                Simpler version
-              </button>
-            </div>
-
-            <pre id="essayResult"></pre>
-          </div>
-        </section>
-
-<section id="flashcards" class="tab-content">
-  <div class="card">
-    <h2>Flashcards</h2>
-    <p class="desc">
-      Paste content → get term/question → answer flashcards.
-    </p>
-
-    <button id="copyCardsInputBtn" type="button" aria-label="Copy text">
-      <span class="material-symbols-outlined">content_copy</span>
-    </button>
-    <label for="snapText">Source text for flashcards (uses the main text box above)</label>
-    <textarea
-      id="cardsInput"
-      placeholder="Paste notes, vocabulary lists, or textbook text..."
-      style="display:none;"
-    ></textarea>
-
-    <!-- Action button removed here; only Clear remains -->
-    <div class="btn-row">
-      <button class="secondary" id="cardsClearBtn" type="button">
-        <span class="material-symbols-outlined">delete</span>
-        <span>Clear</span>
-      </button>
-    </div>
-
-    <!-- Raw AI output (for debug / copy) -->
-    <pre id="cardsResult"></pre>
-
-    <!-- New interactive flashcard viewer -->
-    <div id="cardsViewer" style="display: none; margin-top: 10px;">
-      <div id="cardsStats" class="desc">
-        <!-- e.g. Card 1 of 10 • Got it 3 • Need work 2 -->
-      </div>
-
-      <div id="cardsCard" class="flashcard">
-        <div id="cardsFront" class="flashcard-side">
-          Front
-        </div>
-        <div id="cardsBack" class="flashcard-side" style="display: none;">
-          Back
-        </div>
-      </div>
-
-      <div class="btn-row" style="margin-top: 8px;">
-        <button class="secondary" id="cardsNeedWorkBtn" type="button">
-          <span class="material-symbols-outlined">priority_high</span>
-          <span>Need work</span>
-        </button>
-		
-        <button class="secondary" id="cardsGotItBtn" type="button">
-          <span class="material-symbols-outlined">check_circle</span>
-          <span>Got it</span>
-        </button>
-        
-		<button id="cardsFlipBtn" type="button">
-          <span class="material-symbols-outlined">sync</span>
-          <span>Flip</span>
-        </button>
-      </div>
-    </div>
-  </div>
-</section>
-
-
-
-
-        <!-- NOTEBOOK -->
-
-
-        <section id="notebook" class="tab-content">
-
-          <div class="card">
-		          <section id="notebook" class="tab-content">
-			
-
-            <h2>Notebook</h2>
-            <p class="desc">
-              Recent saved results from Snap, Math, Study, Essay, etc.
-            </p>
-			
-			<div class="hint-row" id="notebookFilterRow">
-  <button class="pill-button notebook-filter active" data-filter="all">
-    <span class="material-symbols-outlined" style="font-size: 16px;">filter_alt</span>
-    <span>All</span>
-  </button>
-
-  <button class="pill-button notebook-filter" data-filter="Snap">
-    <span class="material-symbols-outlined" style="font-size: 16px;">photo_camera</span>
-    <span>Solve</span>
-  </button>
-
-  <button class="pill-button notebook-filter" data-filter="Math">
-    <span class="material-symbols-outlined" style="font-size: 16px;">calculate</span>
-    <span>Math</span>
-  </button>
-
-  <button class="pill-button notebook-filter" data-filter="Study">
-    <span class="material-symbols-outlined" style="font-size: 16px;">menu_book</span>
-    <span>Study</span>
-  </button>
-
-  <button class="pill-button notebook-filter" data-filter="Essay">
-    <span class="material-symbols-outlined" style="font-size: 16px;">draw</span>
-    <span>Essay</span>
-  </button>
-
-
-
-  <button class="pill-button notebook-filter" data-filter="Cards">
-    <span class="material-symbols-outlined" style="font-size: 16px;">style</span>
-    <span>Flashcards</span>
-  </button>
-</div>
- <div class="btn-row" style="margin-bottom: 8px;">
-      <button class="secondary" id="clearNotebookBtn" type="button">
-        <span class="material-symbols-outlined">delete_forever</span>
-        <span>Clear notebook</span>
-      </button>
-      <!-- NEW: undo button -->
-      <button class="secondary" id="undoNotebookBtn" type="button">
-        <span class="material-symbols-outlined">undo</span>
-        <span>Undo</span>
-      </button>
-    </div>
-
-            <!-- NEW: subjects manager / chips -->
-            <div id="notebookSubjects" class="hint-row" style="margin-bottom: 8px;"></div>
-
-            <div id="notebookList"></div>
-          </div>
-        </section>
-
-        <div class="hint-footer" id="hintFooter">
-  AI is for learning, not cheating. Always check your work.
-</div>
-
-      </div>
-
-      <!-- RIGHT SIDE DRAWER / SIDEBAR -->
-      <aside class="side-drawer" id="sideDrawer">
-        <div class="side-drawer-inner">
-          <div class="side-drawer-header">TOOLS</div>
-          <nav class="side-nav">
-            <button class="nav-btn active" data-target="solve" type="button">
-  <span class="material-symbols-outlined">photo_camera</span>
-  <span class="label">Solve</span>
-</button>
-
-            <button class="nav-btn" data-target="math" type="button">
+            <button
+              id="mathSolveBtn"
+              class="pill-button"
+              type="button"
+            >
               <span class="material-symbols-outlined">calculate</span>
-              <span class="label">Math Solver</span>
-            </button>
-            <button class="nav-btn" data-target="study" type="button">
-              <span class="material-symbols-outlined">menu_book</span>
-              <span class="label">Study Guide</span>
-            </button>
-            <button class="nav-btn" data-target="essay" type="button">
-              <span class="material-symbols-outlined">draw</span>
-              <span class="label">Essay Helper</span>
-            </button>
-            <button class="nav-btn" data-target="flashcards" type="button">
-              <span class="material-symbols-outlined">style</span>
-              <span class="label">Flashcards</span>
+              <span>Math Solver</span>
             </button>
 
-            <button class="nav-btn" data-target="notebook" type="button">
-              <span class="material-symbols-outlined">book_2</span>
-              <span class="label">Notebook</span>
+            <button
+              id="studyGuideBtn"
+              class="pill-button"
+              type="button"
+            >
+              <span class="material-symbols-outlined">menu_book</span>
+              <span>Study Guide</span>
             </button>
-          </nav>
+
+            <button
+              id="essayBtn"
+              class="pill-button"
+              type="button"
+            >
+              <span class="material-symbols-outlined">draw</span>
+              <span>Essay Helper</span>
+            </button>
+
+            <button
+              id="cardsBtn"
+              class="pill-button"
+              type="button"
+            >
+              <span class="material-symbols-outlined">style</span>
+              <span>Flashcards</span>
+            </button>
+          </div>
         </div>
-      </aside>
+      </section>
+
+      <!-- SOLVE RESULT (new tool section) -->
+      <section id="solve" class="tab-content">
+        <div class="card">
+          <h2>Solve</h2>
+          <p class="desc">
+            Results from solving the text in the Snap area.
+          </p>
+          <div class="hint-row">
+            <button
+              class="pill-button"
+              type="button"
+              data-action="simplify"
+              data-target="snapResult"
+            >
+              <span
+                class="material-symbols-outlined"
+                style="font-size: 16px;"
+                >lightbulb</span
+              >
+              Explain simpler
+            </button>
+            <button
+              class="pill-button"
+              type="button"
+              data-action="hint"
+              data-target="snapResult"
+            >
+              <span
+                class="material-symbols-outlined"
+                style="font-size: 16px;"
+                >tips_and_updates</span
+              >
+              Give me a hint
+            </button>
+          </div>
+
+          <pre id="snapResult"></pre>
+        </div>
+      </section>
+
+      <!-- MATH SOLVER -->
+      <section id="math" class="tab-content">
+        <div class="card">
+          <h2>Math Solver</h2>
+          <p class="desc">
+            Type or paste a math question → step-by-step solution.
+          </p>
+
+          <button
+            id="copyMathInputBtn"
+            type="button"
+            aria-label="Copy text"
+          >
+            <span class="material-symbols-outlined">content_copy</span>
+          </button>
+          <label for="snapText"
+            >Math problem (uses the main text box above)</label
+          >
+          <textarea
+            id="mathInput"
+            placeholder="Example: Solve 3x + 7 = 22"
+            style="display:none;"
+          ></textarea>
+
+          <!-- Action button removed here; only Clear remains -->
+          <div class="btn-row">
+            <button
+              class="secondary"
+              id="mathClearBtn"
+              type="button"
+            >
+              <span class="material-symbols-outlined">delete</span>
+              <span>Clear</span>
+            </button>
+          </div>
+
+          <div class="hint-row">
+            <button
+              class="pill-button"
+              data-action="simplify"
+              data-target="mathResult"
+            >
+              <span
+                class="material-symbols-outlined"
+                style="font-size: 16px;"
+                >lightbulb</span
+              >
+              Explain simpler
+            </button>
+          </div>
+
+          <pre id="mathResult"></pre>
+        </div>
+      </section>
+
+      <!-- STUDY GUIDE -->
+      <section id="study" class="tab-content">
+        <div class="card">
+          <h2>Study Guide</h2>
+          <p class="desc">
+            Turn messy notes or textbook text into a clean study guide.
+          </p>
+
+          <button
+            id="copyStudyInputBtn"
+            type="button"
+            aria-label="Copy text"
+          >
+            <span class="material-symbols-outlined">content_copy</span>
+          </button>
+          <label for="snapText"
+            >Notes or textbook text (uses the main text box above)</label
+          >
+          <textarea
+            id="studyInput"
+            placeholder="Paste your notes or textbook text here..."
+            style="display:none;"
+          ></textarea>
+
+          <!-- Action button removed here; only Clear remains -->
+          <div class="btn-row">
+            <button
+              class="secondary"
+              id="studyClearBtn"
+              type="button"
+            >
+              <span class="material-symbols-outlined">delete</span>
+              <span>Clear</span>
+            </button>
+          </div>
+
+          <div class="hint-row">
+            <button
+              class="pill-button"
+              data-action="simplify"
+              data-target="studyResult"
+            >
+              <span
+                class="material-symbols-outlined"
+                style="font-size: 16px;"
+                >lightbulb</span
+              >
+              Explain simpler
+            </button>
+          </div>
+
+          <pre id="studyResult"></pre>
+        </div>
+      </section>
+
+      <!-- ESSAY HELPER -->
+      <section id="essay" class="tab-content">
+        <div class="card">
+          <h2>Essay Helper</h2>
+          <p class="desc">
+            Fix grammar, improve structure, or generate a draft from a prompt.
+          </p>
+
+          <button
+            id="copyEssayInputBtn"
+            type="button"
+            aria-label="Copy text"
+          >
+            <span class="material-symbols-outlined">content_copy</span>
+          </button>
+          <label for="snapText"
+            >Essay text or assignment prompt (uses the main text box
+            above)</label
+          >
+          <textarea
+            id="essayInput"
+            placeholder="Paste your essay or describe what you need to write..."
+            style="display:none;"
+          ></textarea>
+
+          <!-- Action button removed here; only Clear remains -->
+          <div class="btn-row">
+            <button
+              class="secondary"
+              id="essayClearBtn"
+              type="button"
+            >
+              <span class="material-symbols-outlined">delete</span>
+              <span>Clear</span>
+            </button>
+          </div>
+
+          <div class="hint-row">
+            <button
+              class="pill-button"
+              data-action="simplify"
+              data-target="essayResult"
+            >
+              <span
+                class="material-symbols-outlined"
+                style="font-size: 16px;"
+                >lightbulb</span
+              >
+              Simpler version
+            </button>
+          </div>
+
+          <pre id="essayResult"></pre>
+        </div>
+      </section>
+
+      <section id="flashcards" class="tab-content">
+        <div class="card">
+          <h2>Flashcards</h2>
+          <p class="desc">
+            Paste content → get term/question → answer flashcards.
+          </p>
+
+          <button
+            id="copyCardsInputBtn"
+            type="button"
+            aria-label="Copy text"
+          >
+            <span class="material-symbols-outlined">content_copy</span>
+          </button>
+          <label for="snapText"
+            >Source text for flashcards (uses the main text box above)</label
+          >
+          <textarea
+            id="cardsInput"
+            placeholder="Paste notes, vocabulary lists, or textbook text..."
+            style="display:none;"
+          ></textarea>
+
+          <!-- Action button removed here; only Clear remains -->
+          <div class="btn-row">
+            <button
+              class="secondary"
+              id="cardsClearBtn"
+              type="button"
+            >
+              <span class="material-symbols-outlined">delete</span>
+              <span>Clear</span>
+            </button>
+          </div>
+
+          <!-- Raw AI output (for debug / copy) -->
+          <pre id="cardsResult"></pre>
+
+          <!-- New interactive flashcard viewer -->
+          <div
+            id="cardsViewer"
+            style="display: none; margin-top: 10px;"
+          >
+            <div id="cardsStats" class="desc">
+              <!-- e.g. Card 1 of 10 • Got it 3 • Need work 2 -->
+            </div>
+
+            <div id="cardsCard" class="flashcard">
+              <div id="cardsFront" class="flashcard-side">
+                Front
+              </div>
+              <div
+                id="cardsBack"
+                class="flashcard-side"
+                style="display: none;"
+              >
+                Back
+              </div>
+            </div>
+
+            <div class="btn-row" style="margin-top: 8px;">
+              <button
+                class="secondary"
+                id="cardsNeedWorkBtn"
+                type="button"
+              >
+                <span class="material-symbols-outlined">priority_high</span>
+                <span>Need work</span>
+              </button>
+
+              <button
+                class="secondary"
+                id="cardsGotItBtn"
+                type="button"
+              >
+                <span class="material-symbols-outlined">check_circle</span>
+                <span>Got it</span>
+              </button>
+
+              <button id="cardsFlipBtn" type="button">
+                <span class="material-symbols-outlined">sync</span>
+                <span>Flip</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- NOTEBOOK -->
+      <section id="notebook" class="tab-content">
+        <div class="card">
+          <h2>Notebook</h2>
+          <p class="desc">
+            Recent saved results from Snap, Math, Study, Essay, etc.
+          </p>
+
+          <div class="hint-row" id="notebookFilterRow">
+            <button
+              class="pill-button notebook-filter active"
+              data-filter="all"
+            >
+              <span
+                class="material-symbols-outlined"
+                style="font-size: 16px;"
+                >filter_alt</span
+              >
+              <span>All</span>
+            </button>
+
+            <button
+              class="pill-button notebook-filter"
+              data-filter="Snap"
+            >
+              <span
+                class="material-symbols-outlined"
+                style="font-size: 16px;"
+                >photo_camera</span
+              >
+              <span>Solve</span>
+            </button>
+
+            <button
+              class="pill-button notebook-filter"
+              data-filter="Math"
+            >
+              <span
+                class="material-symbols-outlined"
+                style="font-size: 16px;"
+                >calculate</span
+              >
+              <span>Math</span>
+            </button>
+
+            <button
+              class="pill-button notebook-filter"
+              data-filter="Study"
+            >
+              <span
+                class="material-symbols-outlined"
+                style="font-size: 16px;"
+                >menu_book</span
+              >
+              <span>Study</span>
+            </button>
+
+            <button
+              class="pill-button notebook-filter"
+              data-filter="Essay"
+            >
+              <span
+                class="material-symbols-outlined"
+                style="font-size: 16px;"
+                >draw</span
+              >
+              <span>Essay</span>
+            </button>
+
+            <button
+              class="pill-button notebook-filter"
+              data-filter="Cards"
+            >
+              <span
+                class="material-symbols-outlined"
+                style="font-size: 16px;"
+                >style</span
+              >
+              <span>Flashcards</span>
+            </button>
+          </div>
+
+          <div class="btn-row" style="margin-bottom: 8px;">
+            <button
+              class="secondary"
+              id="clearNotebookBtn"
+              type="button"
+            >
+              <span class="material-symbols-outlined">delete_forever</span>
+              <span>Clear notebook</span>
+            </button>
+            <!-- NEW: undo button -->
+            <button
+              class="secondary"
+              id="undoNotebookBtn"
+              type="button"
+            >
+              <span class="material-symbols-outlined">undo</span>
+              <span>Undo</span>
+            </button>
+          </div>
+
+          <!-- NEW: subjects manager / chips -->
+          <div
+            id="notebookSubjects"
+            class="hint-row"
+            style="margin-bottom: 8px;"
+          ></div>
+
+          <div id="notebookList"></div>
+        </div>
+      </section>
+
+      <div class="hint-footer" id="hintFooter">
+        AI is for learning, not cheating. Always check your work.
+      </div>
     </div>
+
+    <!-- RIGHT SIDE DRAWER / SIDEBAR -->
+    <aside class="side-drawer" id="sideDrawer">
+      <div class="side-drawer-inner">
+        <div class="side-drawer-header">TOOLS</div>
+       <nav class="side-nav">
+  <!-- NEW: OCR tool -->
+  <button class="nav-btn active" data-target="snap" type="button">
+    <span class="material-symbols-outlined">scan</span>
+    <span class="label">OCR</span>
+  </button>
+
+  <!-- Existing tools, unchanged except Solve is no longer the default active -->
+  <button class="nav-btn" data-target="solve" type="button">
+    <span class="material-symbols-outlined">photo_camera</span>
+    <span class="label">Solve</span>
+  </button>
+
+  <button class="nav-btn" data-target="math" type="button">
+    <span class="material-symbols-outlined">calculate</span>
+    <span class="label">Math Solver</span>
+  </button>
+
+  <button class="nav-btn" data-target="study" type="button">
+    <span class="material-symbols-outlined">menu_book</span>
+    <span class="label">Study Guide</span>
+  </button>
+
+  <button class="nav-btn" data-target="essay" type="button">
+    <span class="material-symbols-outlined">draw</span>
+    <span class="label">Essay Helper</span>
+  </button>
+
+  <button class="nav-btn" data-target="flashcards" type="button">
+    <span class="material-symbols-outlined">style</span>
+    <span class="label">Flashcards</span>
+  </button>
+
+  <button class="nav-btn" data-target="notebook" type="button">
+    <span class="material-symbols-outlined">book_2</span>
+    <span class="label">Notebook</span>
+  </button>
+</nav>
+
+      </div>
+    </aside>
   </div>
+</div>
+
 
 
 
@@ -4298,6 +4476,28 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     document.addEventListener("click", (e) => {
       if (!menu.contains(e.target) && !toggle.contains(e.target)) {
         menu.style.display = "none";
+      }
+    });
+  });
+</script>
+
+
+<!--closes header menu drop down-->
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const menu = document.querySelector(".header-menu");
+    if (!menu) return;
+
+    const inner = menu.querySelector(".header-menu-inner");
+    if (!inner) return;
+
+    inner.addEventListener("click", (e) => {
+      const clickable = e.target.closest("button, .chip");
+      if (!clickable) return;
+
+      const details = clickable.closest("details");
+      if (details) {
+        details.removeAttribute("open"); // closes the <details>
       }
     });
   });
