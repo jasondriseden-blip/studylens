@@ -1264,7 +1264,7 @@ Snap, solve, study & write.<span class="mobile-break"><br></span> Built for stud
 <button id="refreshOcrButton" type="button" disabled>↻ Refresh OCR</button>
 
            <!-- NEW: custom subject / folder name for saving work -->
-<div class="hint-row" style="margin-top: 4px; justify-content: flex-start;">
+<div class="hint-row" style="margin-top: 14px; justify-content: flex-start;">
   <span class="desc" style="margin: 0; font-size: 0.75rem;">
     Save this work under:
   </span>
@@ -2730,6 +2730,32 @@ activateTab(savedTab);
   // keep track of whichever file was chosen last
   let lastSnapFile = null;
 
+  // simple loading animation for textareas
+  function startTextareaLoading(ta, baseText) {
+    if (!ta) return;
+    stopTextareaLoading(ta);
+    let dotCount = 0;
+    const maxDots = 3;
+    ta.value = baseText;
+    if (window.autoResizeTextarea) window.autoResizeTextarea(ta);
+    const id = setInterval(() => {
+      dotCount = (dotCount + 1) % (maxDots + 1);
+      const dots = ".".repeat(dotCount);
+      ta.value = baseText + dots;
+      if (window.autoResizeTextarea) window.autoResizeTextarea(ta);
+    }, 400);
+    ta.dataset.loadingIntervalId = String(id);
+  }
+
+  function stopTextareaLoading(ta) {
+    if (!ta) return;
+    const id = ta.dataset.loadingIntervalId;
+    if (id) {
+      clearInterval(Number(id));
+      delete ta.dataset.loadingIntervalId;
+    }
+  }
+
   function handleSnapFile(file) {
     if (!file) {
       lastSnapFile = null;
@@ -2784,18 +2810,16 @@ activateTab(savedTab);
 
   // Run OCR on whichever file we last picked – DOES NOT affect usage counts
   snapOCRBtn.addEventListener("click", async () => {
-  if (!lastSnapFile) {
-    alert("Choose or take an image first.");
-    return;
-  }
-  snapText.value = "Reading image...";
-  if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
-
-  const text = await runFakeOCR(lastSnapFile);
-  snapText.value = text;
-  if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
-});
-
+    if (!lastSnapFile) {
+      alert("Choose or take an image first.");
+      return;
+    }
+    startTextareaLoading(snapText, "Reading image");
+    const text = await runFakeOCR(lastSnapFile);
+    stopTextareaLoading(snapText);
+    snapText.value = text;
+    if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
+  });
 
   // Refresh OCR on the last image without clearing it
   if (refreshOcrButton) {
@@ -2807,9 +2831,11 @@ activateTab(savedTab);
       const originalText = refreshOcrButton.textContent;
       refreshOcrButton.disabled = true;
       refreshOcrButton.textContent = "Refreshing...";
-      snapText.value = "Reading image...";
+      startTextareaLoading(snapText, "Reading image");
       const text = await runFakeOCR(null); // reuse last image in runFakeOCR
+      stopTextareaLoading(snapText);
       snapText.value = text;
+      if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
       refreshOcrButton.textContent = originalText;
       refreshOcrButton.disabled = false;
     });
@@ -2847,6 +2873,13 @@ activateTab(savedTab);
     // switch to the Solve tool section
     if (typeof activateTab === "function") {
       activateTab("solve");
+    }
+
+    // put the text into the Solve tool's textarea if it exists
+    const solveInput = document.getElementById("solveInput");
+    if (solveInput) {
+      solveInput.value = text;
+      if (window.autoResizeTextarea) window.autoResizeTextarea(solveInput);
     }
 
     snapResult.textContent = "Thinking...";
@@ -2953,6 +2986,8 @@ activateTab(savedTab);
     essayResult.textContent = "";
   });
 </script>
+
+
 
 
 
