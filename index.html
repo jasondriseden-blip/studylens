@@ -303,8 +303,8 @@
   .theme-toggle:hover,
   .drawer-toggle:hover {
     border-color: transparent;
-    background: linear-gradient(135deg, var(--primary), var(--primary-variant));
-    color: var(--on-primary);
+    background: #000;
+    color: #fff;
     transform: translateY(-1px);
   }
 
@@ -417,12 +417,12 @@
     flex-wrap: wrap;
     gap: 8px;
     margin-top: 9px;
-    margin-bottom: 4px;
+    margin-bottom: 15px;
     justify-content: flex-end;
   }
 
   button {
-    border-radius: 999px;
+        border-radius: 10px;
     border: none;
     padding: 9px 16px;
     font-size: 0.85rem;
@@ -430,21 +430,15 @@
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    background: linear-gradient(
-      135deg,
-      var(--primary),
-      var(--primary-variant)
-    );
+    background: #333;
     color: var(--on-primary);
-    transition:
-      transform 0.08s ease-out,
+    transition: transform 0.08s ease-out,
       box-shadow 0.08s ease-out,
       opacity 0.08s,
       background 0.12s ease-out;
     font-weight: 500;
-  }
-
-  button.secondary {
+}  
+button.secondary {
     background: transparent;
     color: var(--on-surface);
     box-shadow: none;
@@ -902,8 +896,8 @@
 
   .btn-upgrade,
   #authButton {
-    flex: 0 0 auto;
-    padding: 5px 12px;
+        flex: 0 0 auto;
+    padding: 12px;
     font-size: 0.78rem;
     width: auto !important;
     min-width: 0;
@@ -1122,6 +1116,89 @@ label[for="saveSubjectInput"] {
     overflow-y: hidden !important;
     resize: none;
   }
+/* Make the Snap copy button smaller */
+#copySnapTextBtn {
+  border: none;
+  background: transparent;
+  padding: 2px 4px;
+  font-size: 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Smaller icon */
+#copySnapTextBtn .material-symbols-outlined {
+  font-size: 14px;
+}
+/* Snap copy button – small and theme-aware */
+#copySnapTextBtn {
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  background: rgba(148, 163, 184, 0.08);
+  border-radius: 999px;
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  color: inherit;            /* text follows theme */
+}
+
+/* Icon also follows theme */
+#copySnapTextBtn .material-symbols-outlined {
+  font-size: 14px;
+  color: inherit;            /* icon follows theme */
+}
+.snap-text-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.snap-actions-wrapper {
+  justify-content: flex-start;
+}
+
+.snap-actions-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.snap-actions-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.snap-actions-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  padding: 6px 0;
+  border-radius: 10px;
+  border: 1px solid var(--outline, rgba(148, 163, 184, 0.5));
+  background: var(--card-bg, #0b1120);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.4);
+  min-width: 180px;
+  display: none;
+  z-index: 30;
+}
+
+.snap-actions-menu button {
+      width: 100%;
+    justify-content: flex-start;
+    border-radius: 0;
+    border: none;
+    background: #ffffff;
+    color: #000;
+}
+
+.snap-actions-menu button:hover {
+  background: rgba(148, 163, 184, 0.1);
+}
+
 
 </style>
 
@@ -1221,34 +1298,75 @@ Snap, solve, study & write.<span class="mobile-break"><br></span> Built for stud
 </p>
 
 
-    <div class="main-layout">
-      <div class="content">
-        <!-- SNAP & SOLVE (always visible main input) -->
-        <section id="snap">
-          <div class="card">
-            <h2>Snap & Solve</h2>
-            <p class="desc">
-              Take a photo or screenshot of homework → text → AI explanation.
-            </p>
+   <div class="main-layout">
+  <div class="content">
+    <!-- SNAP & SOLVE (always visible main input) -->
+    <section id="snap">
+      <div class="card">
+        <h2>Snap & Solve</h2>
+        <p class="desc">
+          Take a photo or screenshot of homework → text → AI explanation.
+        </p>
 
-            <label for="snapInput">Homework image</label>
+        <label for="snapInput">Homework image</label>
 
-            <!-- Hidden file inputs: gallery + camera -->
-            <input
-              type="file"
-              id="snapInputGallery"
-              accept="image/*"
-              style="display:none;"
-            />
-            <input
-              type="file"
-              id="snapInputCamera"
-              accept="image/*"
-              capture="environment"
-              style="display:none;"
-            />
+        <!-- Hidden file inputs: gallery + camera -->
+        <input
+          type="file"
+          id="snapInputGallery"
+          accept="image/*"
+          style="display:none;"
+        />
+        <input
+          type="file"
+          id="snapInputCamera"
+          accept="image/*"
+          capture="environment"
+          style="display:none;"
+        />
 
-            <div class="btn-row">
+        <div class="main-layout">
+  <div class="content">
+    <!-- SNAP & SOLVE (always visible main input) -->
+    <section id="snap">
+      <div class="card">
+        <h2>Snap & Solve</h2>
+        <p class="desc">
+          Take a photo or screenshot of homework → text → AI explanation.
+        </p>
+
+        <label for="snapInput">Homework image</label>
+
+        <!-- Hidden file inputs: gallery + camera -->
+        <input
+          type="file"
+          id="snapInputGallery"
+          accept="image/*"
+          style="display:none;"
+        />
+        <input
+          type="file"
+          id="snapInputCamera"
+          accept="image/*"
+          capture="environment"
+          style="display:none;"
+        />
+
+        <!-- DROPDOWN WRAPPER FOR SNAP ACTIONS -->
+        <div class="btn-row snap-actions-wrapper">
+          <div class="snap-actions-dropdown">
+            <button
+              class="pill-button snap-actions-toggle"
+              id="snapActionsToggle"
+              type="button"
+            >
+              <span class="material-symbols-outlined" style="font-size: 18px;">
+                expand_more
+              </span>
+              <span>Image actions</span>
+            </button>
+
+            <div class="snap-actions-menu" id="snapActionsMenu">
               <!-- Open camera / gallery -->
               <button id="snapCameraBtn" type="button">
                 <span class="material-symbols-outlined">photo_camera</span>
@@ -1270,27 +1388,42 @@ Snap, solve, study & write.<span class="mobile-break"><br></span> Built for stud
                 <span>Clear</span>
               </button>
             </div>
+          </div>
+        </div>
 
-            <!-- Preview -->
-            <img
-              id="snapPreview"
-              alt="Homework preview"
-              style="
-                margin-top: 8px;
-                max-width: 100%;
-                border-radius: 12px;
-                display: none;
-              "
-            />
+        <!-- Preview -->
+        <img
+          id="snapPreview"
+          alt="Homework preview"
+          style="
+            margin-top: 8px;
+            max-width: 100%;
+            border-radius: 12px;
+            display: none;
+          "
+        />
 
-            <label for="snapText">Recognized text (main input for all tools — you can also type here)</label>
-            <textarea
-              id="snapText"
-              placeholder="OCR text will appear here..."
-            ></textarea>
-			<!--
-<button id="refreshOcrButton" type="button" disabled>↻ Refresh OCR</button>
--->
+        <div class="snap-text-header">
+          <label for="snapText">
+            Recognized text (main input for all tools — you can also type here)
+          </label>
+
+          <button id="copySnapTextBtn" type="button" aria-label="Copy text">
+            <span class="material-symbols-outlined">content_copy</span>
+            <span class="copy-label">Copy</span>
+          </button>
+        </div>
+
+        <textarea
+          id="snapText"
+          placeholder="OCR text will appear here..."
+        ></textarea>
+
+        <button id="refreshOcrButton" type="button" disabled>↻ Refresh OCR</button>
+
+
+      
+
            <!-- NEW: custom subject / folder name for saving work -->
 <div class="hint-row" style="margin-top: 14px; justify-content: flex-start;">
   <span class="desc" style="margin: 0; font-size: 0.75rem;">
@@ -1406,6 +1539,9 @@ Snap, solve, study & write.<span class="mobile-break"><br></span> Built for stud
               Type or paste a math question → step-by-step solution.
             </p>
 
+            <button id="copyMathInputBtn" type="button" aria-label="Copy text">
+              <span class="material-symbols-outlined">content_copy</span>
+            </button>
             <label for="snapText">Math problem (uses the main text box above)</label>
             <textarea
               id="mathInput"
@@ -1447,6 +1583,9 @@ Snap, solve, study & write.<span class="mobile-break"><br></span> Built for stud
               Turn messy notes or textbook text into a clean study guide.
             </p>
 
+            <button id="copyStudyInputBtn" type="button" aria-label="Copy text">
+              <span class="material-symbols-outlined">content_copy</span>
+            </button>
             <label for="snapText">Notes or textbook text (uses the main text box above)</label>
             <textarea
               id="studyInput"
@@ -1488,6 +1627,9 @@ Snap, solve, study & write.<span class="mobile-break"><br></span> Built for stud
               Fix grammar, improve structure, or generate a draft from a prompt.
             </p>
 
+            <button id="copyEssayInputBtn" type="button" aria-label="Copy text">
+              <span class="material-symbols-outlined">content_copy</span>
+            </button>
             <label for="snapText">Essay text or assignment prompt (uses the main text box above)</label>
             <textarea
               id="essayInput"
@@ -1528,6 +1670,9 @@ Snap, solve, study & write.<span class="mobile-break"><br></span> Built for stud
       Paste content → get term/question → answer flashcards.
     </p>
 
+    <button id="copyCardsInputBtn" type="button" aria-label="Copy text">
+      <span class="material-symbols-outlined">content_copy</span>
+    </button>
     <label for="snapText">Source text for flashcards (uses the main text box above)</label>
     <textarea
       id="cardsInput"
@@ -1692,6 +1837,8 @@ Snap, solve, study & write.<span class="mobile-break"><br></span> Built for stud
       </aside>
     </div>
   </div>
+
+
 
   <div class="drawer-backdrop" id="drawerBackdrop"></div>
 
@@ -1858,6 +2005,31 @@ themeToggle.addEventListener("click", () => {
   let notebookSubjectFilter = "all";
   let notebookLastSnapshot = null; // for undo
 
+  // NEW: generic clipboard helper
+  function copyTextToClipboard(text) {
+    const value = String(text || "");
+    if (!value) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(value).catch((err) =>
+        console.error("Clipboard error:", err)
+      );
+      return;
+    }
+    // fallback
+    const ta = document.createElement("textarea");
+    ta.value = value;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand("copy");
+    } catch (e) {
+      console.error("execCommand copy failed:", e);
+    }
+    document.body.removeChild(ta);
+  }
+
   function loadNotebook() {
     try {
       return JSON.parse(localStorage.getItem(notebookKey) || "[]");
@@ -1952,11 +2124,10 @@ themeToggle.addEventListener("click", () => {
 
       // 🔹 direct handler for this menu button
       menuBtn.addEventListener("click", (ev) => {
-  ev.stopPropagation();
-  const isShowing = dropdown.style.display === "flex";
-  dropdown.style.display = isShowing ? "none" : "flex";
-});
-
+        ev.stopPropagation();
+        const isShowing = dropdown.style.display === "flex";
+        dropdown.style.display = isShowing ? "none" : "flex";
+      });
 
       row.appendChild(subjBtn);
       row.appendChild(menuBtn);
@@ -2035,7 +2206,7 @@ themeToggle.addEventListener("click", () => {
         body.textContent = item.text;
         wrapper.appendChild(body);
 
-        // footer with "Open in ..." + Edit + Delete
+        // footer with "Open in ..." + Copy + Edit + Delete
         const footer = document.createElement("div");
         footer.className = "notebook-item-footer";
 
@@ -2047,6 +2218,14 @@ themeToggle.addEventListener("click", () => {
         const displayType =
           labelMap[item.type] || item.type || "tool";
         openBtn.textContent = "Open in " + displayType;
+
+        // NEW: copy icon button
+        const copyBtn = document.createElement("button");
+        copyBtn.className = "pill-button notebook-item-copy";
+        copyBtn.type = "button";
+        copyBtn.dataset.id = item.id;
+        copyBtn.innerHTML =
+          '<span class="material-symbols-outlined">content_copy</span>';
 
         const editBtn = document.createElement("button");
         editBtn.className = "pill-button notebook-item-edit";
@@ -2061,6 +2240,7 @@ themeToggle.addEventListener("click", () => {
         deleteBtn.textContent = "Delete";
 
         footer.appendChild(openBtn);
+        footer.appendChild(copyBtn);
         footer.appendChild(editBtn);
         footer.appendChild(deleteBtn);
         wrapper.appendChild(footer);
@@ -2114,8 +2294,6 @@ themeToggle.addEventListener("click", () => {
         safeRender("essayResult");
         break;
 
-      
-
       case "Cards":
       case "Flashcards":
         if (typeof activateTab === "function") activateTab("flashcards");
@@ -2164,7 +2342,7 @@ themeToggle.addEventListener("click", () => {
     }
   }
 
-  // click handler for "Open in ...", item Edit, item Delete (event delegation)
+  // click handler for "Open in ...", Copy, item Edit, item Delete (event delegation)
   if (notebookListEl) {
     notebookListEl.addEventListener("click", (e) => {
       const openBtn = e.target.closest(".notebook-open-btn");
@@ -2172,6 +2350,17 @@ themeToggle.addEventListener("click", () => {
         const id = openBtn.dataset.id;
         if (!id) return;
         openNotebookItemById(id);
+        return;
+      }
+
+      const copyBtn = e.target.closest(".notebook-item-copy");
+      if (copyBtn) {
+        const id = copyBtn.dataset.id;
+        if (!id) return;
+        const items = loadNotebook();
+        const item = items.find((i) => i.id === id);
+        if (!item) return;
+        copyTextToClipboard(item.text || "");
         return;
       }
 
@@ -2354,6 +2543,37 @@ themeToggle.addEventListener("click", () => {
 
   // Initial render
   renderNotebook();
+
+  // NEW: wire up copy buttons for textareas (Snap + other visible ones)
+  document.addEventListener("DOMContentLoaded", () => {
+    const snapTa = document.getElementById("snapText");
+    const copySnapBtn = document.getElementById("copySnapTextBtn");
+    if (snapTa && copySnapBtn) {
+      copySnapBtn.addEventListener("click", () => {
+        copyTextToClipboard(snapTa.value || "");
+      });
+    }
+
+    // auto-add copy icon next to other visible textareas (not snapText, not display:none)
+    const textareas = document.querySelectorAll("textarea");
+    textareas.forEach((ta) => {
+      if (ta.id === "snapText") return;
+      if (ta.style.display === "none") return;
+      if (!ta.parentNode) return;
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "icon-copy-btn";
+      btn.setAttribute("aria-label", "Copy text");
+      btn.innerHTML =
+        '<span class="material-symbols-outlined">content_copy</span>';
+
+      ta.parentNode.insertBefore(btn, ta.nextSibling);
+      btn.addEventListener("click", () => {
+        copyTextToClipboard(ta.value || "");
+      });
+    });
+  });
 </script>
 
 
@@ -2570,6 +2790,7 @@ text.trim();
     return callAI({ prompt, task: "snap" });
   }
 </script>
+
 
 
 
@@ -4033,6 +4254,54 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 </script>
 
 
+<!--copy icons for text boxes-->
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const copySnapTextBtn = document.getElementById("copySnapTextBtn");
+    const snapText = document.getElementById("snapText");
+
+    if (!copySnapTextBtn || !snapText) return;
+
+    const labelSpan = copySnapTextBtn.querySelector(".copy-label");
+
+    copySnapTextBtn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(snapText.value || "");
+
+        if (labelSpan) {
+          const old = labelSpan.textContent;
+          labelSpan.textContent = "Copied!";
+          setTimeout(() => {
+            labelSpan.textContent = old;
+          }, 1200);
+        }
+      } catch (err) {
+        console.error("Copy failed", err);
+      }
+    });
+  });
+</script>
+
+<!--OCR BUTTONS DROPDOWN MENU-->
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const toggle = document.getElementById("snapActionsToggle");
+    const menu = document.getElementById("snapActionsMenu");
+    if (!toggle || !menu) return;
+
+    toggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const open = menu.style.display === "block";
+      menu.style.display = open ? "none" : "block";
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!menu.contains(e.target) && !toggle.contains(e.target)) {
+        menu.style.display = "none";
+      }
+    });
+  });
+</script>
 
 </body>
 
