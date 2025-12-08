@@ -1261,6 +1261,7 @@ Snap, solve, study & write.<span class="mobile-break"><br></span> Built for stud
               id="snapText"
               placeholder="OCR text will appear here..."
             ></textarea>
+<button id="refreshOcrButton" type="button" disabled>↻ Refresh OCR</button>
 
            <!-- NEW: custom subject / folder name for saving work -->
 <div class="hint-row" style="margin-top: 4px; justify-content: flex-start;">
@@ -2579,6 +2580,9 @@ text.trim();
 
 <!-- BLOCK 4: Image resize helper and OCR call to backend -->
 <script>
+  // Store last OCR image so we can refresh without re-upload
+  let lastOcrImageDataUrl = null;
+
   // Helper: resize image before sending to backend (faster on phones)
   function resizeImageToDataUrl(file, maxWidth = 1200, quality = 0.8) {
     return new Promise((resolve, reject) => {
@@ -2613,8 +2617,18 @@ text.trim();
 
   // ---------- REAL OCR VIA AI BACKEND ----------
   async function runFakeOCR(file) {
-    // Resize the image first to keep things fast on phones
-    const imageData = await resizeImageToDataUrl(file, 1200, 0.8);
+    let imageData;
+
+    if (file) {
+      // New image: resize and remember it
+      imageData = await resizeImageToDataUrl(file, 1200, 0.8);
+      lastOcrImageDataUrl = imageData;
+    } else if (lastOcrImageDataUrl) {
+      // No file passed: reuse last image (refresh)
+      imageData = lastOcrImageDataUrl;
+    } else {
+      return "⚠️ No image available for OCR yet.";
+    }
 
     const subject = getSubject();
     const modelChoice = getModelChoice();
@@ -2711,6 +2725,8 @@ activateTab(savedTab);
   const snapUploadBtn = document.getElementById("snapUploadBtn");
   const snapPreview = document.getElementById("snapPreview");
 
+  const refreshOcrButton = document.getElementById("refreshOcrButton");
+
   // keep track of whichever file was chosen last
   let lastSnapFile = null;
 
@@ -2776,6 +2792,24 @@ activateTab(savedTab);
     const text = await runFakeOCR(lastSnapFile);
     snapText.value = text;
   });
+
+  // Refresh OCR on the last image without clearing it
+  if (refreshOcrButton) {
+    refreshOcrButton.addEventListener("click", async () => {
+      if (!lastSnapFile) {
+        alert("Choose or take an image first.");
+        return;
+      }
+      const originalText = refreshOcrButton.textContent;
+      refreshOcrButton.disabled = true;
+      refreshOcrButton.textContent = "Refreshing...";
+      snapText.value = "Reading image...";
+      const text = await runFakeOCR(null); // reuse last image in runFakeOCR
+      snapText.value = text;
+      refreshOcrButton.textContent = originalText;
+      refreshOcrButton.disabled = false;
+    });
+  }
 
   // Clear everything
   snapClearBtn.addEventListener("click", () => {
@@ -2915,6 +2949,7 @@ activateTab(savedTab);
     essayResult.textContent = "";
   });
 </script>
+
 
 
 <!-- BLOCK 7: Flashcards generation + interactive viewer -->
