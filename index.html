@@ -3454,9 +3454,9 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 <!--Anonymous usage limiter-->
 <script>
   (function () {
-    // ---- Anonymous usage limiter (5 total uses before requiring login) ----
+    // ---- Anonymous usage limiter (10 total uses before requiring login) ----
 
-    const ANON_LIMIT = 5;
+    const ANON_LIMIT = 10;
     const STORAGE_KEY = "passinggrade-anon-uses";
 
     // 🔹 New: monthly free limit for logged-in users
@@ -3492,7 +3492,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
     function showAnonLimitReached() {
       alert(
-        "You’ve used PassingGrade 5 times.\n\nTap ‘Sign in’ at the top right to create a free account and get 10 questions every month."
+        "You’ve used PassingGrade 10 times.\n\nTap ‘Sign in’ at the top right to create a free account and get 10 questions every month."
       );
     }
 
@@ -3771,7 +3771,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       } catch (e) {
         anonUses = 0;
       }
-      const limit = 5;
+      const limit = 10;
 
       userPlanLabel.textContent =
         `Guest · ${anonUses}/${limit} free OCR scans`;
@@ -3814,10 +3814,10 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
       if (isPro) {
         // Pro: no /10 cap
-        usageText = ` · ${currentCount} OCR this month`;
+        usageText = ` · ${currentCount} uses this month`;
       } else {
         // Free: show count out of 10
-        usageText = ` · ${currentCount}/10 OCR this month`;
+        usageText = ` · ${currentCount}/10 uses this month`;
       }
     } catch (e) {
       console.error("usage label exception", e);
