@@ -1094,7 +1094,24 @@ label[for="saveSubjectInput"] {
   width: 100%;
   text-align: left;
 }
+ /* let result boxes grow to full height */
+  #snapResult,
+  #mathResult,
+  #studyResult,
+  #essayResult {
+    max-height: none !important;
+    overflow: visible !important;
+  }
 
+  /* same idea for the main textareas */
+  #snapText,
+  #mathInput,
+  #studyInput,
+  #essayInput {
+    max-height: none !important;
+    overflow-y: hidden !important;
+    resize: none;
+  }
 
 </style>
 
@@ -1320,10 +1337,8 @@ Snap, solve, study & write.<span class="mobile-break"><br></span> Built for stud
     <span>Flashcards</span>
   </button>
 
-  <button id="quizBtn" class="pill-button" type="button">
-    <span class="material-symbols-outlined">quiz</span>
-    <span>Quiz Maker</span>
-  </button>
+
+
 </div>
 
 
@@ -1556,32 +1571,7 @@ Snap, solve, study & write.<span class="mobile-break"><br></span> Built for stud
 </section>
 
 
-        <!-- QUIZ MAKER -->
-        <section id="quiz" class="tab-content">
-          <div class="card">
-            <h2>Quiz Maker</h2>
-            <p class="desc">
-              Turn notes into multiple-choice and short-answer questions.
-            </p>
 
-            <label for="snapText">Material to quiz on (uses the main text box above)</label>
-            <textarea
-              id="quizInput"
-              placeholder="Paste notes or textbook section..."
-              style="display:none;"
-            ></textarea>
-
-            <!-- Action button removed here; only Clear remains -->
-            <div class="btn-row">
-              <button class="secondary" id="quizClearBtn" type="button">
-                <span class="material-symbols-outlined">delete</span>
-                <span>Clear</span>
-              </button>
-            </div>
-
-            <pre id="quizResult"></pre>
-          </div>
-        </section>
 
         <!-- NOTEBOOK -->
 
@@ -1623,10 +1613,7 @@ Snap, solve, study & write.<span class="mobile-break"><br></span> Built for stud
     <span>Essay</span>
   </button>
 
-  <button class="pill-button notebook-filter" data-filter="Quiz">
-    <span class="material-symbols-outlined" style="font-size: 16px;">quiz</span>
-    <span>Quiz</span>
-  </button>
+
 
   <button class="pill-button notebook-filter" data-filter="Cards">
     <span class="material-symbols-outlined" style="font-size: 16px;">style</span>
@@ -1684,10 +1671,7 @@ Snap, solve, study & write.<span class="mobile-break"><br></span> Built for stud
               <span class="material-symbols-outlined">style</span>
               <span class="label">Flashcards</span>
             </button>
-            <button class="nav-btn" data-target="quiz" type="button">
-              <span class="material-symbols-outlined">quiz</span>
-              <span class="label">Quiz Maker</span>
-            </button>
+
             <button class="nav-btn" data-target="notebook" type="button">
               <span class="material-symbols-outlined">book_2</span>
               <span class="label">Notebook</span>
@@ -2010,7 +1994,6 @@ themeToggle.addEventListener("click", () => {
       Math: "Math Solver",
       Study: "Study Guide",
       Essay: "Essay Helper",
-      Quiz: "Quiz Maker",
       Cards: "Flashcards",
       Flashcards: "Flashcards",
       Simplified: "Simplified answer",
@@ -2120,10 +2103,7 @@ themeToggle.addEventListener("click", () => {
         safeRender("essayResult");
         break;
 
-      case "Quiz":
-        if (typeof activateTab === "function") activateTab("quiz");
-        safeRender("quizResult");
-        break;
+      
 
       case "Cards":
       case "Flashcards":
@@ -2540,14 +2520,7 @@ text.trim();
     return callAI({ prompt, task: "flashcards" });
   }
 
-  async function runQuiz(text) {
-    const prompt =
-      "Create a short quiz (5-10 questions) for a student based on this text.\n" +
-      "Include a mix of multiple choice, short answer, and true/false.\n" +
-      "Format clearly so it's easy to read:\n1) Question\nA)\nB)\n...\n\nThen provide an Answer Key at the end.\n\nText:\n" +
-      text.trim();
-    return callAI({ prompt, task: "quiz" });
-  }
+  
 
   async function runSimplify(text) {
     const prompt =
@@ -3263,42 +3236,7 @@ function renderCurrentCard() {
   });
 </script>
 
-<!-- BLOCK 8: Quiz tab UI wiring -->
-<script>
-  // QUIZ
-  const quizInput = document.getElementById("quizInput");
-  const quizBtn = document.getElementById("quizBtn");
-  const quizClearBtn = document.getElementById("quizClearBtn");
-  const quizResult = document.getElementById("quizResult");
 
-  // usage counted based on snapText
-  quizBtn.addEventListener("click", async () => {
-    const text = snapText.value.trim();
-    if (!text) {
-      alert("Paste content into the main text box first.");
-      return;
-    }
-
-    // usage gate
-    if (window.__canUseAIOnce) {
-      const allowed = await window.__canUseAIOnce();
-      if (!allowed) return;
-    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
-      return;
-    }
-
-    quizResult.textContent = "Thinking...";
-    const ans = await runQuiz(text);
-    const clean = sanitizeAnswerText(ans);
-    renderAnswer(quizResult, clean);   // 👈
-    addNotebookItem("Quiz", clean);
-
-  });
-
-  quizClearBtn.addEventListener("click", () => {
-    quizResult.textContent = "";
-  });
-</script>
 
 <!-- BLOCK 9: Simplify + Hint “pill” buttons -->
 <script>
@@ -3369,7 +3307,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     wireSnapAction("studyGuideBtn", "studyInput", "study");
     wireSnapAction("essayBtn", "essayInput", "essay");
     wireSnapAction("cardsBtn", "cardsInput", "flashcards");
-    wireSnapAction("quizBtn", "quizInput", "quiz");
+
   })();
 </script>
 
@@ -3501,7 +3439,6 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       "#studyGuideBtn",
       "#essayBtn",
       "#cardsBtn",
-      "#quizBtn"
     ].join(","));
 
     buttons.forEach((btn) => {
