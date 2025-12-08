@@ -1540,7 +1540,7 @@ Snap, solve, study & write.<span class="mobile-break"><br></span> Built for stud
     <!-- New interactive flashcard viewer -->
     <div id="cardsViewer" style="display: none; margin-top: 10px;">
       <div id="cardsStats" class="desc">
-        <!-- e.g. Card 1 of 10 • Got it: 3 • Need work: 2 -->
+        <!-- e.g. Card 1 of 10 • Got it 3 • Need work 2 -->
       </div>
 
       <div id="cardsCard" class="flashcard">
@@ -3126,20 +3126,14 @@ function renderCurrentCard() {
   cardsFront.style.display = "block";
   cardsBack.style.display = "none";
 
-  // 🔹 Strip leading "Q:" / "A:" (or any colon/semicolon right after Q/A)
   const rawFront = card.front || "[No question]";
   const rawBack  = card.back  || "[No answer]";
 
-  const frontText = rawFront
-    .replace(/^Q\s*[:;.-]*\s*/i, "")   // remove leading Q: / Q; / Q. etc
-    .trim();
+  const frontText = cleanSide(rawFront) || "[No question]";
+  const backText  = cleanSide(rawBack)  || "[No answer]";
 
-  const backText = rawBack
-    .replace(/^A\s*[:;.-]*\s*/i, "")   // remove leading A: / A; / A. etc
-    .trim();
-
-  cardsFront.textContent = frontText || "[No question]";
-  cardsBack.textContent  = backText  || "[No answer]";
+  cardsFront.textContent = frontText;
+  cardsBack.textContent  = backText;
 
   updateCardsStats();
 }
