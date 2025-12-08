@@ -2784,14 +2784,18 @@ activateTab(savedTab);
 
   // Run OCR on whichever file we last picked – DOES NOT affect usage counts
   snapOCRBtn.addEventListener("click", async () => {
-    if (!lastSnapFile) {
-      alert("Choose or take an image first.");
-      return;
-    }
-    snapText.value = "Reading image...";
-    const text = await runFakeOCR(lastSnapFile);
-    snapText.value = text;
-  });
+  if (!lastSnapFile) {
+    alert("Choose or take an image first.");
+    return;
+  }
+  snapText.value = "Reading image...";
+  if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
+
+  const text = await runFakeOCR(lastSnapFile);
+  snapText.value = text;
+  if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
+});
+
 
   // Refresh OCR on the last image without clearing it
   if (refreshOcrButton) {
@@ -3995,37 +3999,23 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     function autoResize(ta) {
       if (!ta) return;
       ta.style.height = "auto";
-      ta.style.overflowY = "hidden"; // avoid inner scrollbar
+      ta.style.overflowY = "hidden";
       ta.style.height = ta.scrollHeight + "px";
     }
 
-    function bindAutoResizeToAllTextareas() {
-      const textareas = document.querySelectorAll("textarea");
-      textareas.forEach((ta) => {
-        if (ta.dataset.autoResizeBound === "true") return;
-        ta.dataset.autoResizeBound = "true";
-
-        autoResize(ta);
-        ta.addEventListener("input", () => autoResize(ta));
-      });
-    }
+    // expose so other scripts can call it
+    window.autoResizeTextarea = autoResize;
 
     document.addEventListener("DOMContentLoaded", () => {
-      // For textareas already in the DOM
-      bindAutoResizeToAllTextareas();
-
-      // For any textareas added later (e.g. SnapText created dynamically)
-      const observer = new MutationObserver(() => {
-        bindAutoResizeToAllTextareas();
-      });
-
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true,
+      const textareas = document.querySelectorAll("textarea");
+      textareas.forEach((ta) => {
+        autoResize(ta);
+        ta.addEventListener("input", () => autoResize(ta));
       });
     });
   })();
 </script>
+
 
 
 </body>
