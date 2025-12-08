@@ -3952,24 +3952,44 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
 
 
-<!--MAKE TEXT AREAS GROW-->
+<!-- MAKE TEXT AREAS GROW -->
 <script>
   (function () {
     function autoResize(ta) {
       if (!ta) return;
       ta.style.height = "auto";
+      ta.style.overflowY = "hidden"; // avoid inner scrollbar
       ta.style.height = ta.scrollHeight + "px";
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
+    function bindAutoResizeToAllTextareas() {
       const textareas = document.querySelectorAll("textarea");
       textareas.forEach((ta) => {
+        if (ta.dataset.autoResizeBound === "true") return;
+        ta.dataset.autoResizeBound = "true";
+
         autoResize(ta);
         ta.addEventListener("input", () => autoResize(ta));
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      // For textareas already in the DOM
+      bindAutoResizeToAllTextareas();
+
+      // For any textareas added later (e.g. SnapText created dynamically)
+      const observer = new MutationObserver(() => {
+        bindAutoResizeToAllTextareas();
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
       });
     });
   })();
 </script>
+
 
 </body>
 
