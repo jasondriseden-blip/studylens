@@ -625,14 +625,23 @@
   margin-top: 8px;
   padding: 14px 12px;
   border-radius: 14px;
-  border: 1px solid var(--outline);
+  border: 1px solid rgb(73 121 238);
   background: var(--field-bg);
   min-height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
-  text-align: center;       /* center content inside the card */
+  text-align: center;
+
+  /* flip animation */
+  transition: transform 0.3s ease;
+  transform-origin: center;
 }
+
+.flashcard.flipping {
+  transform: rotateY(180deg);
+}
+
 
 .flashcard-side {
   font-size: 0.9rem;
@@ -3021,6 +3030,7 @@ activateTab(savedTab);
   const cardsFlipBtn = document.getElementById("cardsFlipBtn");
   const cardsGotItBtn = document.getElementById("cardsGotItBtn");
   const cardsNeedWorkBtn = document.getElementById("cardsNeedWorkBtn");
+  const cardsCard = document.getElementById("cardsCard");
 
   const cardsStorageKey = "studyai-flashcards";
 
@@ -3211,9 +3221,22 @@ function renderCurrentCard() {
 
   cardsFlipBtn.addEventListener("click", () => {
     if (!flashcards.length) return;
-    showingBack = !showingBack;
-    cardsFront.style.display = showingBack ? "none" : "block";
-    cardsBack.style.display = showingBack ? "block" : "none";
+    if (!cardsCard) return;
+
+    // add flip class
+    cardsCard.classList.add("flipping");
+
+    // swap front/back halfway through the animation
+    setTimeout(() => {
+      showingBack = !showingBack;
+      cardsFront.style.display = showingBack ? "none" : "block";
+      cardsBack.style.display = showingBack ? "block" : "none";
+    }, 150);
+
+    // remove flip class at the end
+    setTimeout(() => {
+      cardsCard.classList.remove("flipping");
+    }, 300);
   });
 
   function goToNextCard() {
@@ -3243,6 +3266,7 @@ function renderCurrentCard() {
     goToNextCard();
   });
 </script>
+
 
 
 
