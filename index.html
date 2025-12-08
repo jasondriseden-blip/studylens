@@ -1098,6 +1098,7 @@ label[for="saveSubjectInput"] {
   #snapResult,
   #mathResult,
   #studyResult,
+   #flashcardsResult,
   #essayResult {
     max-height: none !important;
     overflow: visible !important;
@@ -2435,6 +2436,15 @@ function renderAnswer(preEl, text) {
   preEl.innerHTML = htmlLines.join("\n");
 }
 
+// helper to clean flashcard sides (front/back)
+function cleanSide(text) {
+  return String(text || "")
+    .trim()
+    .replace(/^[QA]\s*:\s*/i, "") // remove leading "Q:" or "A:"
+    .replace(/^:\s*/, "")         // remove leading ":"
+    .replace(/\s*:\s*$/, "");     // remove trailing ":"
+}
+
 
 
   // ---------- AI ENGINE (BACKEND HOOK POINT) ----------
@@ -2551,6 +2561,9 @@ text.trim();
     return callAI({ prompt, task: "snap" });
   }
 </script>
+
+
+
 
 <!-- BLOCK 4: Image resize helper and OCR call to backend -->
 <script>
