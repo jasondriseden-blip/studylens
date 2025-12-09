@@ -2404,11 +2404,7 @@ themeToggle.addEventListener("click", () => {
       dropdown.style.zIndex = "20";
       dropdown.style.whiteSpace = "nowrap";
 
-      const editBtn = document.createElement("button");
-      editBtn.type = "button";
-      editBtn.className = "pill-button notebook-subject-edit";
-      editBtn.dataset.subject = subj;
-      editBtn.textContent = "Rename subject";
+      
 
       const delBtn = document.createElement("button");
       delBtn.type = "button";
@@ -2416,7 +2412,6 @@ themeToggle.addEventListener("click", () => {
       delBtn.dataset.subject = subj;
       delBtn.textContent = "Delete subject & notes";
 
-      dropdown.appendChild(editBtn);
       dropdown.appendChild(delBtn);
 
       // 🔹 direct handler for this menu button
@@ -2524,11 +2519,7 @@ themeToggle.addEventListener("click", () => {
         copyBtn.innerHTML =
           '<span class="material-symbols-outlined">content_copy</span>';
 
-        const editBtn = document.createElement("button");
-        editBtn.className = "pill-button notebook-item-edit";
-        editBtn.type = "button";
-        editBtn.dataset.id = item.id;
-        editBtn.textContent = "Edit";
+       
 
         const deleteBtn = document.createElement("button");
         deleteBtn.className = "pill-button notebook-item-delete";
