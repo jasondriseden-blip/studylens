@@ -1387,23 +1387,7 @@
   .text-output.tool-output .hint-label {
     color: var(--code-fg);
   }
-  <style>
-  /* ...your existing CSS... */
-
-  @media (min-width: 800px) {
-    /* drawer toggle button in header/right side should still hide on desktop */
-    .drawer-toggle {
-      display: none;
-    }
-
-    /* BUT keep Upgrade + Sign in visible (even though they share the class) */
-    #upgradeButton,
-    #authButton {
-      display: inline-flex;
-    }
-  }
-</style>
-
+  
 </style>
 
 </head>
@@ -1463,8 +1447,8 @@
             class="header-menu-inner"
             style="
               position:absolute;
-              top:calc(100% + 6px);
-              left:5%;
+              top:calc(-100%);
+              left:-100%;
               transform:translateX(-50%);
               display:flex;
               flex-direction:column;
@@ -1512,7 +1496,7 @@
             <!-- Upgrade + Sign in moved into dropdown -->
             <button
               id="upgradeButton"
-              class="drawer-toggle"
+              class="theme-toggle"
               type="button"
               style="width:100%; justify-content:center;"
             >
@@ -1521,7 +1505,7 @@
 
             <button
               id="authButton"
-              class="drawer-toggle"
+              class="theme-toggle"
               type="button"
               style="width:100%; justify-content:center;"
             >
