@@ -409,6 +409,7 @@
   textarea,
   input[type="file"],
   input[type="text"] {
+  margin-top: .5em;
     width: 100%;
     font-family: inherit;
     font-size: 0.9rem;
@@ -1176,7 +1177,7 @@
 .snap-actions-menu {
   position: absolute;
   top: 100%;
-  left: 0;
+  left: 10;
   margin-top: 4px;
   /* ... */
 }
@@ -1300,6 +1301,48 @@
   padding: 6px 10px;
 }
 
+  #backTabButton {
+    position: fixed;
+    bottom: 0.75rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    padding: 0.35rem 0.9rem;
+    border-radius: 9999px;
+    border: 1px solid #e5e7eb;
+    background: rgba(17, 24, 39, 0.96);
+    color: #f9fafb;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.22);
+    cursor: pointer;
+  }
+
+  #backTabButton:hover {
+    background: rgba(15, 23, 42, 1);
+  }
+
+  #backTabButton.back-tab-btn-disabled {
+    opacity: 0.4;
+    cursor: default;
+    box-shadow: none;
+  }
+ /* ==== Extract Notes tool (Snap → bullet points) ================= */
+
+  /* Let Extract Notes output grow like other result boxes */
+  #notesResult {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .notes-hint {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin: 4px 0 10px;
+  }
 </style>
 
 </head>
@@ -1624,9 +1667,15 @@
         <span class="material-symbols-outlined" style="font-size: 16px;">
           photo_camera
         </span>
-        <span>Solve / Explain here</span>
+        <span>Solve / Explain</span>
       </button>
-
+<!-- A) Add this button INSIDE the Text actions menu (#textActionsMenu) -->
+<button id="notesBtn" class="pill-button" type="button">
+  <span class="material-symbols-outlined" style="font-size:16px;">
+    checklist
+  </span>
+  <span>Extract Notes</span>
+</button>
       <button id="mathSolveBtn" class="pill-button" type="button">
         <span class="material-symbols-outlined">calculate</span>
         <span>Math Solver</span>
@@ -1843,6 +1892,63 @@
           <pre id="essayResult" class="text-output"></pre>
         </div>
       </section>
+
+
+
+<section id="notes" class="tab-content">
+  <div class="card">
+    <h2>Extract Notes</h2>
+    <p class="desc">
+      Turn the Snap text into short, high-yield bullet points.
+    </p>
+
+    <p class="notes-hint">
+      This uses the main Snap textbox (OCR or pasted text). No extra typing needed.
+    </p>
+
+    <!-- hidden input, like the other tools; we still copy Snap text into here -->
+    <label for="snapText">
+      Source text (uses the main text box above)
+    </label>
+    <textarea
+      id="notesInput"
+      class="text-input"
+      placeholder="(Uses the Snap text above)"
+      style="display:none;"
+    ></textarea>
+
+    <div class="btn-row">
+      <button
+        class="secondary"
+        id="notesClearBtn"
+        type="button"
+      >
+        <span class="material-symbols-outlined">delete</span>
+        <span>Clear</span>
+      </button>
+    </div>
+
+    <div class="hint-row">
+      <button
+        class="pill-button"
+        data-action="simplify"
+        data-target="notesResult"
+        type="button"
+      >
+        <span class="material-symbols-outlined" style="font-size:16px;">
+          lightbulb
+        </span>
+        <span>Explain simpler</span>
+      </button>
+    </div>
+
+    <pre id="notesResult" class="text-output"></pre>
+  </div>
+</section>
+
+
+
+
 
       <section id="flashcards" class="tab-content">
         <div class="card">
@@ -2062,7 +2168,10 @@
             <span class="material-symbols-outlined">scan</span>
             <span class="label">Snap</span>
           </button>
-
+<button class="nav-btn" data-target="notes" type="button">
+  <span class="material-symbols-outlined">checklist</span>
+  <span class="label">Extract Notes</span>
+</button>
           <!-- Existing tools, unchanged except Solve is no longer the default active -->
           <button class="nav-btn" data-target="solve" type="button">
             <span class="material-symbols-outlined">photo_camera</span>
@@ -2105,6 +2214,18 @@
 
 
   <div class="drawer-backdrop" id="drawerBackdrop"></div>
+<!-- Fixed back-to-last-tool button -->
+<button id="backTabButton" type="button">
+  ← Back
+</button>
+
+
+
+
+
+
+
+
 
 <!-- BLOCK 1: Theme toggle, cheat/learn mode, drawer/sidebar, subject/model helpers -->
 <script>
@@ -3257,6 +3378,24 @@ text.trim();
   const tabs = document.querySelectorAll(".tab-content");
   const LAST_TAB_KEY = "studyai-last-tab";
 
+  // NEW: tab history + back button support
+  let tabHistory = [];
+  let currentTab = null;
+  let isNavigatingBack = false;
+
+  const backTabButton = document.getElementById("backTabButton");
+
+  function updateBackButtonState() {
+    if (!backTabButton) return;
+    if (tabHistory.length === 0) {
+      backTabButton.disabled = true;
+      backTabButton.classList.add("back-tab-btn-disabled");
+    } else {
+      backTabButton.disabled = false;
+      backTabButton.classList.remove("back-tab-btn-disabled");
+    }
+  }
+
   function activateTab(targetId) {
     let found = false;
 
@@ -3271,14 +3410,28 @@ text.trim();
     });
 
     if (!found && targetId !== "solve") {
-    activateTab("solve");
+      // fallback – don't add fake entries to history
+      activateTab("solve");
+      return;
+    }
+
+    // update history (only when moving forward normally)
+    if (!isNavigatingBack && currentTab && currentTab !== targetId) {
+      tabHistory.push(currentTab);
+      // keep history from growing too large
+      if (tabHistory.length > 25) {
+        tabHistory.shift();
+      }
+    }
+
+    currentTab = targetId;
+    localStorage.setItem(LAST_TAB_KEY, targetId);
+    updateBackButtonState();
   }
-}
 
   navBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
       const target = btn.dataset.target;
-      localStorage.setItem(LAST_TAB_KEY, target);
       activateTab(target);
       if (!isDesktop()) {
         closeDrawer();
@@ -3286,9 +3439,25 @@ text.trim();
     });
   });
 
-  const savedTab = localStorage.getItem(LAST_TAB_KEY) || "solve";
-activateTab(savedTab);
+  // Back button behavior: go to last tab in history
+  if (backTabButton) {
+    backTabButton.addEventListener("click", () => {
+      if (!tabHistory.length) return;
+      const prev = tabHistory.pop();
+      if (!prev) {
+        updateBackButtonState();
+        return;
+      }
+      isNavigatingBack = true;
+      activateTab(prev);
+      isNavigatingBack = false;
+      updateBackButtonState();
+    });
+  }
 
+  const savedTab = localStorage.getItem(LAST_TAB_KEY) || "solve";
+  currentTab = savedTab;
+  activateTab(savedTab);
 </script>
 
 <!-- BLOCK 6: UI wiring for Snap, Math, Study, Essay -->
@@ -3508,9 +3677,28 @@ activateTab(savedTab);
   snapClearBtn.addEventListener("click", () => {
     if (snapInputCamera) snapInputCamera.value = "";
     if (snapInputGallery) snapInputGallery.value = "";
+
+    // reset image + OCR state
     lastSnapFile = null;
-    snapText.value = "";
-    snapResult.textContent = "";
+    lastOcrImageDataUrl = null;
+
+    // reset main OCR text box
+    if (snapText) {
+      snapText.value = "";
+      if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
+    }
+
+    // reset subject input
+    if (saveSubjectInput) {
+      saveSubjectInput.value = "";
+    }
+
+    // clear Snap result output
+    if (snapResult) {
+      snapResult.textContent = "";
+    }
+
+    // clear preview image
     if (snapPreview) {
       snapPreview.src = "";
       snapPreview.style.display = "none";
@@ -3653,6 +3841,7 @@ activateTab(savedTab);
     essayResult.textContent = "";
   });
 </script>
+
 
 
 
@@ -4861,6 +5050,132 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
   }
 
   document.addEventListener("DOMContentLoaded", initAutoSubjectFromSnap);
+</script>
+
+
+<script>
+  // ==========================================================
+  // Extract Notes tool
+  // - Uses #snapText as input (OCR or pasted)
+  // - Shows result in #notesResult (Notes tool tab)
+  // - Triggered by #notesBtn in the Text actions dropdown
+  // ==========================================================
+
+  // AI helper: ask backend to extract key bullet-point notes
+  async function runExtractNotes(text) {
+    const cheat = window.__cheatMode; // your existing global
+
+    const basePrompt =
+      "You are helping a student turn messy homework/textbook text into short, high-yield notes.\n" +
+      "From the text below, extract ONLY the most important points as a bullet list.\n" +
+      "- Prefer short bullets\n" +
+      "- Focus on key facts, definitions, steps, formulas, dates, and names\n" +
+      "- Do NOT rewrite the whole passage\n" +
+      "- Return plain text only. Use '-' or '•' at the start of each bullet.\n\n" +
+      "Text:\n" +
+      text.trim();
+
+    const cheatPrompt =
+      "From this text, return ONLY the most important bullet-point notes.\n" +
+      "Make 5–20 very short bullets. No intro, no conclusion.\n\n" +
+      "Text:\n" +
+      text.trim();
+
+    const prompt = cheat ? cheatPrompt : basePrompt;
+
+    const result = await callAI({
+      prompt,
+      task: "extract_notes",   // new task name for your backend if you want
+    });
+
+    return typeof result === "string" ? result : String(result ?? "");
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const snapText    = document.getElementById("snapText");
+    const notesInput  = document.getElementById("notesInput");
+    const notesResult = document.getElementById("notesResult");
+    const notesBtn    = document.getElementById("notesBtn");
+    const notesClear  = document.getElementById("notesClearBtn");
+
+    if (!snapText || !notesInput || !notesResult || !notesBtn) {
+      console.warn("[Extract Notes] Missing elements; not wired up.");
+      return;
+    }
+
+    // Simple loading wrapper using your existing helpers if present
+    function startNotesLoading(label) {
+      if (typeof startResultLoading === "function") {
+        startResultLoading(notesResult, label || "Finding key points");
+      } else {
+        notesResult.textContent = label || "Finding key points...";
+      }
+    }
+
+    function stopNotesLoading() {
+      if (typeof stopResultLoading === "function") {
+        stopResultLoading(notesResult);
+      }
+    }
+
+    // Main button (in Text actions dropdown)
+    notesBtn.addEventListener("click", async () => {
+      const text = snapText.value.trim();
+      if (!text) {
+        alert("Paste or OCR some text into the main Snap box first.");
+        return;
+      }
+
+      // copy into hidden textarea (for consistency with other tools)
+      notesInput.value = text;
+
+      // switch to Notes tab
+      if (typeof activateTab === "function") {
+        activateTab("notes");
+      }
+
+      // usage limiter (same pattern as other tools)
+      if (window.__canUseAIOnce) {
+        const allowed = await window.__canUseAIOnce();
+        if (!allowed) return;
+      } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+        return;
+      }
+
+      startNotesLoading("Finding key points");
+
+      try {
+        const raw = await runExtractNotes(text);
+        stopNotesLoading();
+
+        const clean = raw.trim(); // keep bullets, don't sanitize them away
+
+        // render with your styled output helper if available
+        if (typeof renderAnswer === "function") {
+          renderAnswer(notesResult, clean);
+        } else {
+          notesResult.textContent = clean;
+        }
+
+        // save to Notebook as a separate type
+        if (typeof addNotebookItem === "function") {
+          addNotebookItem("Notes", clean);
+        }
+      } catch (err) {
+        console.error("[Extract Notes] error:", err);
+        stopNotesLoading();
+        notesResult.textContent = "⚠️ Error extracting notes: " + err.message;
+      }
+    });
+
+    // Clear button inside Notes tool
+    if (notesClear) {
+      notesClear.addEventListener("click", () => {
+        notesInput.value = "";
+        notesResult.textContent = "";
+      });
+    }
+  });
 </script>
 
 
