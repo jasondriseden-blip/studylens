@@ -2288,64 +2288,64 @@ themeToggle.addEventListener("click", () => {
 
 
 
-  // ---------- DRAWER / SIDEBAR ----------
-  const drawerToggle = document.getElementById("drawerToggle");
-  const sideDrawer = document.getElementById("sideDrawer");
-  const drawerBackdrop = document.getElementById("drawerBackdrop");
+// ---------- DRAWER / SIDEBAR ----------
+const drawerToggle = document.getElementById("drawerToggle");
+const sideDrawer = document.getElementById("sideDrawer");
+const drawerBackdrop = document.getElementById("drawerBackdrop");
 
-  function isDesktop() {
-    return window.innerWidth >= 800;
-  }
+function isDesktop() {
+  return window.innerWidth >= 800;
+}
 
-  function openDrawer() {
-    if (isDesktop()) return; // always visible on desktop
-    sideDrawer.classList.add("open");
-    drawerBackdrop.classList.add("show");
-  }
+function openDrawer() {
+  if (isDesktop()) return; // always visible on desktop
+  sideDrawer.classList.add("open");
+  drawerBackdrop.classList.add("show");
+}
 
-  function closeDrawer() {
-    if (isDesktop()) return;
-    sideDrawer.classList.remove("open");
-    drawerBackdrop.classList.remove("show");
-  }
+function closeDrawer() {
+  if (isDesktop()) return;
+  sideDrawer.classList.remove("open");
+  drawerBackdrop.classList.remove("show");
+}
 
-  if (drawerToggle) {
-    drawerToggle.addEventListener("click", () => {
-      if (sideDrawer.classList.contains("open")) {
-        closeDrawer();
-      } else {
-        openDrawer();
-      }
-    });
-  }
-
-  drawerBackdrop.addEventListener("click", closeDrawer);
-
-  window.addEventListener("resize", () => {
-    if (isDesktop()) {
-      sideDrawer.classList.add("open");
-      drawerBackdrop.classList.remove("show");
+if (drawerToggle) {
+  drawerToggle.addEventListener("click", () => {
+    if (sideDrawer.classList.contains("open")) {
+      closeDrawer();
     } else {
-      sideDrawer.classList.remove("open");
+      openDrawer();
     }
   });
+}
 
+drawerBackdrop.addEventListener("click", closeDrawer);
+
+window.addEventListener("resize", () => {
   if (isDesktop()) {
     sideDrawer.classList.add("open");
+    drawerBackdrop.classList.remove("show");
+  } else {
+    sideDrawer.classList.remove("open");
   }
+});
 
-  // ---------- SUBJECT / MODEL HELPERS ----------
+if (isDesktop()) {
+  sideDrawer.classList.add("open");
+}
+
+// ---------- SUBJECT / MODEL HELPERS ----------
+function getSubject() {
   const subjectSelect = document.getElementById("subjectSelect");
+  return (subjectSelect && subjectSelect.value) ? subjectSelect.value : "general";
+}
+
+function getModelChoice() {
   const modelSelect = document.getElementById("modelSelect");
-
-  function getSubject() {
-    return subjectSelect?.value || "general";
-  }
-
-  function getModelChoice() {
-    return modelSelect?.value || "smart";
-  }
+  return (modelSelect && modelSelect.value) ? modelSelect.value : "smart";
+}
 </script>
+
 
 <script>
   // ---------- CHEAT MODE TOGGLE ----------
