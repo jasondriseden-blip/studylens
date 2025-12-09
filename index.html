@@ -2494,7 +2494,7 @@ themeToggle.addEventListener("click", () => {
         body.textContent = item.text;
         wrapper.appendChild(body);
 
-        // footer with "Open in ..." + Copy + Edit + Delete
+        // footer with "Open in ..." + Copy + Delete
         const footer = document.createElement("div");
         footer.className = "notebook-item-footer";
 
@@ -2515,12 +2515,6 @@ themeToggle.addEventListener("click", () => {
         copyBtn.innerHTML =
           '<span class="material-symbols-outlined">content_copy</span>';
 
-        const editBtn = document.createElement("button");
-        editBtn.className = "pill-button notebook-item-edit";
-        editBtn.type = "button";
-        editBtn.dataset.id = item.id;
-        editBtn.textContent = "Edit";
-
         const deleteBtn = document.createElement("button");
         deleteBtn.className = "pill-button notebook-item-delete";
         deleteBtn.type = "button";
@@ -2529,7 +2523,6 @@ themeToggle.addEventListener("click", () => {
 
         footer.appendChild(openBtn);
         footer.appendChild(copyBtn);
-        footer.appendChild(editBtn);
         footer.appendChild(deleteBtn);
         wrapper.appendChild(footer);
 
@@ -2630,7 +2623,7 @@ themeToggle.addEventListener("click", () => {
     }
   }
 
-  // click handler for "Open in ...", Copy, item Edit, item Delete (event delegation)
+  // click handler for "Open in ...", Copy, item Delete (event delegation)
   if (notebookListEl) {
     notebookListEl.addEventListener("click", (e) => {
       const openBtn = e.target.closest(".notebook-open-btn");
@@ -2649,30 +2642,6 @@ themeToggle.addEventListener("click", () => {
         const item = items.find((i) => i.id === id);
         if (!item) return;
         copyTextToClipboard(item.text || "");
-        return;
-      }
-
-      const editBtn = e.target.closest(".notebook-item-edit");
-      if (editBtn) {
-        const id = editBtn.dataset.id;
-        if (!id) return;
-        const items = loadNotebook();
-        const idx = items.findIndex((i) => i.id === id);
-        if (idx === -1) return;
-
-        const oldText = items[idx].text || "";
-        const newText = prompt("Edit this saved item:", oldText);
-        if (newText === null) return;
-        const trimmed = newText.trim();
-        if (!trimmed || trimmed === oldText) return;
-
-        const ok = confirm("Save changes to this item?");
-        if (!ok) return;
-
-        notebookLastSnapshot = items.slice();
-        items[idx] = { ...items[idx], text: trimmed };
-        saveNotebook(items);
-        renderNotebook();
         return;
       }
 
@@ -2866,6 +2835,7 @@ themeToggle.addEventListener("click", () => {
 
 
 
+
 <!-- BLOCK 3: Answer sanitizing, AI backend call, and all task helpers -->
 <script>
 function sanitizeAnswerText(raw) {
@@ -2911,10 +2881,93 @@ function sanitizeAnswerText(raw) {
 
   return text.trim();
 }
+
+// Inject styles for tool outputs + headings + copy button
+(function ensureToolOutputStyles() {
+  if (document.getElementById("tool-output-styles")) return;
+  const style = document.createElement("style");
+  style.id = "tool-output-styles";
+  style.textContent = `
+    .tool-output {
+      position: relative;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #111827;
+      background: #f9fafb;
+      border-radius: 0.75rem;
+      border: 1px solid #e5e7eb;
+      padding: 0.85rem 1rem 0.9rem 1rem;
+      margin-top: 0.75rem;
+      overflow-wrap: anywhere;
+    }
+    .tool-output-header {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      margin-bottom: 0.25rem;
+    }
+    .tool-output-body {
+      white-space: pre-wrap;
+    }
+    .tool-output-copy {
+      border: 1px solid #e5e7eb;
+      background: #f3f4f6;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      padding: 0.1rem 0.6rem;
+      cursor: pointer;
+      color: #374151;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .tool-output-copy:hover {
+      background: #e5e7eb;
+    }
+    .tool-output-copy-label {
+      font-weight: 500;
+    }
+    .section-heading {
+      display: block;
+      font-weight: 700;
+      color: #000;
+      margin-top: 0.9rem;
+      margin-bottom: 0.1rem;
+      font-size: 1rem;
+    }
+    .step-line {
+      display: block;
+      font-weight: 600;
+      color: #111827;
+      margin-top: 0.4rem;
+    }
+    .answer-label {
+      font-weight: 700;
+      color: #000;
+    }
+    .answer-value {
+      font-weight: 500;
+      color: #111827;
+    }
+    .hint-label {
+      display: inline-block;
+      margin-top: 0.75rem;
+      font-weight: 700;
+      color: #000;
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
 function renderAnswer(preEl, text) {
   if (!preEl) return;
 
-  const escaped = String(text || "")
+  const plain = String(text || "");
+  preEl.dataset.plainText = plain;
+  preEl.classList.add("tool-output");
+
+  const escaped = plain
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
@@ -2950,8 +3003,57 @@ function renderAnswer(preEl, text) {
     return line;
   });
 
-  preEl.innerHTML = htmlLines.join("\n");
+  const contentHtml = htmlLines.join("\n");
+  const copyTarget = preEl.id ? ` data-copy-target="${preEl.id}"` : "";
+
+  preEl.innerHTML = `
+    <div class="tool-output-header">
+      <button type="button" class="tool-output-copy"${copyTarget}>
+        <span class="tool-output-copy-label">Copy</span>
+      </button>
+    </div>
+    <div class="tool-output-body">${contentHtml}</div>
+  `;
 }
+
+// Global click handler for tool-output copy buttons
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".tool-output-copy");
+  if (!btn) return;
+
+  let textToCopy = "";
+  const targetId = btn.dataset.copyTarget;
+  if (targetId) {
+    const container = document.getElementById(targetId);
+    if (container) {
+      textToCopy =
+        (container.dataset && container.dataset.plainText) ||
+        container.innerText ||
+        "";
+    }
+  } else {
+    const container = btn.closest(".tool-output");
+    if (container) {
+      textToCopy =
+        (container.dataset && container.dataset.plainText) ||
+        container.innerText ||
+        "";
+    }
+  }
+
+  if (!textToCopy) return;
+
+  copyTextToClipboard(textToCopy);
+
+  const label = btn.querySelector(".tool-output-copy-label");
+  if (label) {
+    const old = label.textContent;
+    label.textContent = "Copied!";
+    setTimeout(() => {
+      label.textContent = old;
+    }, 1200);
+  }
+});
 
 // helper to clean flashcard sides (front/back)
 function cleanSide(text) {
@@ -3306,6 +3408,7 @@ activateTab(savedTab);
   // simple loading animation for result elements
   function startResultLoading(el, baseText) {
     if (!el) return;
+    el.classList.add("tool-output");
     stopResultLoading(el);
     let dotCount = 0;
     const maxDots = 3;
@@ -3751,8 +3854,8 @@ function renderCurrentCard() {
       const ans = await runFlashcards(text);
       const answerText = typeof ans === "string" ? ans : String(ans ?? "");
 
-      // show raw so you can copy/debug if needed
-      cardsResult.textContent = answerText;
+      // styled output with copy button
+      renderAnswer(cardsResult, answerText);
 
       const parsed = parseFlashcardsFromText(answerText);
       if (!parsed.length) {
@@ -3833,7 +3936,9 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     if (!outputEl) return;
 
     // plain text version of whatever is currently shown
-    const currentPlain = outputEl.textContent.trim();
+    const currentPlain =
+      (outputEl.dataset && outputEl.dataset.plainText) ||
+      outputEl.textContent.trim();
     if (!currentPlain) {
       alert("Nothing to process yet.");
       return;
@@ -4625,6 +4730,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     });
   });
 </script>
+
 
 <!--OCR BUTTONS DROPDOWN MENU-->
 <script>
