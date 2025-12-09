@@ -4716,6 +4716,32 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 </script>
 <!-- AUTOFILL HELPER -->
 <script>
+  // Helper: pull a reasonable "heading" out of the OCR text
+  function extractHeadingFromOcrText(ocrText) {
+    if (!ocrText) return "";
+
+    // Split into lines, trim, and drop empty lines
+    const lines = ocrText
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean);
+
+    if (!lines.length) return "";
+
+    let first = lines[0];
+
+    // Normalize whitespace
+    first = first.replace(/\s+/g, " ");
+
+    // Optional: cap length so subjects don't get huge
+    const MAX_LEN = 80;
+    if (first.length > MAX_LEN) {
+      first = first.slice(0, MAX_LEN - 3) + "...";
+    }
+
+    return first;
+  }
+
   function initAutoSubjectFromSnap() {
     const snapTextEl = document.getElementById("snapText");
     const subjectEl  = document.getElementById("saveSubjectInput");
@@ -4731,7 +4757,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
         return;
       }
 
-      const heading = extractHeadingFromOcrText(snapTextEl.value);
+      const heading = extractHeadingFromOcrText(snapTextEl.value || "");
       if (heading) {
         subjectEl.value = heading;
         subjectAutoFilled = true;
