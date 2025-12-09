@@ -1301,12 +1301,21 @@
   padding: 6px 10px;
 }
 
-  #backTabButton {
+
+  /* ==== Back / Forward tool navigation buttons ==== */
+
+  /* Wrapper for both buttons so they sit side by side */
+  #tabNavButtons {
     position: fixed;
     bottom: 0.75rem;
     left: 50%;
     transform: translateX(-50%);
     z-index: 50;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .tab-nav-btn {
     padding: 0.35rem 0.9rem;
     border-radius: 9999px;
     border: 1px solid #e5e7eb;
@@ -1321,16 +1330,16 @@
     cursor: pointer;
   }
 
-  #backTabButton:hover {
+  .tab-nav-btn:hover {
     background: rgba(15, 23, 42, 1);
   }
 
-  #backTabButton.back-tab-btn-disabled {
+  .tab-nav-btn.tab-nav-btn-disabled {
     opacity: 0.4;
     cursor: default;
     box-shadow: none;
   }
- /* ==== Extract Notes tool (Snap → bullet points) ================= */
+   /* ==== Extract Notes tool (Snap → bullet points) ================= */
 
   /* Let Extract Notes output grow like other result boxes */
   #notesResult {
@@ -2213,11 +2222,16 @@
 
 
 
-  <div class="drawer-backdrop" id="drawerBackdrop"></div>
-<!-- Fixed back-to-last-tool button -->
-<button id="backTabButton" type="button">
-  ← Back
-</button>
+<!-- Fixed back / forward tool buttons -->
+<div id="tabNavButtons">
+  <button id="backTabButton" class="tab-nav-btn" type="button">
+    ← Back
+  </button>
+  <button id="forwardTabButton" class="tab-nav-btn" type="button">
+    Forward →
+  </button>
+</div>
+
 
 
 
@@ -3371,28 +3385,46 @@ text.trim();
   }
 </script>
 
-<!-- BLOCK 5: Tabs / sidenav navigation -->
+
+
+<!-- BLOCK 5: Tabs / sidenav navigation (with Back + Forward) -->
 <script>
   // ---------- TABS (SIDENAV) ----------
   const navBtns = document.querySelectorAll(".nav-btn");
   const tabs = document.querySelectorAll(".tab-content");
   const LAST_TAB_KEY = "studyai-last-tab";
 
-  // NEW: tab history + back button support
-  let tabHistory = [];
+  // History stacks
+  let tabHistory = [];        // back stack
+  let forwardHistory = [];    // forward stack
   let currentTab = null;
   let isNavigatingBack = false;
+  let isNavigatingForward = false;
 
   const backTabButton = document.getElementById("backTabButton");
+  const forwardTabButton = document.getElementById("forwardTabButton");
 
   function updateBackButtonState() {
-    if (!backTabButton) return;
-    if (tabHistory.length === 0) {
-      backTabButton.disabled = true;
-      backTabButton.classList.add("back-tab-btn-disabled");
-    } else {
-      backTabButton.disabled = false;
-      backTabButton.classList.remove("back-tab-btn-disabled");
+    // Back button state
+    if (backTabButton) {
+      if (tabHistory.length === 0) {
+        backTabButton.disabled = true;
+        backTabButton.classList.add("tab-nav-btn-disabled");
+      } else {
+        backTabButton.disabled = false;
+        backTabButton.classList.remove("tab-nav-btn-disabled");
+      }
+    }
+
+    // Forward button state
+    if (forwardTabButton) {
+      if (forwardHistory.length === 0) {
+        forwardTabButton.disabled = true;
+        forwardTabButton.classList.add("tab-nav-btn-disabled");
+      } else {
+        forwardTabButton.disabled = false;
+        forwardTabButton.classList.remove("tab-nav-btn-disabled");
+      }
     }
   }
 
@@ -3415,10 +3447,12 @@ text.trim();
       return;
     }
 
-    // update history (only when moving forward normally)
-    if (!isNavigatingBack && currentTab && currentTab !== targetId) {
+    // Only push to history on "normal" navigation (not back/forward)
+    if (!isNavigatingBack && !isNavigatingForward && currentTab && currentTab !== targetId) {
       tabHistory.push(currentTab);
-      // keep history from growing too large
+      // new navigation clears forward stack
+      forwardHistory = [];
+
       if (tabHistory.length > 25) {
         tabHistory.shift();
       }
@@ -3429,25 +3463,35 @@ text.trim();
     updateBackButtonState();
   }
 
+  // Sidenav buttons
   navBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
       const target = btn.dataset.target;
       activateTab(target);
-      if (!isDesktop()) {
+      if (typeof isDesktop === "function" && typeof closeDrawer === "function" && !isDesktop()) {
         closeDrawer();
       }
     });
   });
 
-  // Back button behavior: go to last tab in history
+  // Back: pop from back stack, push current into forward stack
   if (backTabButton) {
     backTabButton.addEventListener("click", () => {
       if (!tabHistory.length) return;
+
       const prev = tabHistory.pop();
       if (!prev) {
         updateBackButtonState();
         return;
       }
+
+      if (currentTab) {
+        forwardHistory.push(currentTab);
+        if (forwardHistory.length > 25) {
+          forwardHistory.shift();
+        }
+      }
+
       isNavigatingBack = true;
       activateTab(prev);
       isNavigatingBack = false;
@@ -3455,10 +3499,39 @@ text.trim();
     });
   }
 
+  // Forward: pop from forward stack, push current into back stack
+  if (forwardTabButton) {
+    forwardTabButton.addEventListener("click", () => {
+      if (!forwardHistory.length) return;
+
+      const next = forwardHistory.pop();
+      if (!next) {
+        updateBackButtonState();
+        return;
+      }
+
+      if (currentTab) {
+        tabHistory.push(currentTab);
+        if (tabHistory.length > 25) {
+          tabHistory.shift();
+        }
+      }
+
+      isNavigatingForward = true;
+      activateTab(next);
+      isNavigatingForward = false;
+      updateBackButtonState();
+    });
+  }
+
+  // Initial tab
   const savedTab = localStorage.getItem(LAST_TAB_KEY) || "solve";
   currentTab = savedTab;
   activateTab(savedTab);
 </script>
+
+
+
 
 <!-- BLOCK 6: UI wiring for Snap, Math, Study, Essay -->
 <script>
@@ -5052,7 +5125,6 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
   document.addEventListener("DOMContentLoaded", initAutoSubjectFromSnap);
 </script>
 
-
 <script>
   // ==========================================================
   // Extract Notes tool
@@ -5177,6 +5249,10 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     }
   });
 </script>
+
+
+
+
 
 
 </body>
