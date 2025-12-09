@@ -56,7 +56,7 @@
     --on-primary: #ffffff;
 
     --surface-dark: #020617;      /* page background dark */
-    --surface-light: #e5e7eb;     /* page background light */
+    --surface-light: #f6f6f7;     /* page background light */
     --surface-elevated-dark: #0b1020;
     --surface-elevated-light: #ffffff;
 
@@ -69,6 +69,17 @@
     --radius-lg: 18px;
     --radius-md: 12px;
     --transition-fast: 0.16s ease-out;
+
+    /* Button + text theme tokens (easy to tweak) */
+    --btn-bg-light: #ffffff;
+    --btn-fg-light: #000000;
+    --btn-bg-dark: #111827;
+    --btn-fg-dark: #e5e7eb;
+
+    --btn-bg-active-light: #fafafa;   /* active in light theme */
+    --btn-fg-active-light: #000000;
+    --btn-bg-active-dark: #1f2937;    /* active in dark theme */
+    --btn-fg-active-dark: #e5e7eb;
   }
 
   [data-theme="dark"] {
@@ -78,11 +89,17 @@
     --outline: var(--outline-dark);
     --field-bg: rgba(15, 23, 42, 0.95);
     --chip-bg: #020617;
-  --code-bg: #020617;   /* dark output background */
-  --code-fg: #e5e7eb;   /* light text */
+    --code-bg: #020617;   /* dark output background */
+    --code-fg: #e5e7eb;   /* light text */
     --muted: #9ca3af;
     --header-bg: radial-gradient(circle at top left, #111827, #020617);
     --sidebar-bg: #020617;
+
+    /* button & active colors for dark theme */
+    --btn-bg: var(--btn-bg-dark);
+    --btn-fg: var(--btn-fg-dark);
+    --btn-bg-active: var(--btn-bg-active-dark);
+    --btn-fg-active: var(--btn-fg-active-dark);
   }
 
   [data-theme="light"] {
@@ -98,6 +115,12 @@
     --muted: #6b7280;
     --header-bg: #f9fafb;
     --sidebar-bg: #f9fafb;
+
+    /* button & active colors for light theme */
+    --btn-bg: var(--btn-bg-light);              /* 👉 all buttons white */
+    --btn-fg: var(--btn-fg-light);              /* 👉 text #000 */
+    --btn-bg-active: var(--btn-bg-active-light);/* 👉 active #fafafa */
+    --btn-fg-active: var(--btn-fg-active-light);
   }
 
   * {
@@ -189,7 +212,7 @@
   /* main logo image (use your new horizontal logo here) */
   .brand-logo {
     display: block;
-    height: 70px;
+    height: 40px;
     width: auto;
   }
 
@@ -303,8 +326,8 @@
   .theme-toggle:hover,
   .drawer-toggle:hover {
     border-color: transparent;
-    background: #000;
-    color: #fff;
+    background: var(--btn-bg-active);
+    color: var(--btn-fg-active);
     transform: translateY(-1px);
   }
 
@@ -312,7 +335,6 @@
     display: flex;
     gap: 8px;
     margin: 2px 0 4px;
-	
   }
 
   select {
@@ -379,8 +401,10 @@
     margin-bottom: 4px;
   }
 
+  /* TEXT INPUTS (with .text-input helper class) */
   textarea,
-  input[type="file"] {
+  input[type="file"],
+  input[type="text"] {
     width: 100%;
     font-family: inherit;
     font-size: 0.9rem;
@@ -396,6 +420,12 @@
       border-color var(--transition-fast),
       box-shadow var(--transition-fast),
       background var(--transition-fast);
+  }
+
+  /* convenience class so you can re-theme easily */
+  .text-input {
+    background: var(--field-bg);
+    color: var(--on-surface);
   }
 
   input[type="file"] {
@@ -421,50 +451,45 @@
     justify-content: flex-end;
   }
 
- button {
-  border-radius: 999px;
-  border: none;
-  padding: 9px 16px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  background: var(--primary);        /* 👈 use theme color in dark */
-  color: var(--on-primary);
-  transition: transform 0.08s ease-out,
-    box-shadow 0.08s ease-out,
-    opacity 0.08s,
-    background 0.12s ease-out;
-  font-weight: 500;
-}
+  /* BASE BUTTONS – use theme vars so you can tweak globally */
+  button {
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.7);
+    padding: 9px 16px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--btn-bg);    /* light: white, dark: dark */
+    color: var(--btn-fg);         /* light: #000, dark: near white */
+    transition: transform 0.08s ease-out,
+      box-shadow 0.08s ease-out,
+      opacity 0.08s,
+      background 0.12s ease-out,
+      color 0.12s ease-out;
+    font-weight: 500;
+  }
 
-button.secondary {
-  background: transparent;
-  color: var(--on-surface);
-  box-shadow: none;
-  border: 1px solid rgba(148, 163, 184, 0.7);
-}
+  button.secondary {
+    background: var(--btn-bg);
+    color: var(--btn-fg);
+    box-shadow: none;
+    border: 1px solid rgba(148, 163, 184, 0.7);
+  }
 
-button:active {
-  transform: translateY(1px) scale(0.99);
-  opacity: 0.96;
-  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.25);
-}
-
-/* 👇 NEW: override for light theme */
-html[data-theme="light"] button:not(.secondary) {
-  background: #333;
-  color: var(--on-primary);
-}
-
+  button:active {
+    transform: translateY(1px) scale(0.99);
+    opacity: 0.96;
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.25);
+  }
 
   .hint-row {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
     margin-top: 6px;
-	justify-content: flex-end;
+    justify-content: flex-end;
   }
 
   .hint-row button {
@@ -472,9 +497,10 @@ html[data-theme="light"] button:not(.secondary) {
     padding: 6px 11px;
   }
 
+  /* TEXT OUTPUTS (with .text-output helper class) */
   pre {
     margin-top: 8px;
-    background: var(--code-bg);  /* white */
+    background: var(--code-bg);
     color: var(--code-fg);
     border-radius: 14px;
     padding: 14px 16px;
@@ -485,6 +511,11 @@ html[data-theme="light"] button:not(.secondary) {
     border: 1px solid rgba(148, 163, 184, 0.4);
     white-space: pre-wrap;
     word-wrap: break-word;
+  }
+
+  .text-output {
+    background: var(--code-bg);
+    color: var(--code-fg);
   }
 
   /* Emphasize key lines inside outputs */
@@ -526,18 +557,21 @@ html[data-theme="light"] button:not(.secondary) {
     border: 1px solid rgba(148, 163, 184, 0.7);
     padding: 6px 11px;
     font-size: 0.76rem;
-    background: transparent;
-    color: var(--muted);
+    background: var(--btn-bg);  /* white in light, dark in dark */
+    color: var(--btn-fg);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     gap: 5px;
   }
 
-  .pill-button.active {
+  /* ACTIVE STATE – uses theme vars */
+  .pill-button.active,
+  .nav-btn.active,
+  .notebook-filter.active {
+    background: var(--btn-bg-active);
+    color: var(--btn-fg-active);
     border-color: var(--primary);
-    color: var(--on-surface);
-    background: rgba(99, 102, 241, 0.08);
   }
 
   .material-symbols-outlined {
@@ -623,64 +657,60 @@ html[data-theme="light"] button:not(.secondary) {
     white-space: pre-wrap;
   }
 
- .flashcard {
-  margin-top: 8px;
-  padding: 14px 12px;
-  border-radius: 14px;
-  border: 1px solid rgb(73 121 238);
-  background: var(--field-bg);
-  min-height: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
+  .flashcard {
+    margin-top: 8px;
+    padding: 14px 12px;
+    border-radius: 14px;
+    border: 1px solid rgb(73 121 238);
+    background: var(--field-bg);
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 
-  /* flip animation */
-  transition: transform 0.3s ease;
-  transform-origin: center;
-}
+    /* flip animation */
+    transition: transform 0.3s ease;
+    transform-origin: center;
+  }
 
-.flashcard.flipping {
-  transform: rotateY(180deg);
-}
+  .flashcard.flipping {
+    transform: rotateY(180deg);
+  }
 
+  .flashcard-side {
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    width: 100%;
+    line-height: 1.6;
+    text-align: center;
+  }
 
-.flashcard-side {
-  font-size: 0.9rem;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  width: 100%;
-  line-height: 1.6;
-  text-align: center;       /* center front/back text */
-}
+  /* Flashcards: stats & sides */
+  #cardsStats {
+    font-size: 0.78rem;
+    margin-bottom: 6px;
+    opacity: 0.85;
+    text-align: center;
+  }
 
-/* Flashcards: make questions and answers visually different */
-#cardsStats {
-  font-size: 0.78rem;
-  margin-bottom: 6px;
-  opacity: 0.85;
-  text-align: center;       /* center stats line */
-}
+  #cardsCard.flashcard {
+    border-width: 1px;
+    padding: 5em 1em;
+  }
 
-#cardsCard.flashcard {
-  border-width: 1px;
-  padding: 5em 1em;
-}
+  #cardsFront {
+    font-weight: 700;
+    color: var(--primary-variant);
+    font-size: 1.02em;
+  }
 
-/* Question side (front) */
-#cardsFront {
-  font-weight: 700;
-  color: var(--primary-variant);
-  font-size: 1.02em;
-}
-
-/* Answer side (back) */
-#cardsBack {
-  font-weight: 500;
-  color: var(--on-surface);
-  opacity: 1;
-}
-
+  #cardsBack {
+    font-weight: 500;
+    color: var(--on-surface);
+    opacity: 1;
+  }
 
   .side-drawer {
     width: 220px;
@@ -730,9 +760,9 @@ html[data-theme="light"] button:not(.secondary) {
 
   .nav-btn {
     border-radius: 999px;
-    border: none;
-    background: transparent;
-    color: var(--muted);
+    border: 1px solid rgba(148, 163, 184, 0.5);
+    background: var(--btn-bg);
+    color: var(--btn-fg);
     font-size: 0.8rem;
     display: flex;
     align-items: center;
@@ -752,16 +782,6 @@ html[data-theme="light"] button:not(.secondary) {
 
   .nav-btn span.label {
     flex: 1;
-  }
-
-  .nav-btn.active {
-    background: linear-gradient(
-      135deg,
-      var(--primary),
-      var(--primary-variant)
-    );
-    color: var(--on-primary);
-    border: none;
   }
 
   .drawer-backdrop.show {
@@ -805,143 +825,114 @@ html[data-theme="light"] button:not(.secondary) {
     background: #ffffff;
   }
 
-  [data-theme="light"] .side-nav .nav-btn {
-    background: #ffffff;
-    border: 1px solid rgba(148, 163, 184, 0.4);
-    color: var(--on-surface);
+  [data-theme="dark"] .side-drawer {
+    background: #020617;
   }
 
-  [data-theme="light"] .side-nav .nav-btn.active,
-  [data-theme="dark"] .side-nav .nav-btn.active {
-    background: linear-gradient(
-      135deg,
-      var(--primary),
-      var(--primary-variant)
-    );
-    color: var(--on-primary);
-    border: none;
-  }
-
-  [data-theme="dark"] .side-nav .nav-btn {
-    background: #0f172a;
-    border: 1px solid rgb(55 65 81);
-    color: var(--on-surface);
-  }
   .mobile-break {
-  display: none;
-}
-
- @media (max-width: 700px) {
-  /* make header a positioning parent */
-  header {
-    position: relative;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-    padding: 16px 12px 12px;
+    display: none;
   }
 
-  .title-block {
-    width: 100%;
+  @media (max-width: 700px) {
+    header {
+      position: relative;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      padding: 16px 12px 12px;
+    }
+
+    .title-block {
+      width: 100%;
+    }
+
+    .title-row {
+      justify-content: flex-start;
+    }
+
+    .brand-logo {
+      display: block;
+      height: 30px;
+      width: auto;
+    }
+
+    .brand-logo-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-start;
+      background: transparent;
+      box-shadow: none;
+      height: auto;
+      margin-top: .8em;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .header-right {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+      padding-top: 10px;
+    }
+
+    .auth-row {
+      width: 100%;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      font-size: 0.75rem;
+    }
+
+    #userPlanLabel {
+      flex: 1 1 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: left;
+      line-height: 1.3;
+    }
+
+    .header-top-row {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
+    .chip.learn-mode {
+      flex: 0 0 auto;
+      padding: 4px 10px;
+      font-size: 0.74rem;
+      white-space: nowrap;
+    }
+
+    .theme-toggle,
+    .drawer-toggle {
+      flex: 0 0 auto;
+      padding: 6px;
+      min-width: 40px;
+      justify-content: center;
+      font-size: 0.8rem;
+    }
+
+    [data-theme="light"] .brand-logo {
+    }
+
+    [data-theme="dark"] .brand-logo {
+      filter:
+        brightness(1.08)
+    }
   }
-
-  .title-row {
-    justify-content: flex-start;
-  }
-
-  .brand-logo {
-    display: block;
-    height: 45px;
-    width: auto;
-  }
-
-  .brand-logo-wrap {
-    display: inline-flex;
-    align-items: center;
-    justify-content: flex-start;
-    background: transparent;
-    box-shadow: none;
-    height: auto;
-	margin-top: .8em;
-  }
-
-  .subtitle {
-    font-size: 0.85rem;
-    color: var(--muted);
-
-  }
-
-  /* left side: guest / plan + buttons */
-  .header-right {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-top: 4px;
-    padding-top: 10px;   /* ← was 42px, make this 0–12px */
-  }
-
-  .auth-row {
-    width: 100%;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 6px;
-    font-size: 0.75rem;
-  }
-
-  #userPlanLabel {
-    flex: 1 1 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    text-align: left;
-    line-height: 1.3;
-  }
-
-
-
-  /* 🔹 controls pinned to very top-right of header */
-  .header-top-row {
-    position: absolute;
-    top: 16px;          /* roughly level with top of logo text */
-    right: 16px;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
-  }
-
-  .chip.learn-mode {
-    flex: 0 0 auto;
-    padding: 4px 10px;
-    font-size: 0.74rem;
-    white-space: nowrap;
-  }
-
-  .theme-toggle,
-  .drawer-toggle {
-    flex: 0 0 auto;
-    padding: 6px;
-    min-width: 40px;
-    justify-content: center;
-    font-size: 0.8rem;
-  }
-
-
-
-  [data-theme="light"] .brand-logo {
-    filter: drop-shadow(0 6px 14px rgba(148, 163, 184, 0.6));
-  }
-
-  [data-theme="dark"] .brand-logo {
-    filter:
-      brightness(1.08)
-      drop-shadow(0 0 12px rgba(59, 130, 246, 0.4));
-  }
-}
-
 
   /* ---- Subtle "completed" pulse animation ---- */
   @keyframes pulse-highlight {
@@ -962,151 +953,138 @@ html[data-theme="light"] button:not(.secondary) {
   .pulse-once {
     animation: pulse-highlight 0.7s ease-out;
   }
-  /* Base (optional tweak if you want) */
-.notebook-filter {
-  opacity: 0.85;
-}
-/* Active notebook filter = highlighted */
-.notebook-filter.active {
-  background: var(--primary-soft, rgba(59,130,246,0.12));
-  color: var(--primary, #3b82f6);
-  border-color: var(--primary, #3b82f6);
-  opacity: 1;
-  box-shadow: 0 0 0 1px rgba(59,130,246,0.4);
-}
 
-/* Make the icon match the text when active */
-.notebook-filter.active .material-symbols-outlined {
-  color: inherit;
-}
+  /* Notebook filter tweaks (still using active theme vars) */
+  .notebook-filter {
+    opacity: 0.85;
+  }
 
-/* Layout for each subject row */
-.notebook-subject-row {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-bottom: 4px;
-}
+  .notebook-filter.active {
+    opacity: 1;
+    box-shadow: 0 0 0 1px rgba(59,130,246,0.4);
+  }
 
-/* Subject chip: primary pill style */
-.notebook-subject-btn {
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--outline);
-  background: var(--field-bg);
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-}
+  .notebook-filter.active .material-symbols-outlined {
+    color: inherit;
+  }
 
-/* Active subject stands out */
-.notebook-subject-btn.active {
-  border-color: var(--primary, #3b82f6);
-  background: rgba(59, 130, 246, 0.12);
-  color: var(--primary, #3b82f6);
-}
+  .notebook-subject-row {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 4px;
+  }
 
-/* Little three-dot menu next to subject chip */
-.notebook-subject-menu {
-  padding: 2px 8px;
-  min-width: auto;
-}
+  .notebook-subject-btn {
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--outline);
+    background: var(--field-bg);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
 
-/* Base edit/delete style (hidden by default) */
-.notebook-subject-edit,
-.notebook-subject-delete {
-  display: none;
-  padding: 2px 6px;
-  border-radius: 999px;
-  border: 1px solid transparent;
-  background: transparent;
-  font-size: 0.7rem;
-  opacity: 0.7;
-  cursor: pointer;
-}
+  .notebook-subject-btn.active {
+    border-color: var(--primary);
+    background: var(--btn-bg-active);
+    color: var(--btn-fg-active);
+  }
 
-/* Dropdown container */
-.notebook-subject-dropdown {
-  display: none;             /* JS toggles this */
-  position: absolute;
-  right: 0;
-  top: 110%;
-  background: var(--surface);
-  border: 1px solid var(--outline);
-  border-radius: 10px;
-  padding: 6px;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
-  z-index: 30;
-  min-width: 170px;
-  display: none;
-  flex-direction: column;    /* 🔹 stack buttons */
-  gap: 6px;                  /* space between them */
-}
+  .notebook-subject-menu {
+    padding: 2px 8px;
+    min-width: auto;
+  }
 
-/* Subject dropdown buttons: same width, look like two pills */
-.notebook-subject-dropdown .notebook-subject-edit,
-.notebook-subject-dropdown .notebook-subject-delete {
-  display: flex;
-  width: 100%;
-  justify-content: flex-start;
-  font-size: 0.78rem;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid transparent;
-  background: #ededed;
-  gap: 6px;
-}
+  .notebook-subject-edit,
+  .notebook-subject-delete {
+    display: none;
+    padding: 2px 6px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: transparent;
+    font-size: 0.7rem;
+    opacity: 0.7;
+    cursor: pointer;
+  }
 
-/* Edit = neutral */
-.notebook-subject-edit {
-  color: var(--on-surface, #0f172a);
-}
+  .notebook-subject-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 110%;
+    background: var(--surface);
+    border: 1px solid var(--outline);
+    border-radius: 10px;
+    padding: 6px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
+    z-index: 30;
+    min-width: 170px;
+    flex-direction: column;
+    gap: 6px;
+  }
 
-/* Delete = red text */
-.notebook-subject-delete {
-  color: #dc2626;
-}
+  .notebook-subject-dropdown .notebook-subject-edit,
+  .notebook-subject-dropdown .notebook-subject-delete {
+    display: flex;
+    width: 100%;
+    justify-content: flex-start;
+    font-size: 0.78rem;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: var(--btn-bg);
+    gap: 6px;
+  }
 
-/* Hover states */
-.notebook-subject-edit:hover,
-.notebook-subject-delete:hover {
-  opacity: 1;
-  border-color: var(--outline-soft, rgba(148, 163, 184, 0.5));
-  background: #ffffff;
-}
-#saveSubjectInput {
-  width: 100%;
-  font-family: inherit;
-  font-size: 0.9rem;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.6);
-  background: var(--field-bg);
-  color: var(--on-surface);
-  outline: none;
-  transition:
-    border-color var(--transition-fast),
-    box-shadow var(--transition-fast),
-    background var(--transition-fast);
-}
+  .notebook-subject-edit {
+    color: var(--on-surface);
+  }
 
-label[for="saveSubjectInput"] {
-  display: block;
-  width: 100%;
-  text-align: left;
-}
- /* let result boxes grow to full height */
+  .notebook-subject-delete {
+    color: #dc2626;
+  }
+
+  .notebook-subject-edit:hover,
+  .notebook-subject-delete:hover {
+    opacity: 1;
+    border-color: rgba(148, 163, 184, 0.5);
+    background: var(--btn-bg-active);
+  }
+
+  #saveSubjectInput {
+    width: 100%;
+    font-family: inherit;
+    font-size: 0.9rem;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.6);
+    background: var(--field-bg);
+    color: var(--on-surface);
+    outline: none;
+    transition:
+      border-color var(--transition-fast),
+      box-shadow var(--transition-fast),
+      background var(--transition-fast);
+  }
+
+  label[for="saveSubjectInput"] {
+    display: block;
+    width: 100%;
+    text-align: left;
+  }
+
+  /* let result boxes grow to full height */
   #snapResult,
   #mathResult,
   #studyResult,
-   #flashcardsResult,
+  #flashcardsResult,
   #essayResult {
     max-height: none !important;
     overflow: visible !important;
   }
 
-  /* same idea for the main textareas */
   #snapText,
   #mathInput,
   #studyInput,
@@ -1115,94 +1093,100 @@ label[for="saveSubjectInput"] {
     overflow-y: hidden !important;
     resize: none;
   }
-/* Make the Snap copy button smaller */
-#copySnapTextBtn {
-  border: none;
-  background: transparent;
-  padding: 2px 4px;
-  font-size: 0.7rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
 
-/* Smaller icon */
-#copySnapTextBtn .material-symbols-outlined {
-  font-size: 14px;
-}
-/* Snap copy button – small and theme-aware */
-#copySnapTextBtn {
-  border: 1px solid rgba(148, 163, 184, 0.6);
-  background: rgba(148, 163, 184, 0.08);
+  /* Snap copy button – small and theme-aware */
+  #copySnapTextBtn {
+    border: 1px solid rgba(148, 163, 184, 0.6);
+    background: rgba(148, 163, 184, 0.08);
+    border-radius: 999px;
+    padding: 2px 6px;
+    font-size: 0.7rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    color: inherit;
+  }
+
+  #copySnapTextBtn .material-symbols-outlined {
+    font-size: 14px;
+    color: inherit;
+  }
+
+  .snap-text-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .snap-actions-wrapper {
+    justify-content: flex-start;
+  }
+
+  .snap-actions-dropdown {
+    position: relative;
+    display: inline-block;
+    margin-left: auto;
+  }
+
+  .snap-actions-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .snap-actions-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    padding: 6px 0;
+    border-radius: 10px;
+    border: 1px solid var(--outline);
+    background: var(--card-bg);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.4);
+    min-width: 180px;
+    display: none;
+    z-index: 30;
+  }
+
+  .snap-actions-menu button {
+    width: 100%;
+    justify-content: flex-start;
+    border-radius: 0;
+    border: none;
+    background: var(--btn-bg);   /* white in light, dark in dark */
+    color: var(--btn-fg);
+  }
+
+  .snap-actions-menu button:hover {
+    background: var(--btn-bg-active);
+  }
+  #saveSubjectInput {
+  min-height: auto;
+  height: auto;
+  padding: 8px 10px;
   border-radius: 999px;
-  padding: 2px 6px;
-  font-size: 0.7rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-  color: inherit;            /* text follows theme */
 }
-
-/* Icon also follows theme */
-#copySnapTextBtn .material-symbols-outlined {
-  font-size: 14px;
-  color: inherit;            /* icon follows theme */
-}
-.snap-text-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-.snap-actions-wrapper {
-  justify-content: flex-start;
-}
-
-.snap-actions-dropdown {
-  position: relative;
-  display: inline-block;
-}
-
-.snap-actions-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
 .snap-actions-menu {
   position: absolute;
   top: 100%;
   left: 0;
   margin-top: 4px;
-  padding: 6px 0;
-  border-radius: 10px;
-  border: 1px solid var(--outline, rgba(148, 163, 184, 0.5));
-  background: var(--card-bg, #0b1120);
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.4);
-  min-width: 180px;
-  display: none;
-  z-index: 30;
+  /* ... */
 }
-
-.snap-actions-menu button {
-      width: 100%;
-    justify-content: flex-start;
-    border-radius: 0;
-    border: none;
-    background: #ffffff;
-    color: #000;
+/* Make ONLY the Text actions menu open above the toggle */
+#textActionsDropdown .snap-actions-menu {
+  top: auto;          /* cancel the global top */
+  bottom: 100%;       /* position above the button */
+  margin-top: 0;
+  margin-bottom: 4px; /* little gap above */
 }
-
-.snap-actions-menu button:hover {
-  background: rgba(148, 163, 184, 0.1);
-}
-
 
 </style>
 
 </head>
-
 
 <body>
 <div class="app">
@@ -1339,7 +1323,7 @@ label[for="saveSubjectInput"] {
   </header>
 
   <div class="top-bar">
-    <select id="subjectSelect">
+    <select id="subjectSelect" class="text-input">
       <option value="general">Subject: Auto</option>
       <option value="math">Math</option>
       <option value="science">Science</option>
@@ -1348,7 +1332,7 @@ label[for="saveSubjectInput"] {
     </select>
 
     <!-- Single model option, still uses value="smart" so backend stays the same -->
-    <select id="modelSelect">
+    <select id="modelSelect" class="text-input">
       <option value="smart">Model: OpenAI (smart auto)</option>
     </select>
   </div>
@@ -1465,6 +1449,7 @@ label[for="saveSubjectInput"] {
 
           <textarea
             id="snapText"
+            class="text-input"
             placeholder="OCR text will appear here..."
           ></textarea>
 
@@ -1480,6 +1465,7 @@ label[for="saveSubjectInput"] {
             </span>
             <input
               id="saveSubjectInput"
+              class="text-input"
               type="text"
               value="General"
               placeholder="e.g. Algebra test 2"
@@ -1501,57 +1487,52 @@ label[for="saveSubjectInput"] {
             </span>
           </div>
 
-          <div class="hint-row" style="margin-top: 4px;">
-            <button
-              id="snapActionSolveBtn"
-              class="pill-button"
-              type="button"
-            >
-              <span
-                class="material-symbols-outlined"
-                style="font-size: 16px;"
-              >
-                photo_camera
-              </span>
-              <span>Solve / Explain here</span>
-            </button>
+<div class="hint-row" style="margin-top: 4px; justify-content:flex-start;">
+  <div class="snap-actions-dropdown" id="textActionsDropdown">
+    <!-- dropdown toggle -->
+    <button
+      class="pill-button snap-actions-toggle"
+      id="textActionsToggle"
+      type="button"
+    >
+      <span class="material-symbols-outlined" style="font-size:18px;">
+        expand_more
+      </span>
+      <span>Text actions</span>
+    </button>
 
-            <button
-              id="mathSolveBtn"
-              class="pill-button"
-              type="button"
-            >
-              <span class="material-symbols-outlined">calculate</span>
-              <span>Math Solver</span>
-            </button>
+    <!-- dropdown menu with your existing buttons -->
+    <div class="snap-actions-menu" id="textActionsMenu">
+      <button id="snapActionSolveBtn" class="pill-button" type="button">
+        <span class="material-symbols-outlined" style="font-size: 16px;">
+          photo_camera
+        </span>
+        <span>Solve / Explain here</span>
+      </button>
 
-            <button
-              id="studyGuideBtn"
-              class="pill-button"
-              type="button"
-            >
-              <span class="material-symbols-outlined">menu_book</span>
-              <span>Study Guide</span>
-            </button>
+      <button id="mathSolveBtn" class="pill-button" type="button">
+        <span class="material-symbols-outlined">calculate</span>
+        <span>Math Solver</span>
+      </button>
 
-            <button
-              id="essayBtn"
-              class="pill-button"
-              type="button"
-            >
-              <span class="material-symbols-outlined">draw</span>
-              <span>Essay Helper</span>
-            </button>
+      <button id="studyGuideBtn" class="pill-button" type="button">
+        <span class="material-symbols-outlined">menu_book</span>
+        <span>Study Guide</span>
+      </button>
 
-            <button
-              id="cardsBtn"
-              class="pill-button"
-              type="button"
-            >
-              <span class="material-symbols-outlined">style</span>
-              <span>Flashcards</span>
-            </button>
-          </div>
+      <button id="essayBtn" class="pill-button" type="button">
+        <span class="material-symbols-outlined">draw</span>
+        <span>Essay Helper</span>
+      </button>
+
+      <button id="cardsBtn" class="pill-button" type="button">
+        <span class="material-symbols-outlined">style</span>
+        <span>Flashcards</span>
+      </button>
+    </div>
+  </div>
+</div>
+
         </div>
       </section>
 
@@ -1591,7 +1572,7 @@ label[for="saveSubjectInput"] {
             </button>
           </div>
 
-          <pre id="snapResult"></pre>
+          <pre id="snapResult" class="text-output"></pre>
         </div>
       </section>
 
@@ -1615,6 +1596,7 @@ label[for="saveSubjectInput"] {
           >
           <textarea
             id="mathInput"
+            class="text-input"
             placeholder="Example: Solve 3x + 7 = 22"
             style="display:none;"
           ></textarea>
@@ -1646,7 +1628,7 @@ label[for="saveSubjectInput"] {
             </button>
           </div>
 
-          <pre id="mathResult"></pre>
+          <pre id="mathResult" class="text-output"></pre>
         </div>
       </section>
 
@@ -1670,6 +1652,7 @@ label[for="saveSubjectInput"] {
           >
           <textarea
             id="studyInput"
+            class="text-input"
             placeholder="Paste your notes or textbook text here..."
             style="display:none;"
           ></textarea>
@@ -1701,7 +1684,7 @@ label[for="saveSubjectInput"] {
             </button>
           </div>
 
-          <pre id="studyResult"></pre>
+          <pre id="studyResult" class="text-output"></pre>
         </div>
       </section>
 
@@ -1726,6 +1709,7 @@ label[for="saveSubjectInput"] {
           >
           <textarea
             id="essayInput"
+            class="text-input"
             placeholder="Paste your essay or describe what you need to write..."
             style="display:none;"
           ></textarea>
@@ -1757,7 +1741,7 @@ label[for="saveSubjectInput"] {
             </button>
           </div>
 
-          <pre id="essayResult"></pre>
+          <pre id="essayResult" class="text-output"></pre>
         </div>
       </section>
 
@@ -1780,6 +1764,7 @@ label[for="saveSubjectInput"] {
           >
           <textarea
             id="cardsInput"
+            class="text-input"
             placeholder="Paste notes, vocabulary lists, or textbook text..."
             style="display:none;"
           ></textarea>
@@ -1797,7 +1782,7 @@ label[for="saveSubjectInput"] {
           </div>
 
           <!-- Raw AI output (for debug / copy) -->
-          <pre id="cardsResult"></pre>
+          <pre id="cardsResult" class="text-output"></pre>
 
           <!-- New interactive flashcard viewer -->
           <div
@@ -1857,78 +1842,109 @@ label[for="saveSubjectInput"] {
             Recent saved results from Snap, Math, Study, Essay, etc.
           </p>
 
-          <div class="hint-row" id="notebookFilterRow">
-            <button
-              class="pill-button notebook-filter active"
-              data-filter="all"
-            >
-              <span
-                class="material-symbols-outlined"
-                style="font-size: 16px;"
-                >filter_alt</span
-              >
-              <span>All</span>
-            </button>
+          <!-- NEW: subjects dropdown + filter dropdown -->
+          <div class="hint-row" style="margin-bottom: 8px;">
+            <!-- Subjects dropdown (user-named subjects) -->
+            <details class="notebook-subjects-menu" style="position:relative; display:inline-block;">
+              <summary class="pill-button" style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;">
+                <span class="material-symbols-outlined" style="font-size:16px;">folder</span>
+                <span>Subjects</span>
+              </summary>
 
-            <button
-              class="pill-button notebook-filter"
-              data-filter="Snap"
-            >
-              <span
-                class="material-symbols-outlined"
-                style="font-size: 16px;"
-                >photo_camera</span
-              >
-              <span>Solve</span>
-            </button>
+              <!-- Existing subjects container (JS still targets this) -->
+              <div
+                id="notebookSubjects"
+                class="hint-row"
+                style="margin-top:6px; margin-bottom: 0;"
+              ></div>
+            </details>
 
-            <button
-              class="pill-button notebook-filter"
-              data-filter="Math"
-            >
-              <span
-                class="material-symbols-outlined"
-                style="font-size: 16px;"
-                >calculate</span
-              >
-              <span>Math</span>
-            </button>
+            <!-- Filter dropdown (All / Solve / Math / Study / Essay / Flashcards) -->
+            <details class="notebook-filter-menu" style="position:relative; display:inline-block;">
+              <summary class="pill-button" style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;">
+                <span class="material-symbols-outlined" style="font-size:16px;">filter_alt</span>
+                <span>All</span>
+              </summary>
 
-            <button
-              class="pill-button notebook-filter"
-              data-filter="Study"
-            >
-              <span
-                class="material-symbols-outlined"
-                style="font-size: 16px;"
-                >menu_book</span
+              <!-- Existing filter buttons moved inside dropdown -->
+              <div
+                id="notebookFilterRow"
+                class="hint-row"
+                style="margin-top:6px; margin-bottom: 0;"
               >
-              <span>Study</span>
-            </button>
+                <button
+                  class="pill-button notebook-filter active"
+                  data-filter="all"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 16px;"
+                    >filter_alt</span
+                  >
+                  <span>All</span>
+                </button>
 
-            <button
-              class="pill-button notebook-filter"
-              data-filter="Essay"
-            >
-              <span
-                class="material-symbols-outlined"
-                style="font-size: 16px;"
-                >draw</span
-              >
-              <span>Essay</span>
-            </button>
+                <button
+                  class="pill-button notebook-filter"
+                  data-filter="Snap"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 16px;"
+                    >photo_camera</span
+                  >
+                  <span>Solve</span>
+                </button>
 
-            <button
-              class="pill-button notebook-filter"
-              data-filter="Cards"
-            >
-              <span
-                class="material-symbols-outlined"
-                style="font-size: 16px;"
-                >style</span
-              >
-              <span>Flashcards</span>
-            </button>
+                <button
+                  class="pill-button notebook-filter"
+                  data-filter="Math"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 16px;"
+                    >calculate</span
+                  >
+                  <span>Math</span>
+                </button>
+
+                <button
+                  class="pill-button notebook-filter"
+                  data-filter="Study"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 16px;"
+                    >menu_book</span
+                  >
+                  <span>Study</span>
+                </button>
+
+                <button
+                  class="pill-button notebook-filter"
+                  data-filter="Essay"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 16px;"
+                    >draw</span
+                  >
+                  <span>Essay</span>
+                </button>
+
+                <button
+                  class="pill-button notebook-filter"
+                  data-filter="Cards"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 16px;"
+                    >style</span
+                  >
+                  <span>Flashcards</span>
+                </button>
+              </div>
+            </details>
           </div>
 
           <div class="btn-row" style="margin-bottom: 8px;">
@@ -1951,16 +1967,11 @@ label[for="saveSubjectInput"] {
             </button>
           </div>
 
-          <!-- NEW: subjects manager / chips -->
-          <div
-            id="notebookSubjects"
-            class="hint-row"
-            style="margin-bottom: 8px;"
-          ></div>
-
+          <!-- notebookSubjects is now inside the Subjects dropdown above -->
           <div id="notebookList"></div>
         </div>
       </section>
+
 
       <div class="hint-footer" id="hintFooter">
         AI is for learning, not cheating. Always check your work.
@@ -1971,49 +1982,50 @@ label[for="saveSubjectInput"] {
     <aside class="side-drawer" id="sideDrawer">
       <div class="side-drawer-inner">
         <div class="side-drawer-header">TOOLS</div>
-       <nav class="side-nav">
-  <!-- NEW: OCR tool -->
-  <button class="nav-btn active" data-target="snap" type="button">
-    <span class="material-symbols-outlined">scan</span>
-    <span class="label">OCR</span>
-  </button>
+        <nav class="side-nav">
+          <!-- NEW: OCR tool -->
+          <button class="nav-btn active" data-target="snap" type="button">
+            <span class="material-symbols-outlined">scan</span>
+            <span class="label">OCR</span>
+          </button>
 
-  <!-- Existing tools, unchanged except Solve is no longer the default active -->
-  <button class="nav-btn" data-target="solve" type="button">
-    <span class="material-symbols-outlined">photo_camera</span>
-    <span class="label">Solve</span>
-  </button>
+          <!-- Existing tools, unchanged except Solve is no longer the default active -->
+          <button class="nav-btn" data-target="solve" type="button">
+            <span class="material-symbols-outlined">photo_camera</span>
+            <span class="label">Solve</span>
+          </button>
 
-  <button class="nav-btn" data-target="math" type="button">
-    <span class="material-symbols-outlined">calculate</span>
-    <span class="label">Math Solver</span>
-  </button>
+          <button class="nav-btn" data-target="math" type="button">
+            <span class="material-symbols-outlined">calculate</span>
+            <span class="label">Math Solver</span>
+          </button>
 
-  <button class="nav-btn" data-target="study" type="button">
-    <span class="material-symbols-outlined">menu_book</span>
-    <span class="label">Study Guide</span>
-  </button>
+          <button class="nav-btn" data-target="study" type="button">
+            <span class="material-symbols-outlined">menu_book</span>
+            <span class="label">Study Guide</span>
+          </button>
 
-  <button class="nav-btn" data-target="essay" type="button">
-    <span class="material-symbols-outlined">draw</span>
-    <span class="label">Essay Helper</span>
-  </button>
+          <button class="nav-btn" data-target="essay" type="button">
+            <span class="material-symbols-outlined">draw</span>
+            <span class="label">Essay Helper</span>
+          </button>
 
-  <button class="nav-btn" data-target="flashcards" type="button">
-    <span class="material-symbols-outlined">style</span>
-    <span class="label">Flashcards</span>
-  </button>
+          <button class="nav-btn" data-target="flashcards" type="button">
+            <span class="material-symbols-outlined">style</span>
+            <span class="label">Flashcards</span>
+          </button>
 
-  <button class="nav-btn" data-target="notebook" type="button">
-    <span class="material-symbols-outlined">book_2</span>
-    <span class="label">Notebook</span>
-  </button>
-</nav>
+          <button class="nav-btn" data-target="notebook" type="button">
+            <span class="material-symbols-outlined">book_2</span>
+            <span class="label">Notebook</span>
+          </button>
+        </nav>
 
       </div>
     </aside>
   </div>
 </div>
+
 
 
 
@@ -4502,6 +4514,41 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     });
   });
 </script>
+<!--TEXT ACTIONS DROP DOWN-->
+<script>
+  // Text actions dropdown (Solve / Math / Study / Essay / Flashcards)
+  const textActionsToggle = document.getElementById("textActionsToggle");
+  const textActionsMenu   = document.getElementById("textActionsMenu");
+
+  if (textActionsToggle && textActionsMenu) {
+    // Toggle open/close when clicking the summary button
+    textActionsToggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = textActionsMenu.style.display === "block";
+      textActionsMenu.style.display = isOpen ? "none" : "block";
+    });
+
+    // Close when any action button inside the menu is clicked
+    textActionsMenu.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      textActionsMenu.style.display = "none";
+      // let the existing click handler for that button run as normal
+    });
+
+    // Close when clicking anywhere outside
+    document.addEventListener("click", (e) => {
+      if (
+        !textActionsMenu.contains(e.target) &&
+        !textActionsToggle.contains(e.target)
+      ) {
+        textActionsMenu.style.display = "none";
+      }
+    });
+  }
+</script>
+
+
 
 </body>
 
