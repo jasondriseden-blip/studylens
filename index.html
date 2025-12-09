@@ -3241,8 +3241,50 @@ activateTab(savedTab);
 
   const refreshOcrButton = document.getElementById("refreshOcrButton");
 
+  // 🔹 subject input for auto-fill
+  const saveSubjectInput = document.getElementById("saveSubjectInput");
+
   // keep track of whichever file was chosen last
   let lastSnapFile = null;
+
+  // 🔹 helper: fill subject from current snapText value
+  function maybeFillSubjectFromOcrNow() {
+    if (!snapText || !saveSubjectInput) return;
+
+    // don't overwrite if user already set something custom
+    const current = (saveSubjectInput.value || "").trim();
+    if (current && current.toLowerCase() !== "general") return;
+
+    const raw = snapText.value || "";
+    if (!raw.trim()) return;
+
+    let heading = "";
+
+    // Use smarter heading extractor if it exists
+    if (typeof extractHeadingFromOcrText === "function") {
+      heading = extractHeadingFromOcrText(raw) || "";
+    }
+
+    // Fallback: first non-empty line
+    if (!heading) {
+      const firstLine = raw
+        .split(/\r?\n/)
+        .map(l => l.trim())
+        .find(l => l.length > 0);
+      if (firstLine) {
+        heading = firstLine;
+      }
+    }
+
+    if (!heading) return;
+
+    // Trim to something reasonable
+    if (heading.length > 60) {
+      heading = heading.slice(0, 60).trim() + "…";
+    }
+
+    saveSubjectInput.value = heading;
+  }
 
   // simple loading animation for textareas
   function startTextareaLoading(ta, baseText) {
@@ -3358,7 +3400,10 @@ activateTab(savedTab);
     snapText.value = text;
     if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
 
-    // 🔹 trigger subject auto-fill logic listening on snapText input
+    // 🔹 update subject from OCR text
+    maybeFillSubjectFromOcrNow();
+
+    // (optional) still fire input for any other listeners you have
     snapText.dispatchEvent(new Event("input"));
   });
 
@@ -3378,7 +3423,10 @@ activateTab(savedTab);
       snapText.value = text;
       if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
 
-      // 🔹 trigger subject auto-fill again on refreshed OCR
+      // 🔹 update subject from refreshed OCR
+      maybeFillSubjectFromOcrNow();
+
+      // (optional) still fire input for any other listeners you have
       snapText.dispatchEvent(new Event("input"));
 
       refreshOcrButton.textContent = originalText;
