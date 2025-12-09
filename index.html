@@ -661,8 +661,8 @@
     margin-top: 8px;
     padding: 14px 12px;
     border-radius: 14px;
-    border: 1px solid rgb(73 121 238);
-    background: var(--field-bg);
+1px solid rgb(157 157 157) ;
+   background: var(--field-bg);
     min-height: 80px;
     display: flex;
     align-items: center;
@@ -702,7 +702,7 @@
 
   #cardsFront {
     font-weight: 700;
-    color: var(--primary-variant);
+    color: #000;
     font-size: 1.02em;
   }
 
@@ -1182,6 +1182,118 @@
   bottom: 100%;       /* position above the button */
   margin-top: 0;
   margin-bottom: 4px; /* little gap above */
+}
+/* Make sure the subject row is the positioning parent */
+.notebook-subject-row {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Dropdown panel: stay anchored and open to the LEFT of the ⋯ button */
+.notebook-subject-dropdown {
+  position: absolute;
+  top: 50%;
+  right: 100%;         /* panel sits to the left of the menu button   */
+  left: auto;
+  transform: translate(-8px, -50%); /* small gap + vertical center    */
+
+  /* visual stuff */
+  display: none;       /* JS toggles to "flex" */
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 170px;
+  padding: 6px;
+  border-radius: 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--outline);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
+  z-index: 40;
+}
+
+/* Buttons inside dropdown: full-width, left-aligned list */
+.notebook-subject-dropdown .notebook-subject-edit,
+.notebook-subject-dropdown .notebook-subject-delete {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--field-bg);
+  color: var(--on-surface);
+  gap: 6px;
+}
+
+/* Hover states */
+.notebook-subject-dropdown .notebook-subject-edit:hover,
+.notebook-subject-dropdown .notebook-subject-delete:hover {
+  background: #fafafa;
+}
+
+/* Keep delete visually “danger” if you already had this */
+.notebook-subject-delete {
+  color: #dc2626;
+}
+/* Notebook dropdown layout */
+.notebook-top-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+/* The <details> wrapper */
+.nb-dropdown {
+  position: relative;
+  display: inline-flex;
+}
+
+/* The pill button that acts as the toggle */
+.nb-dropdown-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Hide the native triangle */
+.nb-dropdown-toggle::-webkit-details-marker {
+  display: none;
+}
+
+/* The dropdown menu – pinned to the same x-position as the button */
+.nb-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;                 /* 👈 keeps it from jumping left/right */
+  transform: none;
+  min-width: 220px;
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--outline);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.35);
+  z-index: 40;
+  display: none;           /* hidden until details is open */
+}
+
+/* Show menu when the <details> is open */
+.nb-dropdown[open] .nb-dropdown-menu {
+  display: block;
+}
+
+/* Make the buttons inside the menu line up nicely */
+.nb-dropdown-menu .hint-row {
+  margin: 0;
+  justify-content: flex-start;
+}
+
+/* Optional: smaller pills inside dropdown so they feel like menu items */
+.nb-dropdown-menu .pill-button {
+  font-size: 0.76rem;
+  padding: 6px 10px;
 }
 
 </style>
@@ -1834,143 +1946,116 @@
         </div>
       </section>
 
-      <!-- NOTEBOOK -->
-      <section id="notebook" class="tab-content">
-        <div class="card">
-          <h2>Notebook</h2>
-          <p class="desc">
-            Recent saved results from Snap, Math, Study, Essay, etc.
-          </p>
+<h2>Notebook</h2>
+<p class="desc">
+  Recent saved results from Snap, Math, Study, Essay, etc.
+</p>
 
-          <!-- NEW: subjects dropdown + filter dropdown -->
-          <div class="hint-row" style="margin-bottom: 8px;">
-            <!-- Subjects dropdown (user-named subjects) -->
-            <details class="notebook-subjects-menu" style="position:relative; display:inline-block;">
-              <summary class="pill-button" style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;">
-                <span class="material-symbols-outlined" style="font-size:16px;">folder</span>
-                <span>Subjects</span>
-              </summary>
+<!-- NEW: notebook top row with two dropdowns -->
+<div class="notebook-top-row">
+  <!-- Saved Subjects dropdown (uses #notebookSubjects) -->
+  <details class="nb-dropdown" id="nbSavedSubjectsDropdown">
+    <summary class="pill-button nb-dropdown-toggle">
+      <span class="material-symbols-outlined" style="font-size:16px;">label</span>
+      <span>Saved Subjects</span>
+      <span class="material-symbols-outlined nb-dropdown-caret">expand_more</span>
+    </summary>
 
-              <!-- Existing subjects container (JS still targets this) -->
-              <div
-                id="notebookSubjects"
-                class="hint-row"
-                style="margin-top:6px; margin-bottom: 0;"
-              ></div>
-            </details>
+    <div class="nb-dropdown-menu" id="nbSavedSubjectsMenu">
+      <!-- your subject chips still render into this same element -->
+      <div id="notebookSubjects" class="hint-row" style="margin-bottom:0;"></div>
+    </div>
+  </details>
 
-            <!-- Filter dropdown (All / Solve / Math / Study / Essay / Flashcards) -->
-            <details class="notebook-filter-menu" style="position:relative; display:inline-block;">
-              <summary class="pill-button" style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;">
-                <span class="material-symbols-outlined" style="font-size:16px;">filter_alt</span>
-                <span>All</span>
-              </summary>
+  <!-- Subjects by tools dropdown (uses existing .notebook-filter buttons) -->
+  <details class="nb-dropdown" id="nbToolFilterDropdown">
+    <summary class="pill-button nb-dropdown-toggle">
+      <span class="material-symbols-outlined" style="font-size:16px;">filter_alt</span>
+      <span>Subjects by tools</span>
+      <span class="material-symbols-outlined nb-dropdown-caret">expand_more</span>
+    </summary>
 
-              <!-- Existing filter buttons moved inside dropdown -->
-              <div
-                id="notebookFilterRow"
-                class="hint-row"
-                style="margin-top:6px; margin-bottom: 0;"
-              >
-                <button
-                  class="pill-button notebook-filter active"
-                  data-filter="all"
-                >
-                  <span
-                    class="material-symbols-outlined"
-                    style="font-size: 16px;"
-                    >filter_alt</span
-                  >
-                  <span>All</span>
-                </button>
+    <div class="nb-dropdown-menu" id="nbToolFilterMenu">
+      <div class="hint-row" id="notebookFilterRow">
+        <button
+          class="pill-button notebook-filter active"
+          data-filter="all"
+        >
+          <span class="material-symbols-outlined" style="font-size:16px;">
+            filter_alt
+          </span>
+          <span>All</span>
+        </button>
 
-                <button
-                  class="pill-button notebook-filter"
-                  data-filter="Snap"
-                >
-                  <span
-                    class="material-symbols-outlined"
-                    style="font-size: 16px;"
-                    >photo_camera</span
-                  >
-                  <span>Solve</span>
-                </button>
+        <button
+          class="pill-button notebook-filter"
+          data-filter="Snap"
+        >
+          <span class="material-symbols-outlined" style="font-size:16px;">
+            photo_camera
+          </span>
+          <span>Solve</span>
+        </button>
 
-                <button
-                  class="pill-button notebook-filter"
-                  data-filter="Math"
-                >
-                  <span
-                    class="material-symbols-outlined"
-                    style="font-size: 16px;"
-                    >calculate</span
-                  >
-                  <span>Math</span>
-                </button>
+        <button
+          class="pill-button notebook-filter"
+          data-filter="Math"
+        >
+          <span class="material-symbols-outlined" style="font-size:16px;">
+            calculate
+          </span>
+          <span>Math</span>
+        </button>
 
-                <button
-                  class="pill-button notebook-filter"
-                  data-filter="Study"
-                >
-                  <span
-                    class="material-symbols-outlined"
-                    style="font-size: 16px;"
-                    >menu_book</span
-                  >
-                  <span>Study</span>
-                </button>
+        <button
+          class="pill-button notebook-filter"
+          data-filter="Study"
+        >
+          <span class="material-symbols-outlined" style="font-size:16px;">
+            menu_book
+          </span>
+          <span>Study</span>
+        </button>
 
-                <button
-                  class="pill-button notebook-filter"
-                  data-filter="Essay"
-                >
-                  <span
-                    class="material-symbols-outlined"
-                    style="font-size: 16px;"
-                    >draw</span
-                  >
-                  <span>Essay</span>
-                </button>
+        <button
+          class="pill-button notebook-filter"
+          data-filter="Essay"
+        >
+          <span class="material-symbols-outlined" style="font-size:16px;">
+            draw
+          </span>
+          <span>Essay</span>
+        </button>
 
-                <button
-                  class="pill-button notebook-filter"
-                  data-filter="Cards"
-                >
-                  <span
-                    class="material-symbols-outlined"
-                    style="font-size: 16px;"
-                    >style</span
-                  >
-                  <span>Flashcards</span>
-                </button>
-              </div>
-            </details>
-          </div>
+        <button
+          class="pill-button notebook-filter"
+          data-filter="Cards"
+        >
+          <span class="material-symbols-outlined" style="font-size:16px;">
+            style
+          </span>
+          <span>Flashcards</span>
+        </button>
+      </div>
+    </div>
+  </details>
+</div>
 
-          <div class="btn-row" style="margin-bottom: 8px;">
-            <button
-              class="secondary"
-              id="clearNotebookBtn"
-              type="button"
-            >
-              <span class="material-symbols-outlined">delete_forever</span>
-              <span>Clear notebook</span>
-            </button>
-            <!-- NEW: undo button -->
-            <button
-              class="secondary"
-              id="undoNotebookBtn"
-              type="button"
-            >
-              <span class="material-symbols-outlined">undo</span>
-              <span>Undo</span>
-            </button>
-          </div>
+<!-- keep your existing Clear / Undo row exactly as it was -->
+<div class="btn-row" style="margin-bottom: 8px;">
+  <button class="secondary" id="clearNotebookBtn" type="button">
+    <span class="material-symbols-outlined">delete_forever</span>
+    <span>Clear notebook</span>
+  </button>
+  <button class="secondary" id="undoNotebookBtn" type="button">
+    <span class="material-symbols-outlined">undo</span>
+    <span>Undo</span>
+  </button>
+</div>
 
-          <!-- notebookSubjects is now inside the Subjects dropdown above -->
-          <div id="notebookList"></div>
-        </div>
-      </section>
+<!-- notebookSubjects div is now inside the Saved Subjects dropdown above -->
+<div id="notebookList"></div>
+
 
 
       <div class="hint-footer" id="hintFooter">
@@ -4548,7 +4633,18 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
   }
 </script>
 
-
+<!--Notebook drop downs-->
+<script>
+  document.querySelectorAll('.nb-dropdown').forEach((dd) => {
+    dd.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (btn && !btn.classList.contains('nb-dropdown-toggle')) {
+        // close the dropdown after choosing something
+        dd.removeAttribute('open');
+      }
+    });
+  });
+</script>
 
 </body>
 
