@@ -1919,6 +1919,33 @@ li {
               Give me a hint
             </button>
           </div>
+<!-- Formatting options for Essay output -->
+<div class="output-format-bar">
+  <label for="formatSelect-essayResult" style="margin-right:6px;">
+    Format:
+  </label>
+  <select
+    id="formatSelect-essayResult"
+    class="text-input output-format-select"
+    data-target="essayResult"
+    style="width:auto; min-width:160px;"
+  >
+    <option value="plain">Plain (no formatting)</option>
+    <option value="mla">MLA</option>
+    <option value="apa">APA 7</option>
+    <option value="chicago">Chicago / Turabian</option>
+    <option value="ieee">IEEE</option>
+  </select>
+
+  <button
+    type="button"
+    class="pill-button output-format-apply"
+    data-target="essayResult"
+    style="margin-left:6px;"
+  >
+    Apply format
+  </button>
+</div>
 
           <pre id="snapResult" class="text-output"></pre>
         </div>
@@ -5454,6 +5481,107 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
   });
 </script>
 
+
+
+
+<script>
+  // Simple formatter templates for college styles
+  const OUTPUT_FORMATTERS = {
+    plain: function (text) {
+      return text;
+    },
+
+    mla: function (text) {
+      return [
+        "Your Name",
+        "Professor Lastname",
+        "Course Name",
+        "Day Month Year",
+        "",
+        "(Double-spaced, Times New Roman 12, 1\" margins when you paste into Word/Docs.)",
+        "",
+        text
+      ].join("\n");
+    },
+
+    apa: function (text) {
+      return [
+        "Title of Paper",
+        "",
+        "Your Name",
+        "Department, University Name",
+        "Course Name and Number",
+        "Instructor Name",
+        "Due Date",
+        "",
+        "(APA 7 student paper – double-spaced, 1\" margins, page number in header.)",
+        "",
+        text
+      ].join("\n");
+    },
+
+    chicago: function (text) {
+      return [
+        "Title of Paper",
+        "",
+        "Your Name",
+        "",
+        "(Chicago / Turabian – set 1\" margins, double-space, and add notes/bibliography in your doc.)",
+        "",
+        text
+      ].join("\n");
+    },
+
+    ieee: function (text) {
+      return [
+        "Paper Title",
+        "",
+        "Author Name, Department, University",
+        "",
+        "(IEEE – usually two-column layout, numbered references; adjust in your editor.)",
+        "",
+        text
+      ].join("\n");
+    }
+  };
+
+  function setupOutputFormatControls() {
+    const applyButtons = document.querySelectorAll(".output-format-apply");
+
+    applyButtons.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        const targetId = btn.getAttribute("data-target");
+        if (!targetId) return;
+
+        const pre = document.getElementById(targetId);
+        if (!pre) return;
+
+        const select = document.querySelector(
+          '.output-format-select[data-target="' + targetId + '"]'
+        );
+        if (!select) return;
+
+        const formatKey = select.value || "plain";
+        const formatter = OUTPUT_FORMATTERS[formatKey] || OUTPUT_FORMATTERS.plain;
+
+        // Store the original raw text once so you can switch formats back & forth
+        if (!pre.dataset.originalText) {
+          pre.dataset.originalText = pre.textContent || "";
+        }
+
+        const original = pre.dataset.originalText;
+        pre.textContent = formatter(original);
+      });
+    });
+  }
+
+  // Run once when the page is ready
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", setupOutputFormatControls);
+  } else {
+    setupOutputFormatControls();
+  }
+</script>
 
 </body>
 
