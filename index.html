@@ -702,7 +702,7 @@
 
   #cardsFront {
     font-weight: 700;
-    color: #000;
+    color: #25ae4a;
     font-size: 1.02em;
   }
 
@@ -2080,7 +2080,7 @@
           <!-- NEW: OCR tool -->
           <button class="nav-btn active" data-target="snap" type="button">
             <span class="material-symbols-outlined">scan</span>
-            <span class="label">OCR</span>
+            <span class="label">Scasn</span>
           </button>
 
           <!-- Existing tools, unchanged except Solve is no longer the default active -->
@@ -4653,6 +4653,78 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       }
     });
   });
+</script>
+<!--AUTOFILL SUBJECT INPUT-->
+<script>
+// Try to guess a heading from OCR text
+function extractHeadingFromOcrText(raw) {
+  if (!raw) return "";
+
+  const lines = String(raw)
+    .split(/\r?\n/)
+    .map(l => l.trim())
+    .filter(Boolean);
+
+  if (!lines.length) return "";
+
+  // drop lines that look like "Name: ____" / "Date: ____"
+  const filtered = lines.filter(l => !/^name[:\s]/i.test(l) && !/^date[:\s]/i.test(l));
+  const list = filtered.length ? filtered : lines;
+
+  let candidate = list[0];
+
+  // strip leading numbering like "1) " or "1. "
+  candidate = candidate.replace(/^\d+[\).\-\s]+/, "");
+
+  // trim trailing punctuation
+  candidate = candidate.replace(/[:.;,\-–—]+$/g, "").trim();
+
+  // if it's super long, cut it down
+  if (candidate.length > 60) {
+    candidate = candidate.slice(0, 60).trim() + "…";
+  }
+
+  // avoid absurdly short headings
+  if (candidate.length < 3) return "";
+
+  return candidate;
+}
+</script>
+<!--AUTOFILL HELPER-->
+<script>
+(function () {
+  const snapTextEl = document.getElementById("snapText");
+  const subjectEl  = document.getElementById("saveSubjectInput");
+  if (!snapTextEl || !subjectEl) return;
+
+  let subjectAutoFilled = false;
+
+  function maybeAutoFillSubject() {
+    // Don't overwrite if user already picked a custom subject
+    const current = (subjectEl.value || "").trim().toLowerCase();
+    if (current && current !== "general") {
+      subjectAutoFilled = true;
+      return;
+    }
+
+    const heading = extractHeadingFromOcrText(snapTextEl.value);
+    if (heading) {
+      subjectEl.value = heading;
+      subjectAutoFilled = true;
+    }
+  }
+
+  // 1) When OCR fills the textbox (or user pastes), try once
+  snapTextEl.addEventListener("input", () => {
+    if (!subjectAutoFilled) {
+      maybeAutoFillSubject();
+    }
+  });
+
+  // 2) If you call a function after OCR completes, you can also do:
+  //    maybeAutoFillSubject();
+  //    from that code to force an update right away.
+})();
 </script>
 
 </body>
