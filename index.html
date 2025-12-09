@@ -2247,11 +2247,12 @@
 <!-- BLOCK 1: Theme toggle, cheat/learn mode, drawer/sidebar, subject/model helpers -->
 <script>
 // ---------- THEME TOGGLE ----------
+const themeToggle = document.getElementById("themeToggle");
+const themeLabel = document.getElementById("themeLabel");
+const iconSun = document.getElementById("iconSun");
+const iconMoon = document.getElementById("iconMoon");
 
-// we'll fill these after DOMContentLoaded
-let themeToggle, themeLabel, iconSun, iconMoon;
-
-// keep browser/status bar color in sync
+// NEW: keep browser/status bar color in sync
 function applyThemeColor(theme) {
   const meta = document.querySelector('meta[name="theme-color"]');
   if (!meta) return;
@@ -2262,26 +2263,14 @@ function applyThemeColor(theme) {
 
 function setTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
-  try {
-    localStorage.setItem("studyai-theme", theme);
-  } catch (e) {
-    // ignore if localStorage blocked
-  }
+  localStorage.setItem("studyai-theme", theme);
 
   const dark = theme === "dark";
+  themeLabel.textContent = dark ? "Dark" : "Light";
+  iconSun.style.display = dark ? "block" : "none";
+  iconMoon.style.display = dark ? "none" : "block";
 
-  // only touch these if they exist (script can run before DOM)
-  if (themeLabel) {
-    themeLabel.textContent = dark ? "Dark" : "Light";
-  }
-  if (iconSun) {
-    iconSun.style.display = dark ? "block" : "none";
-  }
-  if (iconMoon) {
-    iconMoon.style.display = dark ? "none" : "block";
-  }
-
-  // sync meta tag
+  // NEW: sync meta tag
   applyThemeColor(theme);
 }
 
@@ -2290,9 +2279,19 @@ const initialTheme =
   document.documentElement.getAttribute("data-theme") || "dark";
 setTheme(initialTheme);
 
-// ---------- DRAWER / SIDEBAR ----------
+themeToggle.addEventListener("click", () => {
+  const current =
+    document.documentElement.getAttribute("data-theme") || "dark";
+  setTheme(current === "dark" ? "light" : "dark");
+});
 
-let drawerToggle, sideDrawer, drawerBackdrop;
+
+
+
+// ---------- DRAWER / SIDEBAR ----------
+const drawerToggle = document.getElementById("drawerToggle");
+const sideDrawer = document.getElementById("sideDrawer");
+const drawerBackdrop = document.getElementById("drawerBackdrop");
 
 function isDesktop() {
   return window.innerWidth >= 800;
@@ -2300,16 +2299,39 @@ function isDesktop() {
 
 function openDrawer() {
   if (isDesktop()) return; // always visible on desktop
-  if (!sideDrawer || !drawerBackdrop) return;
   sideDrawer.classList.add("open");
   drawerBackdrop.classList.add("show");
 }
 
 function closeDrawer() {
   if (isDesktop()) return;
-  if (!sideDrawer || !drawerBackdrop) return;
   sideDrawer.classList.remove("open");
   drawerBackdrop.classList.remove("show");
+}
+
+if (drawerToggle) {
+  drawerToggle.addEventListener("click", () => {
+    if (sideDrawer.classList.contains("open")) {
+      closeDrawer();
+    } else {
+      openDrawer();
+    }
+  });
+}
+
+drawerBackdrop.addEventListener("click", closeDrawer);
+
+window.addEventListener("resize", () => {
+  if (isDesktop()) {
+    sideDrawer.classList.add("open");
+    drawerBackdrop.classList.remove("show");
+  } else {
+    sideDrawer.classList.remove("open");
+  }
+});
+
+if (isDesktop()) {
+  sideDrawer.classList.add("open");
 }
 
 // ---------- SUBJECT / MODEL HELPERS ----------
@@ -2322,67 +2344,7 @@ function getModelChoice() {
   const modelSelect = document.getElementById("modelSelect");
   return (modelSelect && modelSelect.value) ? modelSelect.value : "smart";
 }
-
-// ---------- Wire up DOM elements once they're available ----------
-document.addEventListener("DOMContentLoaded", () => {
-  // Theme toggle elements
-  themeToggle = document.getElementById("themeToggle");
-  themeLabel  = document.getElementById("themeLabel");
-  iconSun     = document.getElementById("iconSun");
-  iconMoon    = document.getElementById("iconMoon");
-
-  // Apply theme again now that the controls exist
-  const currentTheme =
-    document.documentElement.getAttribute("data-theme") || "dark";
-  setTheme(currentTheme);
-
-  if (themeToggle) {
-    themeToggle.addEventListener("click", () => {
-      const current =
-        document.documentElement.getAttribute("data-theme") || "dark";
-      setTheme(current === "dark" ? "light" : "dark");
-    });
-  }
-
-  // Drawer elements
-  drawerToggle   = document.getElementById("drawerToggle");
-  sideDrawer     = document.getElementById("sideDrawer");
-  drawerBackdrop = document.getElementById("drawerBackdrop");
-
-  if (drawerToggle) {
-    drawerToggle.addEventListener("click", () => {
-      if (!sideDrawer) return;
-      if (sideDrawer.classList.contains("open")) {
-        closeDrawer();
-      } else {
-        openDrawer();
-      }
-    });
-  }
-
-  if (drawerBackdrop) {
-    drawerBackdrop.addEventListener("click", closeDrawer);
-  }
-
-  // Keep drawer state in sync on resize
-  window.addEventListener("resize", () => {
-    if (!sideDrawer || !drawerBackdrop) return;
-
-    if (isDesktop()) {
-      sideDrawer.classList.add("open");
-      drawerBackdrop.classList.remove("show");
-    } else {
-      sideDrawer.classList.remove("open");
-    }
-  });
-
-  // Initial drawer state
-  if (sideDrawer && isDesktop()) {
-    sideDrawer.classList.add("open");
-  }
-});
 </script>
-
 
 
 <script>
