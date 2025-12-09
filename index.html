@@ -1387,6 +1387,23 @@
   .text-output.tool-output .hint-label {
     color: var(--code-fg);
   }
+  <style>
+  /* ...your existing CSS... */
+
+  @media (min-width: 800px) {
+    /* drawer toggle button in header/right side should still hide on desktop */
+    .drawer-toggle {
+      display: none;
+    }
+
+    /* BUT keep Upgrade + Sign in visible (even though they share the class) */
+    #upgradeButton,
+    #authButton {
+      display: inline-flex;
+    }
+  }
+</style>
+
 </style>
 
 </head>
