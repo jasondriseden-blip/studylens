@@ -1355,6 +1355,38 @@
   #snapPreview{
   margin-bottom:.5em;
   }
+  /* Make AI result boxes (text-output + tool-output) match the theme */
+
+  .text-output.tool-output {
+    background: var(--code-bg);
+    color: var(--code-fg);
+    border-color: rgba(148, 163, 184, 0.4);
+  }
+
+  .text-output.tool-output .tool-output-body {
+    color: var(--code-fg);
+  }
+
+  /* Copy pill matches theme buttons */
+  .text-output.tool-output .tool-output-copy {
+    border: 1px solid rgba(148, 163, 184, 0.6);
+    background: var(--btn-bg);
+    color: var(--btn-fg);
+  }
+
+  .text-output.tool-output .tool-output-copy:hover {
+    background: var(--btn-bg-active);
+    color: var(--btn-fg-active);
+  }
+
+  /* Headings / labels inherit theme text color */
+  .text-output.tool-output .section-heading,
+  .text-output.tool-output .step-line,
+  .text-output.tool-output .answer-label,
+  .text-output.tool-output .answer-value,
+  .text-output.tool-output .hint-label {
+    color: var(--code-fg);
+  }
 </style>
 
 </head>
@@ -1415,7 +1447,7 @@
             style="
               position:absolute;
               top:calc(100% + 6px);
-              left:50%;
+              left:5%;
               transform:translateX(-50%);
               display:flex;
               flex-direction:column;
@@ -1639,7 +1671,7 @@
               id="saveSubjectInput"
               class="text-input"
               type="text"
-              value="General"
+              value="ex: algebra 2 fri"
               placeholder="e.g. Algebra test 2"
               style="
                 margin-left: 8px;
