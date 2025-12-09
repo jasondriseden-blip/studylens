@@ -1919,33 +1919,7 @@ li {
               Give me a hint
             </button>
           </div>
-<!-- Formatting options for Essay output -->
-<div class="output-format-bar">
-  <label for="formatSelect-essayResult" style="margin-right:6px;">
-    Format:
-  </label>
-  <select
-    id="formatSelect-essayResult"
-    class="text-input output-format-select"
-    data-target="essayResult"
-    style="width:auto; min-width:160px;"
-  >
-    <option value="plain">Plain (no formatting)</option>
-    <option value="mla">MLA</option>
-    <option value="apa">APA 7</option>
-    <option value="chicago">Chicago / Turabian</option>
-    <option value="ieee">IEEE</option>
-  </select>
 
-  <button
-    type="button"
-    class="pill-button output-format-apply"
-    data-target="essayResult"
-    style="margin-left:6px;"
-  >
-    Apply format
-  </button>
-</div>
 
           <pre id="snapResult" class="text-output"></pre>
         </div>
@@ -2097,7 +2071,33 @@ li {
               Simpler version
             </button>
           </div>
+<!-- Formatting options for Essay output -->
+<div class="output-format-bar">
+  <label for="formatSelect-essayResult" style="margin-right:6px;">
+    Format:
+  </label>
+  <select
+    id="formatSelect-essayResult"
+    class="text-input output-format-select"
+    data-target="essayResult"
+    style="width:auto; min-width:160px;"
+  >
+    <option value="plain">Plain (no formatting)</option>
+    <option value="mla">MLA</option>
+    <option value="apa">APA 7</option>
+    <option value="chicago">Chicago / Turabian</option>
+    <option value="ieee">IEEE</option>
+  </select>
 
+  <button
+    type="button"
+    class="pill-button output-format-apply"
+    data-target="essayResult"
+    style="margin-left:6px;"
+  >
+    Apply format
+  </button>
+</div>
           <pre id="essayResult" class="text-output"></pre>
         </div>
       </section>
