@@ -1931,32 +1931,7 @@ li {
             </button>
           </div>
 
-<div class="output-format-bar">
-  <label for="formatSelect-essayResult" style="margin-right:6px;">
-    Format:
-  </label>
-  <select
-    id="formatSelect-solveResult"
-    class="text-input output-format-select"
-    data-target="essayResult"
-    style="width:auto; min-width:160px;"
-  >
-    <option value="plain">Plain (no formatting)</option>
-    <option value="mla">MLA</option>
-    <option value="apa">APA 7</option>
-    <option value="chicago">Chicago / Turabian</option>
-    <option value="ieee">IEEE</option>
-  </select>
 
-  <button
-    type="button"
-    class="pill-button output-format-apply"
-    data-target="essayResult"
-    style="margin-left:6px;"
-  >
-    Apply format
-  </button>
-</div>
           <pre id="snapResult" class="text-output"></pre>
         </div>
       </section>
@@ -2132,33 +2107,7 @@ li {
               Simpler version
             </button>
           </div>
-<!-- Formatting options for Essay output -->
-<div class="output-format-bar">
-  <label for="formatSelect-essayResult" style="margin-right:6px;">
-    Format:
-  </label>
-  <select
-    id="formatSelect-essayResult"
-    class="text-input output-format-select"
-    data-target="essayResult"
-    style="width:auto; min-width:160px;"
-  >
-    <option value="plain">Plain (no formatting)</option>
-    <option value="mla">MLA</option>
-    <option value="apa">APA 7</option>
-    <option value="chicago">Chicago / Turabian</option>
-    <option value="ieee">IEEE</option>
-  </select>
 
-  <button
-    type="button"
-    class="pill-button output-format-apply"
-    data-target="essayResult"
-    style="margin-left:6px;"
-  >
-    Apply format
-  </button>
-</div>
           <pre id="essayResult" class="text-output"></pre>
         </div>
       </section>
@@ -3842,6 +3791,16 @@ text.trim();
     // 🔹 subject input for auto-fill
     const saveSubjectInput = document.getElementById("saveSubjectInput");
 
+    // 🔹 helper: read "tell the AI what you want" extra instructions
+    function getExtraInstructions() {
+      const el =
+        document.getElementById("extraInstructionsInput") ||
+        document.getElementById("extraInstructions") ||
+        document.getElementById("extraPrompt");
+      if (!el) return "";
+      return (el.value || "").trim();
+    }
+
     // keep track of whichever file was chosen last
     let lastSnapFile = null;
 
@@ -4085,6 +4044,11 @@ text.trim();
           return;
         }
 
+        const extra = getExtraInstructions();
+        const promptText = extra
+          ? text + "\n\nExtra instructions from student (tone/length/format/etc.):\n" + extra
+          : text;
+
         // usage gate
         if (window.__canUseAIOnce) {
           const allowed = await window.__canUseAIOnce();
@@ -4101,12 +4065,12 @@ text.trim();
         // put the text into the Solve tool's textarea if it exists
         const solveInput = document.getElementById("solveInput");
         if (solveInput) {
-          solveInput.value = text;
+          solveInput.value = text; // keep original in UI
           if (window.autoResizeTextarea) window.autoResizeTextarea(solveInput);
         }
 
         startResultLoading(snapResult, "Thinking");
-        const ans = await runSnapSolve(text);
+        const ans = await runSnapSolve(promptText);
         stopResultLoading(snapResult);
         const clean = sanitizeAnswerText(ans);
         renderAnswer(snapResult, clean); // 👈 formatting helper
@@ -4128,6 +4092,11 @@ text.trim();
           return;
         }
 
+        const extra = getExtraInstructions();
+        const promptText = extra
+          ? text + "\n\nExtra instructions from student (tone/steps/detail/etc.):\n" + extra
+          : text;
+
         // usage gate
         if (window.__canUseAIOnce) {
           const allowed = await window.__canUseAIOnce();
@@ -4137,7 +4106,7 @@ text.trim();
         }
 
         startResultLoading(mathResult, "Thinking");
-        const ans = await runMathSolver(text);
+        const ans = await runMathSolver(promptText);
         stopResultLoading(mathResult);
         const clean = sanitizeAnswerText(ans);
         renderAnswer(mathResult, clean);   // 👈 formatted
@@ -4165,6 +4134,11 @@ text.trim();
           return;
         }
 
+        const extra = getExtraInstructions();
+        const promptText = extra
+          ? text + "\n\nExtra instructions from student (what to focus on, how short/long, etc.):\n" + extra
+          : text;
+
         // usage gate
         if (window.__canUseAIOnce) {
           const allowed = await window.__canUseAIOnce();
@@ -4174,7 +4148,7 @@ text.trim();
         }
 
         startResultLoading(studyResult, "Thinking");
-        const ans = await runStudyGuide(text);
+        const ans = await runStudyGuide(promptText);
         stopResultLoading(studyResult);
         const clean = sanitizeAnswerText(ans);
         renderAnswer(studyResult, clean);   // 👈 formatted
@@ -4202,6 +4176,11 @@ text.trim();
           return;
         }
 
+        const extra = getExtraInstructions();
+        const promptText = extra
+          ? text + "\n\nExtra instructions from student (tone, length, structure, citations, etc.):\n" + extra
+          : text;
+
         // usage gate
         if (window.__canUseAIOnce) {
           const allowed = await window.__canUseAIOnce();
@@ -4211,7 +4190,7 @@ text.trim();
         }
 
         startResultLoading(essayResult, "Thinking");
-        const ans = await runEssayHelper(text);
+        const ans = await runEssayHelper(promptText);
         stopResultLoading(essayResult);
         const clean = sanitizeAnswerText(ans);
         renderAnswer(essayResult, clean);   // 👈 formatted
@@ -5377,7 +5356,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     if (!ocrText) return "";
 
     // Split into lines, trim, and drop empty lines
-    const lines = ocrText
+    const lines = String(ocrText)
       .split(/\r?\n/)
       .map(line => line.trim())
       .filter(Boolean);
@@ -5403,39 +5382,46 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     const subjectEl  = document.getElementById("saveSubjectInput");
     if (!snapTextEl || !subjectEl) return;
 
-    let subjectAutoFilled = false;
+    // Track if the user has actually edited the subject
+    let userEditedSubject = false;
+
+    // If user types anything (not just "General"), stop auto-overwriting
+    subjectEl.addEventListener("input", () => {
+      const v = (subjectEl.value || "").trim();
+      if (v && v.toLowerCase() !== "general") {
+        userEditedSubject = true;
+      } else if (!v) {
+        // If they clear it completely, allow auto-fill again
+        userEditedSubject = false;
+      }
+    });
 
     function maybeAutoFillSubject() {
-      // Don't overwrite if user already picked a custom subject
-      const current = (subjectEl.value || "").trim().toLowerCase();
-      if (current && current !== "general") {
-        subjectAutoFilled = true;
-        return;
-      }
+      if (userEditedSubject) return;
 
       const heading = extractHeadingFromOcrText(snapTextEl.value || "");
       if (heading) {
         subjectEl.value = heading;
-        subjectAutoFilled = true;
       }
     }
 
     // When OCR puts text in (or user pastes/types)
     snapTextEl.addEventListener("input", () => {
-      if (!subjectAutoFilled) {
-        maybeAutoFillSubject();
-      }
+      maybeAutoFillSubject();
     });
 
     // Run once on load in case text is already there
     maybeAutoFillSubject();
 
-    // Expose for your OCR code to call directly if you want
+    // Expose for other scripts to call directly if they want
     window.maybeAutoFillSubjectFromOcr = maybeAutoFillSubject;
+    // Also expose under the alternate name some code might be using
+    window.maybeFillSubjectFromOcrNow = maybeAutoFillSubject;
   }
 
   document.addEventListener("DOMContentLoaded", initAutoSubjectFromSnap);
 </script>
+
 
 <script>
   // ==========================================================
@@ -5673,16 +5659,25 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
         );
         if (!select) return;
 
-        const formatKey = select.value || "plain";
-        const formatter = OUTPUT_FORMATTERS[formatKey] || OUTPUT_FORMATTERS.plain;
+        const formatKey  = select.value || "plain";
+        const formatter  = OUTPUT_FORMATTERS[formatKey] || OUTPUT_FORMATTERS.plain;
+        const currentTxt = pre.textContent || "";
 
-        // Store the original raw text once so you can switch formats back & forth
-        if (!pre.dataset.originalText) {
-          pre.dataset.originalText = pre.textContent || "";
+        // (Re)capture original text whenever we finally have some content
+        if (
+          (!pre.dataset.originalText || !pre.dataset.originalText.trim()) &&
+          currentTxt.trim()
+        ) {
+          pre.dataset.originalText = currentTxt;
         }
 
-        const original = pre.dataset.originalText;
-        pre.textContent = formatter(original);
+        const base =
+          (pre.dataset.originalText && pre.dataset.originalText.trim())
+            ? pre.dataset.originalText
+            : currentTxt;
+
+        // Apply chosen format to the base text (not to already formatted text)
+        pre.textContent = formatter(base);
       });
     });
   }
@@ -5694,6 +5689,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     setupOutputFormatControls();
   }
 </script>
+
 
 </body>
 
