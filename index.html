@@ -4420,7 +4420,7 @@ text.trim();
     // trigger animation
     requestAnimationFrame(() => {
       const driftX = (Math.random() - 0.5) * 40; // little horizontal scatter
-      const driftY = -60 - Math.random() * 20;   // float upward
+      const driftY = -40 - Math.random() * 10;   // float upward
       bubble.style.opacity = "1";
       bubble.style.transform =
         `translate(calc(-50% + ${driftX}px), calc(-50% + ${driftY}px)) scale(1.25)`;
