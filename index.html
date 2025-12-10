@@ -4340,7 +4340,7 @@ text.trim();
     }
   })();
 
-  // ---------- Encouragement phrases + bloom effect ----------
+  // ---------- Encouragement burst for "Got it" ----------
 
   // Very short, 1–2 word phrases only – no contextual text
   const GOTIT_PHRASES = [
@@ -4362,7 +4362,18 @@ text.trim();
     "Brain gold", "Score!", "Top form", "Prime mind"
   ];
 
-  // Track recent indices so we don't spam the same phrase
+  // Bright colors for the phrase, randomized each click
+  const GOTIT_COLORS = [
+    "#f97316", // orange
+    "#22c55e", // green
+    "#3b82f6", // blue
+    "#ec4899", // pink
+    "#eab308", // yellow
+    "#a855f7", // purple
+    "#06b6d4", // cyan
+    "#fb7185"  // rose
+  ];
+
   let gotitRecentIndices = [];
 
   function pickGotItPhrase() {
@@ -4388,7 +4399,15 @@ text.trim();
     return GOTIT_PHRASES[chosen];
   }
 
+  function pickGotItColor() {
+    const n = GOTIT_COLORS.length;
+    if (!n) return "#f97316";
+    const idx = Math.floor(Math.random() * n);
+    return GOTIT_COLORS[idx];
+  }
+
   // Text burst that starts at the Got it button, goes up, and explodes into little bits
+  // UPDATED: only ONE phrase per click + random bright color
   function spawnGotItBurst(anchorEl) {
     if (!anchorEl) return;
 
@@ -4396,118 +4415,112 @@ text.trim();
     const baseX = rect.left + rect.width / 2;
     const baseY = rect.top + rect.height / 2;
 
-    // 2–3 bursts per click
-    const bursts = 2 + Math.floor(Math.random() * 2);
+    // Single phrase per click (no overlap of multiple phrases)
+    const phrase = pickGotItPhrase();
+    const color = pickGotItColor();
 
-    const btnStyle = window.getComputedStyle(anchorEl);
-    const textColor = btnStyle.color || "inherit";
+    const wordEl = document.createElement("div");
+    wordEl.textContent = phrase;
 
-    for (let b = 0; b < bursts; b++) {
-      const phrase = pickGotItPhrase();
+    wordEl.style.position = "fixed";
+    wordEl.style.left = baseX + "px";
+    wordEl.style.top = baseY + "px";
+    wordEl.style.transform = "translate(-50%, -50%) scale(0.9)";
+    wordEl.style.pointerEvents = "none";
+    wordEl.style.whiteSpace = "nowrap";
+    wordEl.style.zIndex = "9999";
+    wordEl.style.opacity = "0";
+    wordEl.style.fontWeight = "800";
 
-      const wordEl = document.createElement("div");
-      wordEl.textContent = phrase;
-
-      wordEl.style.position = "fixed";
-      wordEl.style.left = baseX + "px";
-      wordEl.style.top = baseY + "px";
-      wordEl.style.transform = "translate(-50%, -50%) scale(0.9)";
-      wordEl.style.pointerEvents = "none";
-      wordEl.style.whiteSpace = "nowrap";
-      wordEl.style.zIndex = "9999";
-      wordEl.style.opacity = "0";
-      wordEl.style.fontWeight = "800";
-
-      // Responsive font size
-      let fontSizePx = 16;
-      if (window.innerWidth < 700) {
-        fontSizePx = 14;
-      } else if (window.innerWidth > 1000) {
-        fontSizePx = 18;
-      }
-      wordEl.style.fontSize = fontSizePx + "px";
-
-      // Theme-aware: match button text color, no background, no shadow
-      wordEl.style.color = textColor;
-      wordEl.style.background = "transparent";
-      wordEl.style.textShadow = "none";
-
-      const riseDuration = 600 + Math.random() * 300;
-      wordEl.style.transition =
-        "transform " +
-        riseDuration +
-        "ms ease-out, opacity " +
-        riseDuration +
-        "ms ease-out";
-
-      wordEl.style.display = "inline-block";
-
-      // Container for tiny letter fragments
-      const fragContainer = document.createElement("div");
-      fragContainer.style.position = "absolute";
-      fragContainer.style.left = "50%";
-      fragContainer.style.top = "50%";
-      fragContainer.style.transform = "translate(-50%, -50%)";
-      fragContainer.style.pointerEvents = "none";
-
-      const letters = phrase.replace(/\s+/g, "").split("");
-      const fragCount = Math.min(10, Math.max(6, letters.length || 6));
-
-      for (let i = 0; i < fragCount; i++) {
-        const ch = letters[i % letters.length] || "•";
-        const frag = document.createElement("span");
-        frag.textContent = ch;
-        frag.style.display = "inline-block";
-        frag.style.fontSize = Math.max(10, fontSizePx * 0.75) + "px";
-        frag.style.fontWeight = "700";
-        frag.style.color = textColor;
-        frag.style.opacity = "1";
-        frag.style.transform = "translate(0px, 0px) scale(1)";
-
-        const dur = 400 + Math.random() * 250;
-        frag.style.transition =
-          "transform " + dur + "ms ease-out, opacity " + dur + "ms ease-out";
-
-        const spread = 40 + Math.random() * 30;
-        const angle = Math.random() * Math.PI * 2;
-        const tx = Math.cos(angle) * spread;
-        const ty = Math.sin(angle) * spread - 10;
-
-        // Kick off fragment "explosion"
-        setTimeout(() => {
-          frag.style.transform =
-            "translate(" + tx + "px, " + ty + "px) scale(0.5)";
-          frag.style.opacity = "0";
-        }, 80 + i * 15);
-
-        fragContainer.appendChild(frag);
-      }
-
-      wordEl.appendChild(fragContainer);
-      document.body.appendChild(wordEl);
-
-      // Main phrase rises up a bit and fades
-      requestAnimationFrame(() => {
-        const driftY = -40 - Math.random() * 15;
-        wordEl.style.opacity = "1";
-        wordEl.style.transform =
-          "translate(-50%, calc(-50% + " + driftY + "px)) scale(1.05)";
-      });
-
-      // Fade away after the rise
-      setTimeout(() => {
-        wordEl.style.opacity = "0";
-        wordEl.style.transform =
-          "translate(-50%, calc(-50% - 60px)) scale(0.95)";
-      }, riseDuration);
-
-      // Clean up DOM
-      setTimeout(() => {
-        if (wordEl.parentNode) {
-          wordEl.parentNode.removeChild(wordEl);
-        }
-      }, riseDuration + 500);
+    // Responsive font size
+    let fontSizePx = 16;
+    if (window.innerWidth < 700) {
+      fontSizePx = 14;
+    } else if (window.innerWidth > 1000) {
+      fontSizePx = 18;
     }
+    wordEl.style.fontSize = fontSizePx + "px";
+
+    // Bright random color each time
+    wordEl.style.color = color;
+    wordEl.style.background = "transparent";
+    wordEl.style.textShadow = "none";
+
+    const riseDuration = 600 + Math.random() * 300;
+    wordEl.style.transition =
+      "transform " +
+      riseDuration +
+      "ms ease-out, opacity " +
+      riseDuration +
+      "ms ease-out";
+
+    wordEl.style.display = "inline-block";
+
+    // Container for tiny letter fragments
+    const fragContainer = document.createElement("div");
+    fragContainer.style.position = "absolute";
+    fragContainer.style.left = "50%";
+    fragContainer.style.top = "50%";
+    fragContainer.style.transform = "translate(-50%, -50%)";
+    fragContainer.style.pointerEvents = "none";
+
+    const letters = phrase.replace(/\s+/g, "").split("");
+    const fragCount = Math.min(10, Math.max(6, letters.length || 6));
+
+    for (let i = 0; i < fragCount; i++) {
+      const ch = letters[i % letters.length] || "•";
+      const frag = document.createElement("span");
+      frag.textContent = ch;
+      frag.style.display = "inline-block";
+      frag.style.fontSize = Math.max(10, fontSizePx * 0.75) + "px";
+      frag.style.fontWeight = "700";
+      frag.style.color = color;
+      frag.style.opacity = "1";
+      frag.style.transform = "translate(0px, 0px) scale(1)";
+
+      const dur = 400 + Math.random() * 250;
+      frag.style.transition =
+        "transform " + dur + "ms ease-out, opacity " + dur + "ms ease-out";
+
+      const spread = 40 + Math.random() * 30;
+      const angle = Math.random() * Math.PI * 2;
+      const tx = Math.cos(angle) * spread;
+      const ty = Math.sin(angle) * spread - 10;
+
+      // Kick off fragment "explosion"
+      setTimeout(() => {
+        frag.style.transform =
+          "translate(" + tx + "px, " + ty + "px) scale(0.5)";
+        frag.style.opacity = "0";
+      }, 80 + i * 15);
+
+      fragContainer.appendChild(frag);
+    }
+
+    wordEl.appendChild(fragContainer);
+    document.body.appendChild(wordEl);
+
+    // Main phrase rises up a bit and fades
+    requestAnimationFrame(() => {
+      const driftY = -40 - Math.random() * 15;
+      wordEl.style.opacity = "1";
+      wordEl.style.transform =
+        "translate(-50%, calc(-50% + " + driftY + "px)) scale(1.05)";
+    });
+
+    // Fade away after the rise
+    setTimeout(() => {
+      wordEl.style.opacity = "0";
+      wordEl.style.transform =
+        "translate(-50%, calc(-50% - 60px)) scale(0.95)";
+    }, riseDuration);
+
+    // Clean up DOM
+    setTimeout(() => {
+      if (wordEl.parentNode) {
+        wordEl.parentNode.removeChild(wordEl);
+      }
+    }, riseDuration + 500);
   }
 
   // Theme-aware styles for the flashcard question + background
@@ -4749,7 +4762,7 @@ text.trim();
       }
     }
 
-    // New: burst of short phrases from the Got it button
+    // New: single colorful phrase burst from the Got it button
     spawnGotItBurst(cardsGotItBtn);
 
     goToNextCard();
