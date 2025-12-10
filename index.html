@@ -899,7 +899,7 @@
       background: transparent;
       box-shadow: none;
       height: auto;
-      margin: 0 0 6px;
+      margin: 10px 0 6px;
     }
 
     .subtitle {
@@ -1796,7 +1796,17 @@ li {
           ></textarea>
 
           <!--<button id="refreshOcrButton" type="button" disabled>↻ Refresh OCR</button>-->
-
+<div class="hint-row" style="margin-top: 10px; flex-direction: column; align-items: stretch;">
+  <label for="extraInstructions" class="desc" style="margin: 0 0 4px; font-size: 0.75rem;">
+    Optional: tell the AI what you want (tone, length, format, etc.)
+  </label>
+  <textarea
+    id="extraInstructions"
+    class="text-input"
+    placeholder="Example: Explain like I'm in 8th grade and keep the answer under 5 steps."
+    style="min-height: 60px;"
+  ></textarea>
+</div>
           <!-- NEW: custom subject / folder name for saving work -->
           <div
             class="hint-row"
@@ -1822,6 +1832,7 @@ li {
               "
             />
           </div>
+
 
           <div class="hint-row" style="margin-top: 16px;">
             <span class="desc" style="margin: 0; font-size: 0.75rem;">
@@ -1920,7 +1931,32 @@ li {
             </button>
           </div>
 
+<div class="output-format-bar">
+  <label for="formatSelect-essayResult" style="margin-right:6px;">
+    Format:
+  </label>
+  <select
+    id="formatSelect-solveResult"
+    class="text-input output-format-select"
+    data-target="essayResult"
+    style="width:auto; min-width:160px;"
+  >
+    <option value="plain">Plain (no formatting)</option>
+    <option value="mla">MLA</option>
+    <option value="apa">APA 7</option>
+    <option value="chicago">Chicago / Turabian</option>
+    <option value="ieee">IEEE</option>
+  </select>
 
+  <button
+    type="button"
+    class="pill-button output-format-apply"
+    data-target="essayResult"
+    style="margin-left:6px;"
+  >
+    Apply format
+  </button>
+</div>
           <pre id="snapResult" class="text-output"></pre>
         </div>
       </section>
@@ -2020,7 +2056,32 @@ li {
               Explain simpler
             </button>
           </div>
+<div class="output-format-bar">
+  <label for="formatSelect-studyResult" style="margin-right:6px;">
+    Format:
+  </label>
+  <select
+    id="formatSelect-essayResult"
+    class="text-input output-format-select"
+    data-target="essayResult"
+    style="width:auto; min-width:160px;"
+  >
+    <option value="plain">Plain (no formatting)</option>
+    <option value="mla">MLA</option>
+    <option value="apa">APA 7</option>
+    <option value="chicago">Chicago / Turabian</option>
+    <option value="ieee">IEEE</option>
+  </select>
 
+  <button
+    type="button"
+    class="pill-button output-format-apply"
+    data-target="essayResult"
+    style="margin-left:6px;"
+  >
+    Apply format
+  </button>
+</div>
           <pre id="studyResult" class="text-output"></pre>
         </div>
       </section>
@@ -2150,7 +2211,32 @@ li {
         <span>Explain simpler</span>
       </button>
     </div>
+<div class="output-format-bar">
+  <label for="formatSelect-essayResult" style="margin-right:6px;">
+    Format:
+  </label>
+  <select
+    id="formatSelect-essayResult"
+    class="text-input output-format-select"
+    data-target="essayResult"
+    style="width:auto; min-width:160px;"
+  >
+    <option value="plain">Plain (no formatting)</option>
+    <option value="mla">MLA</option>
+    <option value="apa">APA 7</option>
+    <option value="chicago">Chicago / Turabian</option>
+    <option value="ieee">IEEE</option>
+  </select>
 
+  <button
+    type="button"
+    class="pill-button output-format-apply"
+    data-target="notesResult"
+    style="margin-left:6px;"
+  >
+    Apply format
+  </button>
+</div>
     <pre id="notesResult" class="text-output"></pre>
   </div>
 </section>
@@ -3757,6 +3843,7 @@ text.trim();
 
   // keep track of whichever file was chosen last
   let lastSnapFile = null;
+  let lastOcrImageDataUrl = null; // 🔹 so clear() doesn't throw
 
   // 🔹 helper: fill subject from current snapText value
   function maybeFillSubjectFromOcrNow() {
@@ -3795,6 +3882,13 @@ text.trim();
     }
 
     saveSubjectInput.value = heading;
+  }
+
+  // 🔹 whenever OCR text changes (typing, paste, OCR), try to auto-fill subject
+  if (snapText) {
+    snapText.addEventListener("input", () => {
+      maybeFillSubjectFromOcrNow();
+    });
   }
 
   // simple loading animation for textareas
