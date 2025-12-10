@@ -4407,7 +4407,7 @@ text.trim();
   }
 
   // Text burst that starts at the Got it button, goes up, and explodes into little bits
-  // UPDATED: only ONE phrase per click + random bright color
+  // UPDATED: only ONE phrase per click + random bright color + MORE EXPLOSION
   function spawnGotItBurst(anchorEl) {
     if (!anchorEl) return;
 
@@ -4446,7 +4446,8 @@ text.trim();
     wordEl.style.background = "transparent";
     wordEl.style.textShadow = "none";
 
-    const riseDuration = 600 + Math.random() * 300;
+    // Slightly longer rise so the explosion feels bigger
+    const riseDuration = 700 + Math.random() * 400;
     wordEl.style.transition =
       "transform " +
       riseDuration +
@@ -4465,7 +4466,9 @@ text.trim();
     fragContainer.style.pointerEvents = "none";
 
     const letters = phrase.replace(/\s+/g, "").split("");
-    const fragCount = Math.min(10, Math.max(6, letters.length || 6));
+
+    // MORE EXPLOSION: more fragments
+    const fragCount = Math.min(24, Math.max(12, letters.length || 12));
 
     for (let i = 0; i < fragCount; i++) {
       const ch = letters[i % letters.length] || "•";
@@ -4478,21 +4481,23 @@ text.trim();
       frag.style.opacity = "1";
       frag.style.transform = "translate(0px, 0px) scale(1)";
 
-      const dur = 400 + Math.random() * 250;
+      // Longer and slightly staggered duration for fragments
+      const dur = 550 + Math.random() * 350;
       frag.style.transition =
         "transform " + dur + "ms ease-out, opacity " + dur + "ms ease-out";
 
-      const spread = 40 + Math.random() * 30;
+      // MORE EXPLOSION: bigger spread
+      const spread = 70 + Math.random() * 60;
       const angle = Math.random() * Math.PI * 2;
       const tx = Math.cos(angle) * spread;
-      const ty = Math.sin(angle) * spread - 10;
+      const ty = Math.sin(angle) * spread - 20;
 
       // Kick off fragment "explosion"
       setTimeout(() => {
         frag.style.transform =
           "translate(" + tx + "px, " + ty + "px) scale(0.5)";
         frag.style.opacity = "0";
-      }, 80 + i * 15);
+      }, 60 + i * 12);
 
       fragContainer.appendChild(frag);
     }
@@ -4502,7 +4507,7 @@ text.trim();
 
     // Main phrase rises up a bit and fades
     requestAnimationFrame(() => {
-      const driftY = -40 - Math.random() * 15;
+      const driftY = -50 - Math.random() * 25;
       wordEl.style.opacity = "1";
       wordEl.style.transform =
         "translate(-50%, calc(-50% + " + driftY + "px)) scale(1.05)";
@@ -4512,7 +4517,7 @@ text.trim();
     setTimeout(() => {
       wordEl.style.opacity = "0";
       wordEl.style.transform =
-        "translate(-50%, calc(-50% - 60px)) scale(0.95)";
+        "translate(-50%, calc(-50% - 70px)) scale(0.95)";
     }, riseDuration);
 
     // Clean up DOM
@@ -4520,7 +4525,7 @@ text.trim();
       if (wordEl.parentNode) {
         wordEl.parentNode.removeChild(wordEl);
       }
-    }, riseDuration + 500);
+    }, riseDuration + 600);
   }
 
   // Theme-aware styles for the flashcard question + background
