@@ -4244,6 +4244,14 @@ text.trim();
 
   const cardsStorageKey = "studyai-flashcards";
 
+  // Simple flag so you can easily turn the sound on/off
+  const ENABLE_FLASHCARD_SOUND = true;
+  let gotItAudio = null;
+  if (ENABLE_FLASHCARD_SOUND) {
+    // Replace this path with your actual sound file
+    gotItAudio = new Audio("/sounds/flashcard-success.mp3");
+  }
+
   let flashcards = [];
   let currentCardIndex = 0;
   let showingBack = false;
@@ -4658,9 +4666,19 @@ text.trim();
     card.lastSeen = Date.now();
     saveFlashcards(flashcards);
 
-    // Bloom of colorful encouragement near the Got It button
+    // optional positive sound on Got It
+    if (ENABLE_FLASHCARD_SOUND && gotItAudio) {
+      try {
+        gotItAudio.currentTime = 0;
+        gotItAudio.play();
+      } catch (e) {
+        // ignore play errors
+      }
+    }
+
+    // Bloom of colorful encouragement in the middle of the flashcard
     const phrase = pickEncouragementPhrase(card);
-    spawnEncouragementBloom(cardsGotItBtn, phrase);
+    spawnEncouragementBloom(cardsCard, phrase);
 
     goToNextCard();
   });
@@ -4675,6 +4693,7 @@ text.trim();
     goToNextCard();
   });
 </script>
+
 
 
 
