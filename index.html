@@ -4203,12 +4203,221 @@ text.trim();
   const cardsFlipBtn = document.getElementById("cardsFlipBtn");
   const cardsGotItBtn = document.getElementById("cardsGotItBtn");
   const cardsNeedWorkBtn = document.getElementById("cardsNeedWorkBtn");
+  const cardsCard = document.getElementById("cardsCard");
 
   const cardsStorageKey = "studyai-flashcards";
 
   let flashcards = [];
   let currentCardIndex = 0;
   let showingBack = false;
+
+  // Move flashcards viewer above the source textbox
+  (function moveViewerAboveTextarea() {
+    if (
+      cardsViewer &&
+      cardsInput &&
+      cardsInput.parentNode &&
+      cardsInput.parentNode === cardsViewer.parentNode
+    ) {
+      cardsInput.parentNode.insertBefore(cardsViewer, cardsInput);
+    }
+  })();
+
+  // ---------- Encouragement phrases + bloom effect ----------
+
+  const STATIC_ENCOURAGEMENTS = [
+    "Yay, you nailed it!",
+    "Nice recall!",
+    "Brain power activated!",
+    "That one is locked in!",
+    "You are on a roll!",
+    "Great job remembering that!",
+    "Another card mastered!",
+    "You are getting so sharp!",
+    "Textbook level skills!",
+    "Quiz boss energy!",
+    "You just leveled up!",
+    "Study win unlocked!",
+    "Beautiful work!",
+    "Your future self says thanks!",
+    "You are crushing these!",
+    "Gold star moment!",
+    "Memory flex!",
+    "That stuck perfectly!",
+    "You owned that one!",
+    "You are unstoppable!",
+    "Sweet, another one done!",
+    "Knowledge upgraded!",
+    "Your brain is smiling!",
+    "Perfect recall!",
+    "Expert move!",
+    "That was clean!",
+    "Sharp and focused!",
+    "You read my mind!",
+    "Pure study power!",
+    "Big brain moment!",
+    "You are dialed in!",
+    "That answer was smooth!",
+    "Mastery unlocked!",
+    "You are so ready for the test!",
+    "You are building a strong brain!",
+    "That card did not stand a chance!",
+    "Precision memory!",
+    "Study streak continues!",
+    "You handled that like a pro!",
+    "Winning this study session!",
+    "That was impressive!",
+    "You are learning fast!",
+    "Every card makes you stronger!",
+    "You just proved you know it!",
+    "Look at you go!",
+    "You are absolutely getting this!",
+    "Another W for you!",
+    "This is how A’s happen!",
+    "Nice work, keep going!"
+  ];
+
+  let recentEncouragementIndices = [];
+
+  function getRandomBrightColor() {
+    const palette = [
+      "#ef4444", // red
+      "#f97316", // orange
+      "#eab308", // yellow
+      "#22c55e", // green
+      "#3b82f6", // blue
+      "#a855f7", // purple
+      "#ec4899", // pink
+      "#14b8a6"  // teal
+    ];
+    const i = Math.floor(Math.random() * palette.length);
+    return palette[i];
+  }
+
+  // Build a short contextual phrase from the current card, if possible
+  function buildContextualPhrase(card) {
+    if (!card) return null;
+    const raw = (card.front || card.back || "").trim();
+    if (!raw) return null;
+
+    // Use first sentence / line as a hint
+    let snippet = raw.split(/[\n\.!?]/)[0].trim();
+    if (!snippet) return null;
+    if (snippet.length > 60) {
+      snippet = snippet.slice(0, 57) + "…";
+    }
+
+    const templates = [
+      `Nice work on “${snippet}”!`,
+      `You remembered ${snippet.toLowerCase()}!`,
+      `You totally got “${snippet}”!`
+    ];
+    const idx = Math.floor(Math.random() * templates.length);
+    return templates[idx];
+  }
+
+  function pickEncouragementPhrase(card) {
+    const contextual = buildContextualPhrase(card);
+    if (contextual && contextual.length <= 90) {
+      return contextual;
+    }
+
+    if (!STATIC_ENCOURAGEMENTS.length) return "Great job!";
+
+    // avoid using the same phrase too often
+    const maxTries = 10;
+    let chosenIndex = 0;
+    for (let i = 0; i < maxTries; i++) {
+      const candidate = Math.floor(Math.random() * STATIC_ENCOURAGEMENTS.length);
+      if (!recentEncouragementIndices.includes(candidate)) {
+        chosenIndex = candidate;
+        break;
+      }
+      chosenIndex = candidate;
+    }
+
+    recentEncouragementIndices.push(chosenIndex);
+    if (recentEncouragementIndices.length > 8) {
+      recentEncouragementIndices.shift();
+    }
+
+    return STATIC_ENCOURAGEMENTS[chosenIndex];
+  }
+
+  function spawnEncouragementBloom(anchorEl, message) {
+    if (!anchorEl || !message) return;
+
+    const rect = anchorEl.getBoundingClientRect();
+    const bubble = document.createElement("div");
+    bubble.textContent = message;
+
+    bubble.style.position = "fixed";
+    bubble.style.left = rect.left + rect.width / 2 + "px";
+    bubble.style.top = rect.top + rect.height / 2 + "px";
+    bubble.style.transform = "translate(-50%, -50%) scale(0.7)";
+    bubble.style.fontWeight = "800";
+    bubble.style.fontSize = "1rem";
+    bubble.style.whiteSpace = "nowrap";
+    bubble.style.pointerEvents = "none";
+    bubble.style.zIndex = "9999";
+    bubble.style.opacity = "0";
+    bubble.style.transition =
+      "transform 0.5s ease-out, opacity 0.5s ease-out";
+    bubble.style.color = getRandomBrightColor();
+    bubble.style.textShadow = "0 0 10px rgba(0,0,0,0.35)";
+
+    document.body.appendChild(bubble);
+
+    // trigger animation
+    requestAnimationFrame(() => {
+      const driftX = (Math.random() - 0.5) * 40; // little horizontal scatter
+      const driftY = -60 - Math.random() * 20;   // float upward
+      bubble.style.opacity = "1";
+      bubble.style.transform =
+        `translate(calc(-50% + ${driftX}px), calc(-50% + ${driftY}px)) scale(1.25)`;
+    });
+
+    setTimeout(() => {
+      bubble.style.opacity = "0";
+      bubble.style.transform = "translate(-50%, -80%) scale(0.9)";
+    }, 450);
+
+    setTimeout(() => {
+      if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
+    }, 700);
+  }
+
+  // Theme-aware styles for the flashcard question + background
+  function updateCardStylesForTheme() {
+    const theme =
+      document.documentElement.getAttribute("data-theme") || "dark";
+
+    if (cardsFront) {
+      cardsFront.style.color = theme === "light" ? "#000000" : "#ffffff";
+    }
+
+    if (cardsCard) {
+      if (theme === "light") {
+        cardsCard.style.background =
+          "linear-gradient(135deg, rgba(14,165,233,0.18), rgba(244,244,245,0.95))";
+      } else {
+        cardsCard.style.background =
+          "linear-gradient(135deg, rgba(15,23,42,0.95), rgba(14,165,233,0.35))";
+      }
+    }
+  }
+
+  // Watch for theme changes so the question color / gradient stay in sync
+  (function watchThemeForFlashcards() {
+    updateCardStylesForTheme();
+    if (typeof MutationObserver === "function") {
+      const obs = new MutationObserver(updateCardStylesForTheme);
+      obs.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["data-theme"]
+      });
+    }
+  })();
 
   function loadFlashcardsStorage() {
     try {
@@ -4271,55 +4480,53 @@ text.trim();
     }));
   }
 
-function updateCardsStats() {
-  if (!flashcards.length) {
-    cardsStats.textContent = "No cards yet. Create some above.";
-    return;
-  }
-  const total = flashcards.length;
-  const got = flashcards.filter((c) => c.status === "got").length;
-  const need = flashcards.filter((c) => c.status === "need_work").length;
-  const indexLabel = currentCardIndex + 1;
+  function updateCardsStats() {
+    if (!flashcards.length) {
+      cardsStats.textContent = "No cards yet. Create some above.";
+      return;
+    }
+    const total = flashcards.length;
+    const got = flashcards.filter((c) => c.status === "got").length;
+    const need = flashcards.filter((c) => c.status === "need_work").length;
+    const indexLabel = currentCardIndex + 1;
 
-  cardsStats.textContent =
-    `Card ${indexLabel} of ${total}` +
-    ` • Got it ${got}` +
-    ` • Need work ${need}`;
-}
-
-
-
-function renderCurrentCard() {
-  if (!cardsViewer) return;
-
-  if (!flashcards.length) {
-    cardsViewer.style.display = "none";
-    return;
+    cardsStats.textContent =
+      `Card ${indexLabel} of ${total}` +
+      ` • Got it ${got}` +
+      ` • Need work ${need}`;
   }
 
-  if (currentCardIndex < 0 || currentCardIndex >= flashcards.length) {
-    currentCardIndex = 0;
+  function renderCurrentCard() {
+    if (!cardsViewer) return;
+
+    if (!flashcards.length) {
+      cardsViewer.style.display = "none";
+      return;
+    }
+
+    if (currentCardIndex < 0 || currentCardIndex >= flashcards.length) {
+      currentCardIndex = 0;
+    }
+
+    const card = flashcards[currentCardIndex];
+    cardsViewer.style.display = "block";
+    showingBack = false;
+
+    cardsFront.style.display = "block";
+    cardsBack.style.display = "none";
+
+    const rawFront = card.front || "[No question]";
+    const rawBack  = card.back  || "[No answer]";
+
+    const frontText = cleanSide(rawFront) || "[No question]";
+    const backText  = cleanSide(rawBack)  || "[No answer]";
+
+    cardsFront.textContent = frontText;
+    cardsBack.textContent  = backText;
+
+    updateCardStylesForTheme();
+    updateCardsStats();
   }
-
-  const card = flashcards[currentCardIndex];
-  cardsViewer.style.display = "block";
-  showingBack = false;
-
-  cardsFront.style.display = "block";
-  cardsBack.style.display = "none";
-
-  const rawFront = card.front || "[No question]";
-  const rawBack  = card.back  || "[No answer]";
-
-  const frontText = cleanSide(rawFront) || "[No question]";
-  const backText  = cleanSide(rawBack)  || "[No answer]";
-
-  cardsFront.textContent = frontText;
-  cardsBack.textContent  = backText;
-
-  updateCardsStats();
-}
-
 
   // Restore from storage
   (function initFlashcardsFromStorage() {
@@ -4412,6 +4619,11 @@ function renderCurrentCard() {
     card.correct = (card.correct || 0) + 1;
     card.lastSeen = Date.now();
     saveFlashcards(flashcards);
+
+    // Bloom of colorful encouragement near the Got It button
+    const phrase = pickEncouragementPhrase(card);
+    spawnEncouragementBloom(cardsGotItBtn, phrase);
+
     goToNextCard();
   });
 
@@ -4425,6 +4637,7 @@ function renderCurrentCard() {
     goToNextCard();
   });
 </script>
+
 
 
 <!-- BLOCK 9: Simplify and hitn    t “pill” buttons -->
