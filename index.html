@@ -4400,13 +4400,22 @@ text.trim();
     const colorClassIndex = Math.floor(Math.random() * 8) + 1;
     bubble.classList.add(`encouragement-color-${colorClassIndex}`);
 
+    // FULL-CARD OVERLAY so it covers the whole question/answer area
     bubble.style.position = "fixed";
-    bubble.style.left = rect.left + rect.width / 2 + "px";
-    bubble.style.top = rect.top + rect.height / 2 + "px";
-    bubble.style.transform = "translate(-50%, -50%) scale(0.7)";
+    bubble.style.left = rect.left + "px";
+    bubble.style.top = rect.top + "px";
+    bubble.style.width = rect.width + "px";
+    bubble.style.height = rect.height + "px";
+
+    bubble.style.display = "flex";
+    bubble.style.alignItems = "center";
+    bubble.style.justifyContent = "center";
+
+    bubble.style.transform = "scale(0.8)";
     bubble.style.fontWeight = "800";
     bubble.style.fontSize = "1rem";
-    bubble.style.whiteSpace = "nowrap";
+    bubble.style.whiteSpace = "normal";
+    bubble.style.textAlign = "center";
     bubble.style.pointerEvents = "none";
     bubble.style.zIndex = "9999";
     bubble.style.opacity = "0";
@@ -4419,15 +4428,13 @@ text.trim();
     // trigger animation: stay centered, just scale & fade
     requestAnimationFrame(() => {
       bubble.style.opacity = "1";
-      bubble.style.transform =
-        "translate(-50%, -50%) scale(1.25)";
+      bubble.style.transform = "scale(1)";
     });
 
     // Let it sit visible a bit longer before fading
     setTimeout(() => {
       bubble.style.opacity = "0";
-      bubble.style.transform =
-        "translate(-50%, -50%) scale(0.9)";
+      bubble.style.transform = "scale(0.9)";
     }, 900);
 
     setTimeout(() => {
@@ -4691,6 +4698,7 @@ text.trim();
     goToNextCard();
   });
 </script>
+
 
 
 
