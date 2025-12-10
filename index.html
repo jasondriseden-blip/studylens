@@ -4224,7 +4224,6 @@ text.trim();
 
 
 
-
 <!-- BLOCK 7: Flashcards generation + interactive viewer -->
 <script>
   // ---------- FLASHCARDS (interactive) ----------
@@ -4417,19 +4416,18 @@ text.trim();
 
     document.body.appendChild(bubble);
 
-    // trigger animation
+    // trigger animation: stay centered, just scale & fade
     requestAnimationFrame(() => {
-      const driftX = (Math.random() - 0.5) * 40; // little horizontal scatter
-      const driftY = -60 - Math.random() * 20;   // float upward
       bubble.style.opacity = "1";
       bubble.style.transform =
-        `translate(calc(-50% + ${driftX}px), calc(-50% + ${driftY}px)) scale(1.25)`;
+        "translate(-50%, -50%) scale(1.25)";
     });
 
     // Let it sit visible a bit longer before fading
     setTimeout(() => {
       bubble.style.opacity = "0";
-      bubble.style.transform = "translate(-50%, -80%) scale(0.9)";
+      bubble.style.transform =
+        "translate(-50%, -50%) scale(0.9)";
     }, 900);
 
     setTimeout(() => {
@@ -4693,6 +4691,7 @@ text.trim();
     goToNextCard();
   });
 </script>
+
 
 
 
