@@ -3867,8 +3867,8 @@ text.trim();
       if (!heading) {
         const firstLine = raw
           .split(/\r?\n/)
-          .map(l => l.trim())
-          .find(l => l.length > 0);
+          .map((l) => l.trim())
+          .find((l) => l.length > 0);
         if (firstLine) {
           heading = firstLine;
         }
@@ -3882,6 +3882,13 @@ text.trim();
       }
 
       saveSubjectInput.value = heading;
+    }
+
+    // 🔹 ALSO auto-fill when user types/pastes into snapText
+    if (snapText) {
+      snapText.addEventListener("input", () => {
+        maybeFillSubjectFromOcrNow();
+      });
     }
 
     // simple loading animation for textareas
@@ -3913,7 +3920,7 @@ text.trim();
     // simple loading animation for result elements
     function startResultLoading(el, baseText) {
       if (!el) return;
-      el.classList.add("tool-output");
+      el.classList.add("tool-output");   // 🔹 for styling
       stopResultLoading(el);
       let dotCount = 0;
       const maxDots = 3;
@@ -4003,7 +4010,7 @@ text.trim();
         // 🔹 update subject from OCR text
         maybeFillSubjectFromOcrNow();
 
-        // (optional) still fire input for any other listeners you have
+        // still fire input for any other listeners you have
         snapText.dispatchEvent(new Event("input"));
       });
     }
@@ -4027,7 +4034,7 @@ text.trim();
         // 🔹 update subject from refreshed OCR
         maybeFillSubjectFromOcrNow();
 
-        // (optional) still fire input for any other listeners you have
+        // still fire input for any other listeners you have
         snapText.dispatchEvent(new Event("input"));
 
         refreshOcrButton.textContent = originalText;
@@ -4043,7 +4050,6 @@ text.trim();
 
         // reset image + OCR state
         lastSnapFile = null;
-        // lastOcrImageDataUrl is safe even if not declared elsewhere
         try { lastOcrImageDataUrl = null; } catch (e) {}
 
         // reset main OCR text box
@@ -4103,13 +4109,13 @@ text.trim();
         const ans = await runSnapSolve(text);
         stopResultLoading(snapResult);
         const clean = sanitizeAnswerText(ans);
-        renderAnswer(snapResult, clean); // 👈 instead of snapResult.textContent = clean;
+        renderAnswer(snapResult, clean); // 👈 formatting helper
         addNotebookItem("Snap", clean);
       });
     }
 
     // MATH (usage counted based on snapText)
-    const mathInput   = document.getElementById("mathInput");
+    const mathInput    = document.getElementById("mathInput");
     const mathSolveBtn = document.getElementById("mathSolveBtn");
     const mathClearBtn = document.getElementById("mathClearBtn");
     const mathResult   = document.getElementById("mathResult");
@@ -4134,7 +4140,7 @@ text.trim();
         const ans = await runMathSolver(text);
         stopResultLoading(mathResult);
         const clean = sanitizeAnswerText(ans);
-        renderAnswer(mathResult, clean);   // 👈 was mathResult.textContent = clean;
+        renderAnswer(mathResult, clean);   // 👈 formatted
         addNotebookItem("Math", clean);
       });
     }
@@ -4146,7 +4152,7 @@ text.trim();
     }
 
     // STUDY (usage counted based on snapText)
-    const studyInput   = document.getElementById("studyInput");
+    const studyInput    = document.getElementById("studyInput");
     const studyGuideBtn = document.getElementById("studyGuideBtn");
     const studyClearBtn = document.getElementById("studyClearBtn");
     const studyResult   = document.getElementById("studyResult");
@@ -4171,7 +4177,7 @@ text.trim();
         const ans = await runStudyGuide(text);
         stopResultLoading(studyResult);
         const clean = sanitizeAnswerText(ans);
-        renderAnswer(studyResult, clean);   // 👈 instead of studyResult.textContent = clean;
+        renderAnswer(studyResult, clean);   // 👈 formatted
         addNotebookItem("Study", clean);
       });
     }
@@ -4183,8 +4189,8 @@ text.trim();
     }
 
     // ESSAY (usage counted based on snapText)
-    const essayInput   = document.getElementById("essayInput");
-    const essayBtn     = document.getElementById("essayBtn");
+    const essayInput    = document.getElementById("essayInput");
+    const essayBtn      = document.getElementById("essayBtn");
     const essayClearBtn = document.getElementById("essayClearBtn");
     const essayResult   = document.getElementById("essayResult");
 
@@ -4208,7 +4214,7 @@ text.trim();
         const ans = await runEssayHelper(text);
         stopResultLoading(essayResult);
         const clean = sanitizeAnswerText(ans);
-        renderAnswer(essayResult, clean);   // 👈
+        renderAnswer(essayResult, clean);   // 👈 formatted
         addNotebookItem("Essay", clean);
       });
     }
