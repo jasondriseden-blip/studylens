@@ -146,7 +146,7 @@
     min-height: 100vh;
     display: flex;
     justify-content: center;
-    padding:0;
+    padding-top: 0.75rem;
   }
 
   .app {
@@ -168,7 +168,6 @@
     justify-content: space-between;
     align-items: center;
     gap: 10px;
-	margin-top: .5em;
   }
 
   .title-block {
@@ -3135,6 +3134,8 @@ function getModelChoice() {
     const textareas = document.querySelectorAll("textarea");
     textareas.forEach((ta) => {
       if (ta.id === "snapText") return;
+	      if (ta.id === "extraInstructions") return;   // ⬅️ add this line
+
       if (ta.style.display === "none") return;
       if (!ta.parentNode) return;
 
