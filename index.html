@@ -1540,6 +1540,95 @@ li {
   background-color: #020617; /* or your dark card color */
 }
 
+/* ============================
+   FLASHCARD "GOT IT" BURST TEXT
+   ============================ */
+
+.gotit-burst-word {
+  position: fixed;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 1rem;
+  color: inherit;              /* inherit theme text color */
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0;
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* main rise + fade animation for the phrase */
+@keyframes gotit-rise {
+  0% {
+    transform: translate(-50%, 0) scale(0.9);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -10px) scale(1.05);
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -40px) scale(0.95);
+    opacity: 0;
+  }
+}
+
+/* fragment "explosion" outward */
+@keyframes gotit-frag {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--gx), var(--gy)) scale(0.5);
+    opacity: 0;
+  }
+}
+
+/* container for fragments so we can position relative to phrase */
+.gotit-burst-frag-container {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* each tiny fragment (a part of the letters) */
+.gotit-burst-frag {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  opacity: 0;
+}
+
+
+/* ===== Responsive tweaks ===== */
+@media (max-width: 700px) {
+  .gotit-burst-word {
+    font-size: 0.9rem;
+  }
+
+  .gotit-burst-frag {
+    font-size: 0.7rem;
+  }
+}
+
+@media (min-width: 1000px) {
+  .gotit-burst-word {
+    font-size: 1.05rem;
+  }
+
+  .gotit-burst-frag {
+    font-size: 0.8rem;
+  }
+}
 
 
 
@@ -4253,171 +4342,172 @@ text.trim();
 
   // ---------- Encouragement phrases + bloom effect ----------
 
-  const STATIC_ENCOURAGEMENTS = [
-    "Yay, you nailed it!",
-    "Nice recall!",
-    "Brain power activated!",
-    "That one is locked in!",
-    "You are on a roll!",
-    "Great job remembering that!",
-    "Another card mastered!",
-    "You are getting so sharp!",
-    "Textbook level skills!",
-    "Quiz boss energy!",
-    "You just leveled up!",
-    "Study win unlocked!",
-    "Beautiful work!",
-    "Your future self says thanks!",
-    "You are crushing these!",
-    "Gold star moment!",
-    "Memory flex!",
-    "That stuck perfectly!",
-    "You owned that one!",
-    "You are unstoppable!",
-    "Sweet, another one done!",
-    "Knowledge upgraded!",
-    "Your brain is smiling!",
-    "Perfect recall!",
-    "Expert move!",
-    "That was clean!",
-    "Sharp and focused!",
-    "You read my mind!",
-    "Pure study power!",
-    "Big brain moment!",
-    "You are dialed in!",
-    "That answer was smooth!",
-    "Mastery unlocked!",
-    "You are so ready for the test!",
-    "You are building a strong brain!",
-    "That card did not stand a chance!",
-    "Precision memory!",
-    "Study streak continues!",
-    "You handled that like a pro!",
-    "Winning this study session!",
-    "That was impressive!",
-    "You are learning fast!",
-    "Every card makes you stronger!",
-    "You just proved you know it!",
-    "Look at you go!",
-    "You are absolutely getting this!",
-    "Another W for you!",
-    "This is how A’s happen!",
-    "Nice work, keep going!"
+  // Very short, 1–2 word phrases only – no contextual text
+  const GOTIT_PHRASES = [
+    "Nice!", "Locked in", "Aced it", "So good", "Too easy", "Big win",
+    "On fire", "All set", "Got it", "So clean", "Well done", "Great job",
+    "So ready", "Study win", "Gold star", "Go you", "Test ready", "Nice work",
+    "Brain power", "Level up", "You win", "So sharp", "Top tier", "Dialed in",
+    "Memory win", "Clean hit", "Good job", "So strong", "Sharp mind", "Nice one",
+    "All good", "Rock on", "Pro move", "Clutch", "Too smart", "Peak form",
+    "Max focus", "Laser brain", "Quiz boss", "Exam ace", "Study pro", "Star mode",
+    "Big brain", "Full marks", "Perfect", "Textbook", "On point", "All clear",
+    "Solid", "So solid", "So smooth", "Pure win", "Nice save", "Yes!", "Sweet",
+    "Boom!", "Love it", "Great!", "Done!", "Win!", "Locked!", "Crushed it",
+    "Nailed it", "So pro", "Right on", "So right", "Correct", "Exact",
+    "Bullseye", "No doubt", "Zero miss", "All right", "Brain boost",
+    "High score", "Quiz king", "Clear win", "So crisp", "Nailed that",
+    "Spot on", "Nice pull", "Clutch win", "Sharp shot", "Clean win",
+    "Test boss", "Quiz star", "Full brain", "Got this", "Big yes", "All win",
+    "Brain gold", "Score!", "Top form", "Prime mind"
   ];
 
-  let recentEncouragementIndices = [];
+  // Track recent indices so we don't spam the same phrase
+  let gotitRecentIndices = [];
 
-  function getRandomBrightColor() {
-    const palette = [
-      "#ef4444", // red
-      "#f97316", // orange
-      "#eab308", // yellow
-      "#22c55e", // green
-      "#3b82f6", // blue
-      "#a855f7", // purple
-      "#ec4899", // pink
-      "#14b8a6"  // teal
-    ];
-    const i = Math.floor(Math.random() * palette.length);
-    return palette[i];
-  }
-
-  // Build a short contextual phrase from the current card, if possible
-  function buildContextualPhrase(card) {
-    if (!card) return null;
-    const raw = (card.front || card.back || "").trim();
-    if (!raw) return null;
-
-    // Use first sentence / line as a hint
-    let snippet = raw.split(/[\n\.!?]/)[0].trim();
-    if (!snippet) return null;
-    if (snippet.length > 60) {
-      snippet = snippet.slice(0, 57) + "…";
-    }
-
-    const templates = [
-      `Nice work on “${snippet}”!`,
-      `You remembered ${snippet.toLowerCase()}!`,
-      `You totally got “${snippet}”!`
-    ];
-    const idx = Math.floor(Math.random() * templates.length);
-    return templates[idx];
-  }
-
-  function pickEncouragementPhrase(card) {
-    const contextual = buildContextualPhrase(card);
-    if (contextual && contextual.length <= 90) {
-      return contextual;
-    }
-
-    if (!STATIC_ENCOURAGEMENTS.length) return "Great job!";
-
-    // avoid using the same phrase too often
+  function pickGotItPhrase() {
+    const n = GOTIT_PHRASES.length;
+    if (!n) return "Nice!";
     const maxTries = 10;
-    let chosenIndex = 0;
+    let chosen = 0;
+
     for (let i = 0; i < maxTries; i++) {
-      const candidate = Math.floor(Math.random() * STATIC_ENCOURAGEMENTS.length);
-      if (!recentEncouragementIndices.includes(candidate)) {
-        chosenIndex = candidate;
+      const idx = Math.floor(Math.random() * n);
+      if (!gotitRecentIndices.includes(idx)) {
+        chosen = idx;
         break;
       }
-      chosenIndex = candidate;
+      chosen = idx;
     }
 
-    recentEncouragementIndices.push(chosenIndex);
-    if (recentEncouragementIndices.length > 8) {
-      recentEncouragementIndices.shift();
+    gotitRecentIndices.push(chosen);
+    if (gotitRecentIndices.length > 10) {
+      gotitRecentIndices.shift();
     }
 
-    return STATIC_ENCOURAGEMENTS[chosenIndex];
+    return GOTIT_PHRASES[chosen];
   }
 
-  function spawnEncouragementBloom(anchorEl, message) {
-    if (!anchorEl || !message) return;
+  // Text burst that starts at the Got it button, goes up, and explodes into little bits
+  function spawnGotItBurst(anchorEl) {
+    if (!anchorEl) return;
 
     const rect = anchorEl.getBoundingClientRect();
-    const bubble = document.createElement("div");
-    bubble.textContent = message;
+    const baseX = rect.left + rect.width / 2;
+    const baseY = rect.top + rect.height / 2;
 
-    // base + random color class (colors defined in CSS)
-    bubble.classList.add("encouragement-bloom");
-    const colorClassIndex = Math.floor(Math.random() * 8) + 1;
-    bubble.classList.add(`encouragement-color-${colorClassIndex}`);
+    // 2–3 bursts per click
+    const bursts = 2 + Math.floor(Math.random() * 2);
 
-    bubble.style.position = "fixed";
-    bubble.style.left = rect.left + rect.width / 2 + "px";
-    bubble.style.top = rect.top + rect.height / 2 + "px";
-    bubble.style.transform = "translate(-50%, -50%) scale(0.7)";
-    bubble.style.fontWeight = "800";
-    bubble.style.fontSize = "1rem";
-    bubble.style.whiteSpace = "nowrap";
-    bubble.style.pointerEvents = "none";
-    bubble.style.zIndex = "9999";
-    bubble.style.opacity = "0";
-    bubble.style.transition =
-      "transform 0.6s ease-out, opacity 0.6s ease-out";
-    bubble.style.textShadow = "0 0 10px rgba(0,0,0,0.35)";
+    const btnStyle = window.getComputedStyle(anchorEl);
+    const textColor = btnStyle.color || "inherit";
 
-    document.body.appendChild(bubble);
+    for (let b = 0; b < bursts; b++) {
+      const phrase = pickGotItPhrase();
 
-    // trigger animation
-    requestAnimationFrame(() => {
-      const driftX = (Math.random() - 0.5) * 40; // little horizontal scatter
-      const driftY = -40 - Math.random() * 10;   // float upward
-      bubble.style.opacity = "1";
-      bubble.style.transform =
-        `translate(calc(-50% + ${driftX}px), calc(-50% + ${driftY}px)) scale(1.25)`;
-    });
+      const wordEl = document.createElement("div");
+      wordEl.textContent = phrase;
 
-    // Let it sit visible a bit longer before fading
-    setTimeout(() => {
-      bubble.style.opacity = "0";
-      bubble.style.transform = "translate(-50%, -80%) scale(0.9)";
-    }, 1800);
+      wordEl.style.position = "fixed";
+      wordEl.style.left = baseX + "px";
+      wordEl.style.top = baseY + "px";
+      wordEl.style.transform = "translate(-50%, -50%) scale(0.9)";
+      wordEl.style.pointerEvents = "none";
+      wordEl.style.whiteSpace = "nowrap";
+      wordEl.style.zIndex = "9999";
+      wordEl.style.opacity = "0";
+      wordEl.style.fontWeight = "800";
 
-    setTimeout(() => {
-      if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
-    }, 1500);
+      // Responsive font size
+      let fontSizePx = 16;
+      if (window.innerWidth < 700) {
+        fontSizePx = 14;
+      } else if (window.innerWidth > 1000) {
+        fontSizePx = 18;
+      }
+      wordEl.style.fontSize = fontSizePx + "px";
+
+      // Theme-aware: match button text color, no background, no shadow
+      wordEl.style.color = textColor;
+      wordEl.style.background = "transparent";
+      wordEl.style.textShadow = "none";
+
+      const riseDuration = 600 + Math.random() * 300;
+      wordEl.style.transition =
+        "transform " +
+        riseDuration +
+        "ms ease-out, opacity " +
+        riseDuration +
+        "ms ease-out";
+
+      wordEl.style.display = "inline-block";
+
+      // Container for tiny letter fragments
+      const fragContainer = document.createElement("div");
+      fragContainer.style.position = "absolute";
+      fragContainer.style.left = "50%";
+      fragContainer.style.top = "50%";
+      fragContainer.style.transform = "translate(-50%, -50%)";
+      fragContainer.style.pointerEvents = "none";
+
+      const letters = phrase.replace(/\s+/g, "").split("");
+      const fragCount = Math.min(10, Math.max(6, letters.length || 6));
+
+      for (let i = 0; i < fragCount; i++) {
+        const ch = letters[i % letters.length] || "•";
+        const frag = document.createElement("span");
+        frag.textContent = ch;
+        frag.style.display = "inline-block";
+        frag.style.fontSize = Math.max(10, fontSizePx * 0.75) + "px";
+        frag.style.fontWeight = "700";
+        frag.style.color = textColor;
+        frag.style.opacity = "1";
+        frag.style.transform = "translate(0px, 0px) scale(1)";
+
+        const dur = 400 + Math.random() * 250;
+        frag.style.transition =
+          "transform " + dur + "ms ease-out, opacity " + dur + "ms ease-out";
+
+        const spread = 40 + Math.random() * 30;
+        const angle = Math.random() * Math.PI * 2;
+        const tx = Math.cos(angle) * spread;
+        const ty = Math.sin(angle) * spread - 10;
+
+        // Kick off fragment "explosion"
+        setTimeout(() => {
+          frag.style.transform =
+            "translate(" + tx + "px, " + ty + "px) scale(0.5)";
+          frag.style.opacity = "0";
+        }, 80 + i * 15);
+
+        fragContainer.appendChild(frag);
+      }
+
+      wordEl.appendChild(fragContainer);
+      document.body.appendChild(wordEl);
+
+      // Main phrase rises up a bit and fades
+      requestAnimationFrame(() => {
+        const driftY = -40 - Math.random() * 15;
+        wordEl.style.opacity = "1";
+        wordEl.style.transform =
+          "translate(-50%, calc(-50% + " + driftY + "px)) scale(1.05)";
+      });
+
+      // Fade away after the rise
+      setTimeout(() => {
+        wordEl.style.opacity = "0";
+        wordEl.style.transform =
+          "translate(-50%, calc(-50% - 60px)) scale(0.95)";
+      }, riseDuration);
+
+      // Clean up DOM
+      setTimeout(() => {
+        if (wordEl.parentNode) {
+          wordEl.parentNode.removeChild(wordEl);
+        }
+      }, riseDuration + 500);
+    }
   }
 
   // Theme-aware styles for the flashcard question + background
@@ -4659,9 +4749,8 @@ text.trim();
       }
     }
 
-    // Bloom of colorful encouragement in the middle of the flashcard
-    const phrase = pickEncouragementPhrase(card);
-    spawnEncouragementBloom(cardsCard, phrase);
+    // New: burst of short phrases from the Got it button
+    spawnGotItBurst(cardsGotItBtn);
 
     goToNextCard();
   });
@@ -4676,6 +4765,7 @@ text.trim();
     goToNextCard();
   });
 </script>
+
 
 
 
