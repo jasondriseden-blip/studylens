@@ -422,7 +422,7 @@
     font-family: inherit;
     font-size: 0.9rem;
     padding: 10px 12px;
-    border-radius: 6px;
+    border-radius: 12px;
     border: 1px solid var(--outline);
     background: var(--field-bg);
     color: var(--on-surface);
@@ -899,7 +899,7 @@
       background: transparent;
       box-shadow: none;
       height: auto;
-      margin: 10px 0 6px;
+      margin: 0 0 6px;
     }
 
     .subtitle {
@@ -3821,391 +3821,403 @@ text.trim();
 
 <!-- BLOCK 6: UI wiring for Snap, Math, Study, Essay -->
 <script>
-  // ---------- UI WIRING ----------
+  document.addEventListener("DOMContentLoaded", function () {
+    // ---------- UI WIRING ----------
 
-  // SNAP (now with camera + gallery inputs)
-  const snapInputGallery = document.getElementById("snapInputGallery");
-  const snapInputCamera = document.getElementById("snapInputCamera");
-  const snapOCRBtn = document.getElementById("snapOCRBtn");
-  const snapClearBtn = document.getElementById("snapClearBtn");
-  const snapText = document.getElementById("snapText");
-  const snapResult = document.getElementById("snapResult");
-  const snapSolveBtn = document.getElementById("snapActionSolveBtn");
+    // SNAP (now with camera + gallery inputs)
+    const snapInputGallery = document.getElementById("snapInputGallery");
+    const snapInputCamera  = document.getElementById("snapInputCamera");
+    const snapOCRBtn       = document.getElementById("snapOCRBtn");
+    const snapClearBtn     = document.getElementById("snapClearBtn");
+    const snapText         = document.getElementById("snapText");
+    const snapResult       = document.getElementById("snapResult");
+    const snapSolveBtn     = document.getElementById("snapActionSolveBtn");
 
-  const snapCameraBtn = document.getElementById("snapCameraBtn");
-  const snapUploadBtn = document.getElementById("snapUploadBtn");
-  const snapPreview = document.getElementById("snapPreview");
+    const snapCameraBtn = document.getElementById("snapCameraBtn");
+    const snapUploadBtn = document.getElementById("snapUploadBtn");
+    const snapPreview   = document.getElementById("snapPreview");
 
-  const refreshOcrButton = document.getElementById("refreshOcrButton");
+    const refreshOcrButton = document.getElementById("refreshOcrButton");
 
-  // 🔹 subject input for auto-fill
-  const saveSubjectInput = document.getElementById("saveSubjectInput");
+    // 🔹 subject input for auto-fill
+    const saveSubjectInput = document.getElementById("saveSubjectInput");
 
-  // keep track of whichever file was chosen last
-  let lastSnapFile = null;
-  let lastOcrImageDataUrl = null; // 🔹 so clear() doesn't throw
+    // keep track of whichever file was chosen last
+    let lastSnapFile = null;
 
-  // 🔹 helper: fill subject from current snapText value
-  function maybeFillSubjectFromOcrNow() {
-    if (!snapText || !saveSubjectInput) return;
+    // 🔹 helper: fill subject from current snapText value
+    function maybeFillSubjectFromOcrNow() {
+      if (!snapText || !saveSubjectInput) return;
 
-    // don't overwrite if user already set something custom
-    const current = (saveSubjectInput.value || "").trim();
-    if (current && current.toLowerCase() !== "general") return;
+      // don't overwrite if user already set something custom
+      const current = (saveSubjectInput.value || "").trim();
+      if (current && current.toLowerCase() !== "general") return;
 
-    const raw = snapText.value || "";
-    if (!raw.trim()) return;
+      const raw = snapText.value || "";
+      if (!raw.trim()) return;
 
-    let heading = "";
+      let heading = "";
 
-    // Use smarter heading extractor if it exists
-    if (typeof extractHeadingFromOcrText === "function") {
-      heading = extractHeadingFromOcrText(raw) || "";
-    }
-
-    // Fallback: first non-empty line
-    if (!heading) {
-      const firstLine = raw
-        .split(/\r?\n/)
-        .map(l => l.trim())
-        .find(l => l.length > 0);
-      if (firstLine) {
-        heading = firstLine;
+      // Use smarter heading extractor if it exists
+      if (typeof extractHeadingFromOcrText === "function") {
+        heading = extractHeadingFromOcrText(raw) || "";
       }
+
+      // Fallback: first non-empty line
+      if (!heading) {
+        const firstLine = raw
+          .split(/\r?\n/)
+          .map(l => l.trim())
+          .find(l => l.length > 0);
+        if (firstLine) {
+          heading = firstLine;
+        }
+      }
+
+      if (!heading) return;
+
+      // Trim to something reasonable
+      if (heading.length > 60) {
+        heading = heading.slice(0, 60).trim() + "…";
+      }
+
+      saveSubjectInput.value = heading;
     }
 
-    if (!heading) return;
-
-    // Trim to something reasonable
-    if (heading.length > 60) {
-      heading = heading.slice(0, 60).trim() + "…";
-    }
-
-    saveSubjectInput.value = heading;
-  }
-
-  // 🔹 whenever OCR text changes (typing, paste, OCR), try to auto-fill subject
-  if (snapText) {
-    snapText.addEventListener("input", () => {
-      maybeFillSubjectFromOcrNow();
-    });
-  }
-
-  // simple loading animation for textareas
-  function startTextareaLoading(ta, baseText) {
-    if (!ta) return;
-    stopTextareaLoading(ta);
-    let dotCount = 0;
-    const maxDots = 3;
-    ta.value = baseText;
-    if (window.autoResizeTextarea) window.autoResizeTextarea(ta);
-    const id = setInterval(() => {
-      dotCount = (dotCount + 1) % (maxDots + 1);
-      const dots = ".".repeat(dotCount);
-      ta.value = baseText + dots;
+    // simple loading animation for textareas
+    function startTextareaLoading(ta, baseText) {
+      if (!ta) return;
+      stopTextareaLoading(ta);
+      let dotCount = 0;
+      const maxDots = 3;
+      ta.value = baseText;
       if (window.autoResizeTextarea) window.autoResizeTextarea(ta);
-    }, 400);
-    ta.dataset.loadingIntervalId = String(id);
-  }
-
-  function stopTextareaLoading(ta) {
-    if (!ta) return;
-    const id = ta.dataset.loadingIntervalId;
-    if (id) {
-      clearInterval(Number(id));
-      delete ta.dataset.loadingIntervalId;
+      const id = setInterval(() => {
+        dotCount = (dotCount + 1) % (maxDots + 1);
+        const dots = ".".repeat(dotCount);
+        ta.value = baseText + dots;
+        if (window.autoResizeTextarea) window.autoResizeTextarea(ta);
+      }, 400);
+      ta.dataset.loadingIntervalId = String(id);
     }
-  }
 
-  // simple loading animation for result elements
-  function startResultLoading(el, baseText) {
-    if (!el) return;
-    el.classList.add("tool-output");
-    stopResultLoading(el);
-    let dotCount = 0;
-    const maxDots = 3;
-    el.textContent = baseText;
-    const id = setInterval(() => {
-      dotCount = (dotCount + 1) % (maxDots + 1);
-      const dots = ".".repeat(dotCount);
-      el.textContent = baseText + dots;
-    }, 400);
-    el.dataset.loadingIntervalId = String(id);
-  }
-
-  function stopResultLoading(el) {
-    if (!el) return;
-    const id = el.dataset.loadingIntervalId;
-    if (id) {
-      clearInterval(Number(id));
-      delete el.dataset.loadingIntervalId;
-    }
-  }
-
-  function handleSnapFile(file) {
-    if (!file) {
-      lastSnapFile = null;
-      if (snapPreview) {
-        snapPreview.src = "";
-        snapPreview.style.display = "none";
+    function stopTextareaLoading(ta) {
+      if (!ta) return;
+      const id = ta.dataset.loadingIntervalId;
+      if (id) {
+        clearInterval(Number(id));
+        delete ta.dataset.loadingIntervalId;
       }
-      return;
     }
 
-    lastSnapFile = file;
+    // simple loading animation for result elements
+    function startResultLoading(el, baseText) {
+      if (!el) return;
+      el.classList.add("tool-output");
+      stopResultLoading(el);
+      let dotCount = 0;
+      const maxDots = 3;
+      el.textContent = baseText;
+      const id = setInterval(() => {
+        dotCount = (dotCount + 1) % (maxDots + 1);
+        const dots = ".".repeat(dotCount);
+        el.textContent = baseText + dots;
+      }, 400);
+      el.dataset.loadingIntervalId = String(id);
+    }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (snapPreview) {
-        snapPreview.src = e.target.result;
-        snapPreview.style.display = "block";
+    function stopResultLoading(el) {
+      if (!el) return;
+      const id = el.dataset.loadingIntervalId;
+      if (id) {
+        clearInterval(Number(id));
+        delete el.dataset.loadingIntervalId;
       }
-    };
-    reader.readAsDataURL(file);
-  }
-
-  // Open CAMERA
-  if (snapCameraBtn && snapInputCamera) {
-    snapCameraBtn.addEventListener("click", () => {
-      snapInputCamera.click();
-    });
-  }
-
-  // Open GALLERY / FILE PICKER
-  if (snapUploadBtn && snapInputGallery) {
-    snapUploadBtn.addEventListener("click", () => {
-      snapInputGallery.click();
-    });
-  }
-
-  // When user picks from camera
-  if (snapInputCamera) {
-    snapInputCamera.addEventListener("change", () => {
-      const file = snapInputCamera.files[0];
-      handleSnapFile(file);
-    });
-  }
-
-  // When user picks from gallery
-  if (snapInputGallery) {
-    snapInputGallery.addEventListener("change", () => {
-      const file = snapInputGallery.files[0];
-      handleSnapFile(file);
-    });
-  }
-
-  // Run OCR on whichever file we last picked – DOES NOT affect usage counts
-  snapOCRBtn.addEventListener("click", async () => {
-    if (!lastSnapFile) {
-      alert("Choose or take an image first.");
-      return;
     }
-    startTextareaLoading(snapText, "Reading image");
-    const text = await runFakeOCR(lastSnapFile);
-    stopTextareaLoading(snapText);
-    snapText.value = text;
-    if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
 
-    // 🔹 update subject from OCR text
-    maybeFillSubjectFromOcrNow();
-
-    // (optional) still fire input for any other listeners you have
-    snapText.dispatchEvent(new Event("input"));
-  });
-
-  // Refresh OCR on the last image without clearing it
-  if (refreshOcrButton) {
-    refreshOcrButton.addEventListener("click", async () => {
-      if (!lastSnapFile) {
-        alert("Choose or take an image first.");
+    function handleSnapFile(file) {
+      if (!file) {
+        lastSnapFile = null;
+        if (snapPreview) {
+          snapPreview.src = "";
+          snapPreview.style.display = "none";
+        }
         return;
       }
-      const originalText = refreshOcrButton.textContent;
-      refreshOcrButton.disabled = true;
-      refreshOcrButton.textContent = "Refreshing...";
-      startTextareaLoading(snapText, "Reading image");
-      const text = await runFakeOCR(null); // reuse last image in runFakeOCR
-      stopTextareaLoading(snapText);
-      snapText.value = text;
-      if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
 
-      // 🔹 update subject from refreshed OCR
-      maybeFillSubjectFromOcrNow();
+      lastSnapFile = file;
 
-      // (optional) still fire input for any other listeners you have
-      snapText.dispatchEvent(new Event("input"));
-
-      refreshOcrButton.textContent = originalText;
-      refreshOcrButton.disabled = false;
-    });
-  }
-
-  // Clear everything
-  snapClearBtn.addEventListener("click", () => {
-    if (snapInputCamera) snapInputCamera.value = "";
-    if (snapInputGallery) snapInputGallery.value = "";
-
-    // reset image + OCR state
-    lastSnapFile = null;
-    lastOcrImageDataUrl = null;
-
-    // reset main OCR text box
-    if (snapText) {
-      snapText.value = "";
-      if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (snapPreview) {
+          snapPreview.src = e.target.result;
+          snapPreview.style.display = "block";
+        }
+      };
+      reader.readAsDataURL(file);
     }
 
-    // reset subject input
-    if (saveSubjectInput) {
-      saveSubjectInput.value = "";
+    // Open CAMERA
+    if (snapCameraBtn && snapInputCamera) {
+      snapCameraBtn.addEventListener("click", () => {
+        snapInputCamera.click();
+      });
     }
 
-    // clear Snap result output
-    if (snapResult) {
-      snapResult.textContent = "";
+    // Open GALLERY / FILE PICKER
+    if (snapUploadBtn && snapInputGallery) {
+      snapUploadBtn.addEventListener("click", () => {
+        snapInputGallery.click();
+      });
     }
 
-    // clear preview image
-    if (snapPreview) {
-      snapPreview.src = "";
-      snapPreview.style.display = "none";
-    }
-  });
-
-  // Solve / Explain (usage counted based on snapText)
-  snapSolveBtn.addEventListener("click", async () => {
-    const text = snapText.value.trim();
-    if (!text) {
-      alert("No text to solve.");
-      return;
+    // When user picks from camera
+    if (snapInputCamera) {
+      snapInputCamera.addEventListener("change", () => {
+        const file = snapInputCamera.files[0];
+        handleSnapFile(file);
+      });
     }
 
-    // usage gate
-    if (window.__canUseAIOnce) {
-      const allowed = await window.__canUseAIOnce();
-      if (!allowed) return;
-    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
-      return;
+    // When user picks from gallery
+    if (snapInputGallery) {
+      snapInputGallery.addEventListener("change", () => {
+        const file = snapInputGallery.files[0];
+        handleSnapFile(file);
+      });
     }
 
-    // switch to the Solve tool section
-    if (typeof activateTab === "function") {
-      activateTab("solve");
+    // Run OCR on whichever file we last picked – DOES NOT affect usage counts
+    if (snapOCRBtn) {
+      snapOCRBtn.addEventListener("click", async () => {
+        if (!lastSnapFile) {
+          alert("Choose or take an image first.");
+          return;
+        }
+        startTextareaLoading(snapText, "Reading image");
+        const text = await runFakeOCR(lastSnapFile);
+        stopTextareaLoading(snapText);
+        snapText.value = text;
+        if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
+
+        // 🔹 update subject from OCR text
+        maybeFillSubjectFromOcrNow();
+
+        // (optional) still fire input for any other listeners you have
+        snapText.dispatchEvent(new Event("input"));
+      });
     }
 
-    // put the text into the Solve tool's textarea if it exists
-    const solveInput = document.getElementById("solveInput");
-    if (solveInput) {
-      solveInput.value = text;
-      if (window.autoResizeTextarea) window.autoResizeTextarea(solveInput);
+    // Refresh OCR on the last image without clearing it
+    if (refreshOcrButton) {
+      refreshOcrButton.addEventListener("click", async () => {
+        if (!lastSnapFile) {
+          alert("Choose or take an image first.");
+          return;
+        }
+        const originalText = refreshOcrButton.textContent;
+        refreshOcrButton.disabled = true;
+        refreshOcrButton.textContent = "Refreshing...";
+        startTextareaLoading(snapText, "Reading image");
+        const text = await runFakeOCR(null); // reuse last image in runFakeOCR
+        stopTextareaLoading(snapText);
+        snapText.value = text;
+        if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
+
+        // 🔹 update subject from refreshed OCR
+        maybeFillSubjectFromOcrNow();
+
+        // (optional) still fire input for any other listeners you have
+        snapText.dispatchEvent(new Event("input"));
+
+        refreshOcrButton.textContent = originalText;
+        refreshOcrButton.disabled = false;
+      });
     }
 
-    startResultLoading(snapResult, "Thinking");
-    const ans = await runSnapSolve(text);
-    stopResultLoading(snapResult);
-    const clean = sanitizeAnswerText(ans);
-    renderAnswer(snapResult, clean); // 👈 instead of snapResult.textContent = clean;
-    addNotebookItem("Snap", clean);
-  });
+    // Clear everything
+    if (snapClearBtn) {
+      snapClearBtn.addEventListener("click", () => {
+        if (snapInputCamera)  snapInputCamera.value = "";
+        if (snapInputGallery) snapInputGallery.value = "";
 
+        // reset image + OCR state
+        lastSnapFile = null;
+        // lastOcrImageDataUrl is safe even if not declared elsewhere
+        try { lastOcrImageDataUrl = null; } catch (e) {}
 
-  // MATH (usage counted based on snapText)
-  const mathInput = document.getElementById("mathInput");
-  const mathSolveBtn = document.getElementById("mathSolveBtn");
-  const mathClearBtn = document.getElementById("mathClearBtn");
-  const mathResult = document.getElementById("mathResult");
+        // reset main OCR text box
+        if (snapText) {
+          snapText.value = "";
+          if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
+        }
 
-  mathSolveBtn.addEventListener("click", async () => {
-    const text = snapText.value.trim();
-    if (!text) {
-      alert("Type or paste a math problem into the main text box first.");
-      return;
+        // reset subject input
+        if (saveSubjectInput) {
+          saveSubjectInput.value = "";
+        }
+
+        // clear Snap result output
+        if (snapResult) {
+          snapResult.textContent = "";
+        }
+
+        // clear preview image
+        if (snapPreview) {
+          snapPreview.src = "";
+          snapPreview.style.display = "none";
+        }
+      });
     }
 
-    // usage gate
-    if (window.__canUseAIOnce) {
-      const allowed = await window.__canUseAIOnce();
-      if (!allowed) return;
-    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
-      return;
+    // Solve / Explain (usage counted based on snapText)
+    if (snapSolveBtn) {
+      snapSolveBtn.addEventListener("click", async () => {
+        const text = snapText.value.trim();
+        if (!text) {
+          alert("No text to solve.");
+          return;
+        }
+
+        // usage gate
+        if (window.__canUseAIOnce) {
+          const allowed = await window.__canUseAIOnce();
+          if (!allowed) return;
+        } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+          return;
+        }
+
+        // switch to the Solve tool section
+        if (typeof activateTab === "function") {
+          activateTab("solve");
+        }
+
+        // put the text into the Solve tool's textarea if it exists
+        const solveInput = document.getElementById("solveInput");
+        if (solveInput) {
+          solveInput.value = text;
+          if (window.autoResizeTextarea) window.autoResizeTextarea(solveInput);
+        }
+
+        startResultLoading(snapResult, "Thinking");
+        const ans = await runSnapSolve(text);
+        stopResultLoading(snapResult);
+        const clean = sanitizeAnswerText(ans);
+        renderAnswer(snapResult, clean); // 👈 instead of snapResult.textContent = clean;
+        addNotebookItem("Snap", clean);
+      });
     }
 
-    startResultLoading(mathResult, "Thinking");
-    const ans = await runMathSolver(text);
-    stopResultLoading(mathResult);
-    const clean = sanitizeAnswerText(ans);
-    renderAnswer(mathResult, clean);   // 👈 was mathResult.textContent = clean;
-    addNotebookItem("Math", clean);
-  });
+    // MATH (usage counted based on snapText)
+    const mathInput   = document.getElementById("mathInput");
+    const mathSolveBtn = document.getElementById("mathSolveBtn");
+    const mathClearBtn = document.getElementById("mathClearBtn");
+    const mathResult   = document.getElementById("mathResult");
 
-  mathClearBtn.addEventListener("click", () => {
-    mathResult.textContent = "";
-  });
+    if (mathSolveBtn) {
+      mathSolveBtn.addEventListener("click", async () => {
+        const text = snapText.value.trim();
+        if (!text) {
+          alert("Type or paste a math problem into the main text box first.");
+          return;
+        }
 
-  // STUDY (usage counted based on snapText)
-  const studyInput = document.getElementById("studyInput");
-  const studyGuideBtn = document.getElementById("studyGuideBtn");
-  const studyClearBtn = document.getElementById("studyClearBtn");
-  const studyResult = document.getElementById("studyResult");
+        // usage gate
+        if (window.__canUseAIOnce) {
+          const allowed = await window.__canUseAIOnce();
+          if (!allowed) return;
+        } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+          return;
+        }
 
-  studyGuideBtn.addEventListener("click", async () => {
-    const text = snapText.value.trim();
-    if (!text) {
-      alert("Paste some notes or text into the main text box first.");
-      return;
+        startResultLoading(mathResult, "Thinking");
+        const ans = await runMathSolver(text);
+        stopResultLoading(mathResult);
+        const clean = sanitizeAnswerText(ans);
+        renderAnswer(mathResult, clean);   // 👈 was mathResult.textContent = clean;
+        addNotebookItem("Math", clean);
+      });
     }
 
-    // usage gate
-    if (window.__canUseAIOnce) {
-      const allowed = await window.__canUseAIOnce();
-      if (!allowed) return;
-    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
-      return;
+    if (mathClearBtn) {
+      mathClearBtn.addEventListener("click", () => {
+        mathResult.textContent = "";
+      });
     }
 
-    startResultLoading(studyResult, "Thinking");
-    const ans = await runStudyGuide(text);
-    stopResultLoading(studyResult);
-    const clean = sanitizeAnswerText(ans);
-    renderAnswer(studyResult, clean);   // 👈 instead of studyResult.textContent = clean;
-    addNotebookItem("Study", clean);
-  });
+    // STUDY (usage counted based on snapText)
+    const studyInput   = document.getElementById("studyInput");
+    const studyGuideBtn = document.getElementById("studyGuideBtn");
+    const studyClearBtn = document.getElementById("studyClearBtn");
+    const studyResult   = document.getElementById("studyResult");
 
-  studyClearBtn.addEventListener("click", () => {
-    studyResult.textContent = "";
-  });
+    if (studyGuideBtn) {
+      studyGuideBtn.addEventListener("click", async () => {
+        const text = snapText.value.trim();
+        if (!text) {
+          alert("Paste some notes or text into the main text box first.");
+          return;
+        }
 
-  // ESSAY (usage counted based on snapText)
-  const essayInput = document.getElementById("essayInput");
-  const essayBtn = document.getElementById("essayBtn");
-  const essayClearBtn = document.getElementById("essayClearBtn");
-  const essayResult = document.getElementById("essayResult");
+        // usage gate
+        if (window.__canUseAIOnce) {
+          const allowed = await window.__canUseAIOnce();
+          if (!allowed) return;
+        } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+          return;
+        }
 
-  essayBtn.addEventListener("click", async () => {
-    const text = snapText.value.trim();
-    if (!text) {
-      alert("Paste your essay or prompt into the main text box first.");
-      return;
+        startResultLoading(studyResult, "Thinking");
+        const ans = await runStudyGuide(text);
+        stopResultLoading(studyResult);
+        const clean = sanitizeAnswerText(ans);
+        renderAnswer(studyResult, clean);   // 👈 instead of studyResult.textContent = clean;
+        addNotebookItem("Study", clean);
+      });
     }
 
-    // usage gate
-    if (window.__canUseAIOnce) {
-      const allowed = await window.__canUseAIOnce();
-      if (!allowed) return;
-    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
-      return;
+    if (studyClearBtn) {
+      studyClearBtn.addEventListener("click", () => {
+        studyResult.textContent = "";
+      });
     }
 
-    startResultLoading(essayResult, "Thinking");
-    const ans = await runEssayHelper(text);
-    stopResultLoading(essayResult);
-    const clean = sanitizeAnswerText(ans);
-    renderAnswer(essayResult, clean);   // 👈
-    addNotebookItem("Essay", clean);
-  });
+    // ESSAY (usage counted based on snapText)
+    const essayInput   = document.getElementById("essayInput");
+    const essayBtn     = document.getElementById("essayBtn");
+    const essayClearBtn = document.getElementById("essayClearBtn");
+    const essayResult   = document.getElementById("essayResult");
 
-  essayClearBtn.addEventListener("click", () => {
-    essayResult.textContent = "";
+    if (essayBtn) {
+      essayBtn.addEventListener("click", async () => {
+        const text = snapText.value.trim();
+        if (!text) {
+          alert("Paste your essay or prompt into the main text box first.");
+          return;
+        }
+
+        // usage gate
+        if (window.__canUseAIOnce) {
+          const allowed = await window.__canUseAIOnce();
+          if (!allowed) return;
+        } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+          return;
+        }
+
+        startResultLoading(essayResult, "Thinking");
+        const ans = await runEssayHelper(text);
+        stopResultLoading(essayResult);
+        const clean = sanitizeAnswerText(ans);
+        renderAnswer(essayResult, clean);   // 👈
+        addNotebookItem("Essay", clean);
+      });
+    }
+
+    if (essayClearBtn) {
+      essayClearBtn.addEventListener("click", () => {
+        essayResult.textContent = "";
+      });
+    }
   });
 </script>
 
