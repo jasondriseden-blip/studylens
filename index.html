@@ -3843,9 +3843,9 @@ text.trim();
 
   // keep track of whichever file was chosen last
   let lastSnapFile = null;
-  let lastOcrImageDataUrl = null; // prevent errors on clear
+  let lastOcrImageDataUrl = null; // 🔹 so clear() doesn't throw
 
-  // 🔹 helper: fill subject from current snapText value (no external helpers needed)
+  // 🔹 helper: fill subject from current snapText value
   function maybeFillSubjectFromOcrNow() {
     if (!snapText || !saveSubjectInput) return;
 
@@ -3856,41 +3856,30 @@ text.trim();
     const raw = snapText.value || "";
     if (!raw.trim()) return;
 
-    // Split into lines and clean them
-    const lines = raw
-      .split(/\r?\n/)
-      .map(l => l.trim())
-      .filter(Boolean);
+    let heading = "";
 
-    if (!lines.length) return;
+    // Use smarter heading extractor if it exists
+    if (typeof extractHeadingFromOcrText === "function") {
+      heading = extractHeadingFromOcrText(raw) || "";
+    }
 
-    // Drop obvious header lines like "Name: ____" / "Date: ____"
-    const filtered = lines.filter(
-      l =>
-        !/^name[:\s]/i.test(l) &&
-        !/^date[:\s]/i.test(l) &&
-        !/^teacher[:\s]/i.test(l) &&
-        !/^class[:\s]/i.test(l)
-    );
+    // Fallback: first non-empty line
+    if (!heading) {
+      const firstLine = raw
+        .split(/\r?\n/)
+        .map(l => l.trim())
+        .find(l => l.length > 0);
+      if (firstLine) {
+        heading = firstLine;
+      }
+    }
 
-    const list = filtered.length ? filtered : lines;
+    if (!heading) return;
 
-    // Take the first "real" line as the heading
-    let heading = list[0] || "";
-
-    // Strip leading numbering like "1) " or "1. "
-    heading = heading.replace(/^\d+[\).\-\s]+/, "");
-
-    // Trim trailing punctuation
-    heading = heading.replace(/[:.;,\-–—]+$/g, "").trim();
-
-    // If it's super long, cut it down
+    // Trim to something reasonable
     if (heading.length > 60) {
       heading = heading.slice(0, 60).trim() + "…";
     }
-
-    // Avoid very short junk
-    if (heading.length < 3) return;
 
     saveSubjectInput.value = heading;
   }
@@ -4020,7 +4009,7 @@ text.trim();
     // 🔹 update subject from OCR text
     maybeFillSubjectFromOcrNow();
 
-    // still fire input for any other listeners
+    // (optional) still fire input for any other listeners you have
     snapText.dispatchEvent(new Event("input"));
   });
 
@@ -4043,7 +4032,7 @@ text.trim();
       // 🔹 update subject from refreshed OCR
       maybeFillSubjectFromOcrNow();
 
-      // still fire input for any other listeners
+      // (optional) still fire input for any other listeners you have
       snapText.dispatchEvent(new Event("input"));
 
       refreshOcrButton.textContent = originalText;
@@ -4219,6 +4208,8 @@ text.trim();
     essayResult.textContent = "";
   });
 </script>
+
+
 
 
 
