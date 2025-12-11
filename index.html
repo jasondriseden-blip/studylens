@@ -4589,6 +4589,30 @@ text.trim();
   const cardsCard = document.getElementById("cardsCard");
 
   const cardsStorageKey = "studyai-flashcards";
+  // NEW: also persist flashcard view state (deck + which card)
+  const cardsStateKey = "studyai-flashcards-state";
+
+  function loadFlashcardsState() {
+    try {
+      return JSON.parse(localStorage.getItem(cardsStateKey) || "{}");
+    } catch {
+      return {};
+    }
+  }
+
+  function saveFlashcardsState() {
+    try {
+      localStorage.setItem(
+        cardsStateKey,
+        JSON.stringify({
+          currentDeck,
+          currentCardIndex
+        })
+      );
+    } catch {
+      // ignore
+    }
+  }
 
   // Simple flag so you can easily turn the sound on/off
   const ENABLE_FLASHCARD_SOUND = true;
@@ -4599,13 +4623,18 @@ text.trim();
   }
 
   let flashcards = [];
-  let currentCardIndex = 0;
+  let currentCardIndex = 0;       // index within the *current deck*
   let showingBack = false;
 
-  // Change button label to "Reset" (no HTML change needed)
-  if (cardsClearBtn) {
-    cardsClearBtn.textContent = "Reset";
-  }
+  // NEW: which stack user is viewing: "needs" (default), "got", "all"
+  let currentDeck = "needs";
+  // NEW: references to stack buttons
+  let cardsStackAllBtn = null;
+  let cardsStackNeedsBtn = null;
+  let cardsStackGotBtn = null;
+
+  // NEW: lock card height so page doesn’t bounce
+  let fixedCardHeight = null;
 
   // Move flashcards viewer above the source textbox
   (function moveViewerAboveTextarea() {
@@ -4619,173 +4648,192 @@ text.trim();
     }
   })();
 
-  // ---------- Encouragement phrases + bloom effect ----------
+  // ---------- Encouragement burst for "Got it" ----------
 
-  const STATIC_ENCOURAGEMENTS = [
-    "Yay, you nailed it!",
-    "Nice recall!",
-    "Brain power activated!",
-    "That one is locked in!",
-    "You are on a roll!",
-    "Great job remembering that!",
-    "Another card mastered!",
-    "You are getting so sharp!",
-    "Textbook level skills!",
-    "Quiz boss energy!",
-    "You just leveled up!",
-    "Study win unlocked!",
-    "Beautiful work!",
-    "Your future self says thanks!",
-    "You are crushing these!",
-    "Gold star moment!",
-    "Memory flex!",
-    "That stuck perfectly!",
-    "You owned that one!",
-    "You are unstoppable!",
-    "Sweet, another one done!",
-    "Knowledge upgraded!",
-    "Your brain is smiling!",
-    "Perfect recall!",
-    "Expert move!",
-    "That was clean!",
-    "Sharp and focused!",
-    "You read my mind!",
-    "Pure study power!",
-    "Big brain moment!",
-    "You are dialed in!",
-    "That answer was smooth!",
-    "Mastery unlocked!",
-    "You are so ready for the test!",
-    "You are building a strong brain!",
-    "That card did not stand a chance!",
-    "Precision memory!",
-    "Study streak continues!",
-    "You handled that like a pro!",
-    "Winning this study session!",
-    "That was impressive!",
-    "You are learning fast!",
-    "Every card makes you stronger!",
-    "You just proved you know it!",
-    "Look at you go!",
-    "You are absolutely getting this!",
-    "Another W for you!",
-    "This is how A’s happen!",
-    "Nice work, keep going!"
+  // Very short, 1–2 word phrases only – no contextual text
+  const GOTIT_PHRASES = [
+    "Nice!", "Locked in", "Aced it", "So good", "Too easy", "Big win",
+    "On fire", "All set", "Got it", "So clean", "Well done", "Great job",
+    "So ready", "Study win", "Gold star", "Go you", "Test ready", "Nice work",
+    "Brain power", "Level up", "You win", "So sharp", "Top tier", "Dialed in",
+    "Memory win", "Clean hit", "Good job", "So strong", "Sharp mind", "Nice one",
+    "All good", "Rock on", "Pro move", "Clutch", "Too smart", "Peak form",
+    "Max focus", "Laser brain", "Quiz boss", "Exam ace", "Study pro", "Star mode",
+    "Big brain", "Full marks", "Perfect", "Textbook", "On point", "All clear",
+    "Solid", "So solid", "So smooth", "Pure win", "Nice save", "Yes!", "Sweet",
+    "Boom!", "Love it", "Great!", "Done!", "Win!", "Locked!", "Crushed it",
+    "Nailed it", "So pro", "Right on", "So right", "Correct", "Exact",
+    "Bullseye", "No doubt", "Zero miss", "All right", "Brain boost",
+    "High score", "Quiz king", "Clear win", "So crisp", "Nailed that",
+    "Spot on", "Nice pull", "Clutch win", "Sharp shot", "Clean win",
+    "Test boss", "Quiz star", "Full brain", "Got this", "Big yes", "All win",
+    "Brain gold", "Score!", "Top form", "Prime mind"
   ];
 
-  let recentEncouragementIndices = [];
+  // Bright colors for the phrase, randomized each click
+  const GOTIT_COLORS = [
+    "#f97316", // orange
+    "#22c55e", // green
+    "#3b82f6", // blue
+    "#ec4899", // pink
+    "#eab308", // yellow
+    "#a855f7", // purple
+    "#06b6d4", // cyan
+    "#fb7185"  // rose
+  ];
 
-  function getRandomBrightColor() {
-    const palette = [
-      "#ef4444", // red
-      "#f97316", // orange
-      "#eab308", // yellow
-      "#22c55e", // green
-      "#3b82f6", // blue
-      "#a855f7", // purple
-      "#ec4899", // pink
-      "#14b8a6"  // teal
-    ];
-    const i = Math.floor(Math.random() * palette.length);
-    return palette[i];
-  }
+  let gotitRecentIndices = [];
 
-  // Build a short contextual phrase from the current card, if possible
-  function buildContextualPhrase(card) {
-    if (!card) return null;
-    const raw = (card.front || card.back || "").trim();
-    if (!raw) return null;
-
-    // Use first sentence / line as a hint
-    let snippet = raw.split(/[\n\.!?]/)[0].trim();
-    if (!snippet) return null;
-    if (snippet.length > 60) {
-      snippet = snippet.slice(0, 57) + "…";
-    }
-
-    const templates = [
-      `Nice work on “${snippet}”!`,
-      `You remembered ${snippet.toLowerCase()}!`,
-      `You totally got “${snippet}”!`
-    ];
-    const idx = Math.floor(Math.random() * templates.length);
-    return templates[idx];
-  }
-
-  function pickEncouragementPhrase(card) {
-    const contextual = buildContextualPhrase(card);
-    if (contextual && contextual.length <= 90) {
-      return contextual;
-    }
-
-    if (!STATIC_ENCOURAGEMENTS.length) return "Great job!";
-
-    // avoid using the same phrase too often
+  function pickGotItPhrase() {
+    const n = GOTIT_PHRASES.length;
+    if (!n) return "Nice!";
     const maxTries = 10;
-    let chosenIndex = 0;
+    let chosen = 0;
+
     for (let i = 0; i < maxTries; i++) {
-      const candidate = Math.floor(Math.random() * STATIC_ENCOURAGEMENTS.length);
-      if (!recentEncouragementIndices.includes(candidate)) {
-        chosenIndex = candidate;
+      const idx = Math.floor(Math.random() * n);
+      if (!gotitRecentIndices.includes(idx)) {
+        chosen = idx;
         break;
       }
-      chosenIndex = candidate;
+      chosen = idx;
     }
 
-    recentEncouragementIndices.push(chosenIndex);
-    if (recentEncouragementIndices.length > 8) {
-      recentEncouragementIndices.shift();
+    gotitRecentIndices.push(chosen);
+    if (gotitRecentIndices.length > 10) {
+      gotitRecentIndices.shift();
     }
 
-    return STATIC_ENCOURAGEMENTS[chosenIndex];
+    return GOTIT_PHRASES[chosen];
   }
 
-  function spawnEncouragementBloom(anchorEl, message) {
-    if (!anchorEl || !message) return;
+  function pickGotItColor() {
+    const n = GOTIT_COLORS.length;
+    if (!n) return "#f97316";
+    const idx = Math.floor(Math.random() * n);
+    return GOTIT_COLORS[idx];
+  }
+
+  // Text burst that starts at the Got it button, goes up, and explodes into little bits
+  // UPDATED: only ONE phrase per click + random bright color + MORE EXPLOSION
+  function spawnGotItBurst(anchorEl) {
+    if (!anchorEl) return;
 
     const rect = anchorEl.getBoundingClientRect();
-    const bubble = document.createElement("div");
-    bubble.textContent = message;
+    const baseX = rect.left + rect.width / 2;
+    const baseY = rect.top + rect.height / 2;
 
-    // base + random color class (colors defined in CSS)
-    bubble.classList.add("encouragement-bloom");
-    const colorClassIndex = Math.floor(Math.random() * 8) + 1;
-    bubble.classList.add(`encouragement-color-${colorClassIndex}`);
+    // Single phrase per click (no overlap of multiple phrases)
+    const phrase = pickGotItPhrase();
+    const color = pickGotItColor();
 
-    bubble.style.position = "fixed";
-    bubble.style.left = rect.left + rect.width / 2 + "px";
-    bubble.style.top = rect.top + rect.height / 2 + "px";
-    bubble.style.transform = "translate(-50%, -50%) scale(0.7)";
-    bubble.style.fontWeight = "800";
-    bubble.style.fontSize = "1rem";
-    bubble.style.whiteSpace = "nowrap";
-    bubble.style.pointerEvents = "none";
-    bubble.style.zIndex = "9999";
-    bubble.style.opacity = "0";
-    bubble.style.transition =
-      "transform 0.6s ease-out, opacity 0.6s ease-out";
-    bubble.style.textShadow = "0 0 10px rgba(0,0,0,0.35)";
+    const wordEl = document.createElement("div");
+    wordEl.textContent = phrase;
 
-    document.body.appendChild(bubble);
+    wordEl.style.position = "fixed";
+    wordEl.style.left = baseX + "px";
+    wordEl.style.top = baseY + "px";
+    wordEl.style.transform = "translate(-50%, -50%) scale(0.9)";
+    wordEl.style.pointerEvents = "none";
+    wordEl.style.whiteSpace = "nowrap";
+    wordEl.style.zIndex = "9999";
+    wordEl.style.opacity = "0";
+    wordEl.style.fontWeight = "800";
 
-    // trigger animation
+    // Responsive font size
+    let fontSizePx = 16;
+    if (window.innerWidth < 700) {
+      fontSizePx = 14;
+    } else if (window.innerWidth > 1000) {
+      fontSizePx = 18;
+    }
+    wordEl.style.fontSize = fontSizePx + "px";
+
+    // Bright random color each time
+    wordEl.style.color = color;
+    wordEl.style.background = "transparent";
+    wordEl.style.textShadow = "none";
+
+    // Slightly longer rise so the explosion feels bigger
+    const riseDuration = 700 + Math.random() * 400;
+    wordEl.style.transition =
+      "transform " +
+      riseDuration +
+      "ms ease-out, opacity " +
+      riseDuration +
+      "ms ease-out";
+
+    wordEl.style.display = "inline-block";
+
+    // Container for tiny letter fragments
+    const fragContainer = document.createElement("div");
+    fragContainer.style.position = "absolute";
+    fragContainer.style.left = "50%";
+    fragContainer.style.top = "50%";
+    fragContainer.style.transform = "translate(-50%, -50%)";
+    fragContainer.style.pointerEvents = "none";
+
+    const letters = phrase.replace(/\s+/g, "").split("");
+
+    // MORE EXPLOSION: more fragments
+    const fragCount = Math.min(24, Math.max(12, letters.length || 12));
+
+    for (let i = 0; i < fragCount; i++) {
+      const ch = letters[i % letters.length] || "•";
+      const frag = document.createElement("span");
+      frag.textContent = ch;
+      frag.style.display = "inline-block";
+      frag.style.fontSize = Math.max(10, fontSizePx * 0.75) + "px";
+      frag.style.fontWeight = "700";
+      frag.style.color = color;
+      frag.style.opacity = "1";
+      frag.style.transform = "translate(0px, 0px) scale(1)";
+
+      // Longer and slightly staggered duration for fragments
+      const dur = 550 + Math.random() * 350;
+      frag.style.transition =
+        "transform " + dur + "ms ease-out, opacity " + dur + "ms ease-out";
+
+      // MORE EXPLOSION: bigger spread
+      const spread = 70 + Math.random() * 60;
+      const angle = Math.random() * Math.PI * 2;
+      const tx = Math.cos(angle) * spread;
+      const ty = Math.sin(angle) * spread - 20;
+
+      // Kick off fragment "explosion"
+      setTimeout(() => {
+        frag.style.transform =
+          "translate(" + tx + "px, " + ty + "px) scale(0.5)";
+        frag.style.opacity = "0";
+      }, 60 + i * 12);
+
+      fragContainer.appendChild(frag);
+    }
+
+    wordEl.appendChild(fragContainer);
+    document.body.appendChild(wordEl);
+
+    // Main phrase rises up a bit and fades
     requestAnimationFrame(() => {
-      const driftX = (Math.random() - 0.5) * 40; // little horizontal scatter
-      const driftY = -40 - Math.random() * 10;   // float upward
-      bubble.style.opacity = "1";
-      bubble.style.transform =
-        `translate(calc(-50% + ${driftX}px), calc(-50% + ${driftY}px)) scale(1.25)`;
+      const driftY = -50 - Math.random() * 25;
+      wordEl.style.opacity = "1";
+      wordEl.style.transform =
+        "translate(-50%, calc(-50% + " + driftY + "px)) scale(1.05)";
     });
 
-    // Let it sit visible a bit longer before fading
+    // Fade away after the rise
     setTimeout(() => {
-      bubble.style.opacity = "0";
-      bubble.style.transform = "translate(-50%, -80%) scale(0.9)";
-    }, 1800);
+      wordEl.style.opacity = "0";
+      wordEl.style.transform =
+        "translate(-50%, calc(-50% - 70px)) scale(0.95)";
+    }, riseDuration);
 
+    // Clean up DOM
     setTimeout(() => {
-      if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
-    }, 1500);
+      if (wordEl.parentNode) {
+        wordEl.parentNode.removeChild(wordEl);
+      }
+    }, riseDuration + 600);
   }
 
   // Theme-aware styles for the flashcard question + background
@@ -4877,20 +4925,175 @@ text.trim();
     }));
   }
 
+  // NEW: build decks based on status and currentDeck
+  function getDeckIndices() {
+    if (!flashcards.length) return [];
+    if (currentDeck === "all") {
+      return flashcards.map((c, idx) => idx);
+    }
+    if (currentDeck === "got") {
+      return flashcards.reduce((arr, c, idx) => {
+        if (c.status === "got") arr.push(idx);
+        return arr;
+      }, []);
+    }
+    // "needs": everything that still needs work (not got)
+    return flashcards.reduce((arr, c, idx) => {
+      if (c.status !== "got") arr.push(idx);
+      return arr;
+    }, []);
+  }
+
+  // NEW: create the small stack square buttons under the viewer
+  function initDeckStacksUI() {
+    if (!cardsViewer || !cardsViewer.parentNode) return;
+
+    const container = cardsViewer.parentNode;
+    const existing = document.getElementById("cardsStacksWrapper");
+    if (existing) return;
+
+    const wrapper = document.createElement("div");
+    wrapper.id = "cardsStacksWrapper";
+    wrapper.style.display = "flex";
+    wrapper.style.gap = "8px";
+    wrapper.style.marginTop = "8px";
+
+    function makeStackButton(label, deckKey) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.dataset.deck = deckKey;
+      btn.style.minWidth = "68px";
+      btn.style.minHeight = "44px";
+      btn.style.borderRadius = "10px";
+      btn.style.border = "1px solid rgba(148, 163, 184, 0.9)";
+      btn.style.background = "var(--card-bg)";
+      btn.style.fontSize = "11px";
+      btn.style.display = "flex";
+      btn.style.flexDirection = "column";
+      btn.style.alignItems = "center";
+      btn.style.justifyContent = "center";
+      btn.style.padding = "4px 6px";
+      btn.style.cursor = "pointer";
+      btn.style.gap = "2px";
+
+      const labelSpan = document.createElement("span");
+      labelSpan.textContent = label;
+      labelSpan.style.fontWeight = "600";
+
+      const countSpan = document.createElement("span");
+      countSpan.className = "cards-stack-count";
+      countSpan.textContent = "0";
+      countSpan.style.opacity = "0.75";
+
+      btn.appendChild(labelSpan);
+      btn.appendChild(countSpan);
+
+      btn.addEventListener("click", () => {
+        currentDeck = deckKey;
+        currentCardIndex = 0;
+        saveFlashcardsState();
+        renderCurrentCard();
+        updateStacksUI();
+      });
+
+      return btn;
+    }
+
+    cardsStackGotBtn = makeStackButton("Got it", "got");
+    cardsStackNeedsBtn = makeStackButton("Needs work", "needs");
+    cardsStackAllBtn = makeStackButton("All", "all");
+
+    wrapper.appendChild(cardsStackGotBtn);
+    wrapper.appendChild(cardsStackNeedsBtn);
+    wrapper.appendChild(cardsStackAllBtn);
+
+    // Insert right after cardsViewer
+    if (cardsViewer.nextSibling) {
+      container.insertBefore(wrapper, cardsViewer.nextSibling);
+    } else {
+      container.appendChild(wrapper);
+    }
+  }
+
+  // NEW: update counts and active stack styling
+  function updateStacksUI() {
+    if (!flashcards || !flashcards.length) {
+      if (cardsStackGotBtn) {
+        const c = cardsStackGotBtn.querySelector(".cards-stack-count");
+        if (c) c.textContent = "0";
+      }
+      if (cardsStackNeedsBtn) {
+        const c = cardsStackNeedsBtn.querySelector(".cards-stack-count");
+        if (c) c.textContent = "0";
+      }
+      if (cardsStackAllBtn) {
+        const c = cardsStackAllBtn.querySelector(".cards-stack-count");
+        if (c) c.textContent = "0";
+      }
+      return;
+    }
+
+    const total = flashcards.length;
+    const got = flashcards.filter((c) => c.status === "got").length;
+    const needs = flashcards.filter((c) => c.status !== "got").length;
+
+    if (cardsStackGotBtn) {
+      const c = cardsStackGotBtn.querySelector(".cards-stack-count");
+      if (c) c.textContent = String(got);
+    }
+    if (cardsStackNeedsBtn) {
+      const c = cardsStackNeedsBtn.querySelector(".cards-stack-count");
+      if (c) c.textContent = String(needs);
+    }
+    if (cardsStackAllBtn) {
+      const c = cardsStackAllBtn.querySelector(".cards-stack-count");
+      if (c) c.textContent = String(total);
+    }
+
+    // simple active state
+    [cardsStackGotBtn, cardsStackNeedsBtn, cardsStackAllBtn].forEach((btn) => {
+      if (!btn) return;
+      if (btn.dataset.deck === currentDeck) {
+        btn.style.boxShadow = "0 0 0 2px rgba(59,130,246,0.7)";
+      } else {
+        btn.style.boxShadow = "none";
+      }
+    });
+  }
+
   function updateCardsStats() {
     if (!flashcards.length) {
       cardsStats.textContent = "No cards yet. Create some above.";
       return;
     }
-    const total = flashcards.length;
+
+    const deck = getDeckIndices();
+    if (!deck.length) {
+      cardsStats.textContent = "No cards in this stack. Try another stack above.";
+      return;
+    }
+
+    const totalDeck = deck.length;
     const got = flashcards.filter((c) => c.status === "got").length;
-    const need = flashcards.filter((c) => c.status === "need_work").length;
+    const need = flashcards.filter((c) => c.status !== "got").length;
     const indexLabel = currentCardIndex + 1;
 
     cardsStats.textContent =
-      `Card ${indexLabel} of ${total}` +
+      `Card ${indexLabel} of ${totalDeck}` +
       ` • Got it ${got}` +
       ` • Need work ${need}`;
+  }
+
+  // NEW: lock card height once so the page doesn't jump
+  function lockCardHeightOnce() {
+    if (!cardsCard || fixedCardHeight !== null) return;
+    requestAnimationFrame(() => {
+      const h = cardsCard.offsetHeight;
+      if (h && h > 0) {
+        fixedCardHeight = h;
+        cardsCard.style.minHeight = h + "px";
+      }
+    });
   }
 
   function renderCurrentCard() {
@@ -4898,14 +5101,26 @@ text.trim();
 
     if (!flashcards.length) {
       cardsViewer.style.display = "none";
+      if (cardsStats) {
+        cardsStats.textContent = "No cards yet. Create some above.";
+      }
       return;
     }
 
-    if (currentCardIndex < 0 || currentCardIndex >= flashcards.length) {
+    const deck = getDeckIndices();
+    if (!deck.length) {
+      cardsViewer.style.display = "none";
+      if (cardsStats) {
+        cardsStats.textContent = "No cards in this stack. Try another stack above.";
+      }
+      return;
+    }
+
+    if (currentCardIndex < 0 || currentCardIndex >= deck.length) {
       currentCardIndex = 0;
     }
 
-    const card = flashcards[currentCardIndex];
+    const card = flashcards[deck[currentCardIndex]];
     cardsViewer.style.display = "block";
     showingBack = false;
 
@@ -4923,24 +5138,28 @@ text.trim();
 
     updateCardStylesForTheme();
     updateCardsStats();
+    lockCardHeightOnce();
   }
 
-  // Restore from storage and auto-open viewer on top when flashcards exist
+  // Restore from storage
   (function initFlashcardsFromStorage() {
     const stored = loadFlashcardsStorage();
+    const state = loadFlashcardsState();
     if (stored && stored.length) {
       flashcards = stored;
-      currentCardIndex = 0;
+      currentDeck = state.currentDeck || "needs";
+      currentCardIndex =
+        typeof state.currentCardIndex === "number" ? state.currentCardIndex : 0;
+      initDeckStacksUI();
+      updateStacksUI();
       renderCurrentCard();
-      if (cardsViewer) {
+      if (cardsViewer && typeof cardsViewer.scrollIntoView === "function") {
         cardsViewer.style.display = "block";
-        // Bring flashcards into view when tool is opened again
-        try {
-          cardsViewer.scrollIntoView({ behavior: "smooth", block: "center" });
-        } catch (e) {
-          // scrollIntoView might not exist in some environments; ignore
-        }
+        cardsViewer.scrollIntoView({ behavior: "smooth", block: "start" });
       }
+    } else {
+      initDeckStacksUI();
+      updateStacksUI();
     }
   })();
 
@@ -4984,9 +5203,19 @@ text.trim();
       }
 
       flashcards = parsed;
+      currentDeck = "needs";
       currentCardIndex = 0;
+      showingBack = false;
+      fixedCardHeight = null; // recalc height for new set
       saveFlashcards(flashcards);
+      saveFlashcardsState();
+      initDeckStacksUI();
+      updateStacksUI();
       renderCurrentCard();
+      if (cardsViewer && typeof cardsViewer.scrollIntoView === "function") {
+        cardsViewer.style.display = "block";
+        cardsViewer.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
 
       addNotebookItem("Cards", answerText);
     } catch (err) {
@@ -4995,34 +5224,47 @@ text.trim();
     }
   });
 
-  // RESET button behavior:
-  // - Remove all cards with status === "got"
-  // - Reset remaining cards to "new" and clear progress
+  // Change label from Clear -> Reset
+  if (cardsClearBtn) {
+    cardsClearBtn.textContent = "Reset";
+  }
+
   cardsClearBtn.addEventListener("click", () => {
     if (!flashcards.length) return;
 
-    const now = Date.now();
+    const ok = confirm(
+      "Reset this set?\n\nThis will REMOVE all 'Got it' cards and reset progress on the rest. Your notebook will NOT be cleared."
+    );
+    if (!ok) return;
 
-    // keep cards that are not "got it"
+    // Remove all cards that are already in the 'got' stack
     let remaining = flashcards.filter((c) => c.status !== "got");
 
-    // reset progress on remaining
+    // Reset progress on remaining cards
+    const now = Date.now();
     remaining = remaining.map((c) => ({
       ...c,
       status: "new",
       seen: 0,
       correct: 0,
-      lastSeen: now,
+      lastSeen: now
     }));
 
     flashcards = remaining;
+    currentDeck = "needs";
     currentCardIndex = 0;
     showingBack = false;
+    fixedCardHeight = null;
+
     saveFlashcards(flashcards);
+    saveFlashcardsState();
+    updateStacksUI();
 
     if (!flashcards.length) {
       if (cardsViewer) cardsViewer.style.display = "none";
-      updateCardsStats();
+      if (cardsStats) {
+        cardsStats.textContent = "No cards yet. Create some above.";
+      }
     } else {
       renderCurrentCard();
     }
@@ -5036,19 +5278,32 @@ text.trim();
   });
 
   function goToNextCard() {
-    if (!flashcards.length) return;
-    currentCardIndex = (currentCardIndex + 1) % flashcards.length;
+    const deck = getDeckIndices();
+    if (!deck.length) {
+      renderCurrentCard();
+      return;
+    }
+    currentCardIndex = (currentCardIndex + 1) % deck.length;
+    saveFlashcardsState();
     renderCurrentCard();
   }
 
   cardsGotItBtn.addEventListener("click", () => {
     if (!flashcards.length) return;
-    const card = flashcards[currentCardIndex];
+    const deck = getDeckIndices();
+    if (!deck.length) {
+      renderCurrentCard();
+      return;
+    }
+    const cardIndex = deck[currentCardIndex];
+    const card = flashcards[cardIndex];
+
     card.status = "got";
     card.seen = (card.seen || 0) + 1;
     card.correct = (card.correct || 0) + 1;
     card.lastSeen = Date.now();
     saveFlashcards(flashcards);
+    saveFlashcardsState();
 
     // optional positive sound on Got It
     if (ENABLE_FLASHCARD_SOUND && gotItAudio) {
@@ -5060,20 +5315,29 @@ text.trim();
       }
     }
 
-    // Bloom of colorful encouragement in the middle of the flashcard
-    const phrase = pickEncouragementPhrase(card);
-    spawnEncouragementBloom(cardsCard, phrase);
+    // New: single colorful phrase burst from the Got it button
+    spawnGotItBurst(cardsGotItBtn);
 
-    goToNextCard();
+    updateStacksUI();
+    goToNextCard(); // removed from current deck view
   });
 
   cardsNeedWorkBtn.addEventListener("click", () => {
     if (!flashcards.length) return;
-    const card = flashcards[currentCardIndex];
+    const deck = getDeckIndices();
+    if (!deck.length) {
+      renderCurrentCard();
+      return;
+    }
+    const cardIndex = deck[currentCardIndex];
+    const card = flashcards[cardIndex];
+
     card.status = "need_work";
     card.seen = (card.seen || 0) + 1;
     card.lastSeen = Date.now();
     saveFlashcards(flashcards);
+    saveFlashcardsState();
+    updateStacksUI();
     goToNextCard();
   });
 </script>
