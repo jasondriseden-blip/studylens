@@ -4589,7 +4589,7 @@ text.trim();
   const cardsCard = document.getElementById("cardsCard");
 
   const cardsStorageKey = "studyai-flashcards";
-  // NEW: also persist flashcard view state (deck + which card)
+  // Also persist flashcard view state (deck + which card)
   const cardsStateKey = "studyai-flashcards-state";
 
   function loadFlashcardsState() {
@@ -4626,14 +4626,14 @@ text.trim();
   let currentCardIndex = 0;       // index within the *current deck*
   let showingBack = false;
 
-  // NEW: which stack user is viewing: "needs" (default), "got", "all"
+  // which stack user is viewing: "needs" (default), "got", "all"
   let currentDeck = "needs";
-  // NEW: references to stack buttons
+  // references to stack buttons
   let cardsStackAllBtn = null;
   let cardsStackNeedsBtn = null;
   let cardsStackGotBtn = null;
 
-  // NEW: lock card height so page doesn’t bounce
+  // lock card height so page doesn’t bounce
   let fixedCardHeight = null;
 
   // Move flashcards viewer above the source textbox
@@ -4714,8 +4714,7 @@ text.trim();
     return GOTIT_COLORS[idx];
   }
 
-  // Text burst that starts at the Got it button, goes up, and explodes into little bits
-  // UPDATED: only ONE phrase per click + random bright color + MORE EXPLOSION
+  // Text burst from the Got it button
   function spawnGotItBurst(anchorEl) {
     if (!anchorEl) return;
 
@@ -4723,7 +4722,6 @@ text.trim();
     const baseX = rect.left + rect.width / 2;
     const baseY = rect.top + rect.height / 2;
 
-    // Single phrase per click (no overlap of multiple phrases)
     const phrase = pickGotItPhrase();
     const color = pickGotItColor();
 
@@ -4754,7 +4752,6 @@ text.trim();
     wordEl.style.background = "transparent";
     wordEl.style.textShadow = "none";
 
-    // Slightly longer rise so the explosion feels bigger
     const riseDuration = 700 + Math.random() * 400;
     wordEl.style.transition =
       "transform " +
@@ -4775,7 +4772,6 @@ text.trim();
 
     const letters = phrase.replace(/\s+/g, "").split("");
 
-    // MORE EXPLOSION: more fragments
     const fragCount = Math.min(24, Math.max(12, letters.length || 12));
 
     for (let i = 0; i < fragCount; i++) {
@@ -4789,18 +4785,15 @@ text.trim();
       frag.style.opacity = "1";
       frag.style.transform = "translate(0px, 0px) scale(1)";
 
-      // Longer and slightly staggered duration for fragments
       const dur = 550 + Math.random() * 350;
       frag.style.transition =
         "transform " + dur + "ms ease-out, opacity " + dur + "ms ease-out";
 
-      // MORE EXPLOSION: bigger spread
       const spread = 70 + Math.random() * 60;
       const angle = Math.random() * Math.PI * 2;
       const tx = Math.cos(angle) * spread;
       const ty = Math.sin(angle) * spread - 20;
 
-      // Kick off fragment "explosion"
       setTimeout(() => {
         frag.style.transform =
           "translate(" + tx + "px, " + ty + "px) scale(0.5)";
@@ -4852,7 +4845,7 @@ text.trim();
     }
   }
 
-  // Watch for theme changes so the question color / background stay in sync
+  // Watch for theme changes
   (function watchThemeForFlashcards() {
     updateCardStylesForTheme();
     if (typeof MutationObserver === "function") {
@@ -4925,7 +4918,40 @@ text.trim();
     }));
   }
 
-  // NEW: build decks based on status and currentDeck
+  // Shared loader for any raw flashcard text (AI output or notebook)
+  function loadFlashcardsFromText(rawText, opts = {}) {
+    const text = typeof rawText === "string" ? rawText : String(rawText ?? "");
+    const parsed = parseFlashcardsFromText(text);
+    if (!parsed.length) {
+      alert("I couldn't detect any Q/A pairs in that text.");
+      return;
+    }
+
+    const desiredDeck = opts.deck || "needs";
+
+    flashcards = parsed;
+    currentDeck = desiredDeck;
+    currentCardIndex = 0;
+    showingBack = false;
+    fixedCardHeight = null;
+
+    saveFlashcards(flashcards);
+    saveFlashcardsState();
+    initDeckStacksUI();
+    updateStacksUI();
+    renderCurrentCard();
+
+    if (opts.scroll !== false && cardsViewer && typeof cardsViewer.scrollIntoView === "function") {
+      cardsViewer.style.display = "block";
+      cardsViewer.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
+  // Expose globally so notebook code can always open flashcards like:
+  // window.loadFlashcardsFromText(notebookText, { deck: "all" });
+  window.loadFlashcardsFromText = loadFlashcardsFromText;
+
+  // build decks based on status and currentDeck
   function getDeckIndices() {
     if (!flashcards.length) return [];
     if (currentDeck === "all") {
@@ -4944,7 +4970,7 @@ text.trim();
     }, []);
   }
 
-  // NEW: create the small stack square buttons under the viewer
+  // create the small stack square buttons under the viewer
   function initDeckStacksUI() {
     if (!cardsViewer || !cardsViewer.parentNode) return;
 
@@ -5015,7 +5041,7 @@ text.trim();
     }
   }
 
-  // NEW: update counts and active stack styling
+  // update counts and active stack styling
   function updateStacksUI() {
     if (!flashcards || !flashcards.length) {
       if (cardsStackGotBtn) {
@@ -5084,7 +5110,7 @@ text.trim();
       ` • Need work ${need}`;
   }
 
-  // NEW: lock card height once so the page doesn't jump
+  // lock card height once so the page doesn't jump
   function lockCardHeightOnce() {
     if (!cardsCard || fixedCardHeight !== null) return;
     requestAnimationFrame(() => {
@@ -5141,7 +5167,7 @@ text.trim();
     lockCardHeightOnce();
   }
 
-  // Restore from storage
+  // Restore from storage on load
   (function initFlashcardsFromStorage() {
     const stored = loadFlashcardsStorage();
     const state = loadFlashcardsState();
@@ -5194,29 +5220,10 @@ text.trim();
       // styled output with copy button
       renderAnswer(cardsResult, answerText);
 
-      const parsed = parseFlashcardsFromText(answerText);
-      if (!parsed.length) {
-        cardsViewer.style.display = "none";
-        alert("I couldn't detect any Q/A pairs in the AI output.");
-        addNotebookItem("Cards", answerText);
-        return;
-      }
+      // Use shared loader so behavior matches notebook reopen
+      loadFlashcardsFromText(answerText, { deck: "needs", scroll: true });
 
-      flashcards = parsed;
-      currentDeck = "needs";
-      currentCardIndex = 0;
-      showingBack = false;
-      fixedCardHeight = null; // recalc height for new set
-      saveFlashcards(flashcards);
-      saveFlashcardsState();
-      initDeckStacksUI();
-      updateStacksUI();
-      renderCurrentCard();
-      if (cardsViewer && typeof cardsViewer.scrollIntoView === "function") {
-        cardsViewer.style.display = "block";
-        cardsViewer.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-
+      // Still add raw text to notebook for later
       addNotebookItem("Cards", answerText);
     } catch (err) {
       console.error("Flashcards error:", err);
@@ -5229,20 +5236,17 @@ text.trim();
     cardsClearBtn.textContent = "Reset";
   }
 
+  // Reset: bring ALL cards (Got it + Needs) back as fresh
   cardsClearBtn.addEventListener("click", () => {
     if (!flashcards.length) return;
 
     const ok = confirm(
-      "Reset this set?\n\nThis will REMOVE all 'Got it' cards and reset progress on the rest. Your notebook will NOT be cleared."
+      "Reset this set?\n\nThis will RESET progress on all cards so they all come back into the active deck. Your notebook will NOT be cleared."
     );
     if (!ok) return;
 
-    // Remove all cards that are already in the 'got' stack
-    let remaining = flashcards.filter((c) => c.status !== "got");
-
-    // Reset progress on remaining cards
     const now = Date.now();
-    remaining = remaining.map((c) => ({
+    flashcards = flashcards.map((c) => ({
       ...c,
       status: "new",
       seen: 0,
@@ -5250,7 +5254,6 @@ text.trim();
       lastSeen: now
     }));
 
-    flashcards = remaining;
     currentDeck = "needs";
     currentCardIndex = 0;
     showingBack = false;
@@ -5259,15 +5262,8 @@ text.trim();
     saveFlashcards(flashcards);
     saveFlashcardsState();
     updateStacksUI();
-
-    if (!flashcards.length) {
-      if (cardsViewer) cardsViewer.style.display = "none";
-      if (cardsStats) {
-        cardsStats.textContent = "No cards yet. Create some above.";
-      }
-    } else {
-      renderCurrentCard();
-    }
+    renderCurrentCard();
+    if (cardsViewer) cardsViewer.style.display = "block";
   });
 
   cardsFlipBtn.addEventListener("click", () => {
@@ -5315,7 +5311,7 @@ text.trim();
       }
     }
 
-    // New: single colorful phrase burst from the Got it button
+    // Single colorful phrase burst from the Got it button
     spawnGotItBurst(cardsGotItBtn);
 
     updateStacksUI();
