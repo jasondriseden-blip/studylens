@@ -5866,13 +5866,16 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
         toolbar.style.display = "flex";
         toolbar.style.flexWrap = "wrap";
         toolbar.style.gap = "6px";
-        toolbar.style.marginTop = "8px";
         toolbar.style.marginBottom = "8px";
         toolbar.style.alignItems = "center";
-        // make it stick to the top of the scrolling area
+
+        // make it stick at the top of the area it's in
         toolbar.style.position = "sticky";
         toolbar.style.top = "0";
         toolbar.style.zIndex = "10";
+        toolbar.style.background = "var(--card-bg, rgba(15,23,42,0.95))";
+        toolbar.style.paddingTop = "4px";
+        toolbar.style.paddingBottom = "4px";
 
         const label = document.createElement("span");
         label.textContent = "Highlight color:";
@@ -5934,8 +5937,8 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           }
         }, 0);
 
-        // insert toolbar as the FIRST CHILD inside studyResult
-        studyResult.insertBefore(toolbar, studyResult.firstChild);
+        // *** key change: put toolbar right BEFORE studyResult so it's at top of that block ***
+        studyResult.parentNode.insertBefore(toolbar, studyResult);
       }
 
       // Container for grouped highlights
