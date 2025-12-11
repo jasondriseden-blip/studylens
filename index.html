@@ -1526,7 +1526,7 @@ li {
 
 
 :root[data-theme="dark"] #cardsCard.flashcard-card-dark {
-      background-color: #0e1629;
+      background-color: #060d1d;
     border: 1px solid var(--outline);
     border-bottom: border: 1px solid var(--outline);
     border-top: border: 1px solid var(--outline);
@@ -5799,6 +5799,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
     const studyHighlightToolbarId   = "studyHighlightToolbar";
     const studyHighlightContainerId = "studyHighlightContainer";
+    const studyHighlightApplyBtnId  = "studyHighlightApplyBtn";
 
     let currentStudyColorKey = STUDY_HIGHLIGHT_COLORS[0].key;
     const studyHighlightsByColor = {};
@@ -5864,6 +5865,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
       let toolbar   = document.getElementById(studyHighlightToolbarId);
       let container = document.getElementById(studyHighlightContainerId);
+      let applyBtn  = document.getElementById(studyHighlightApplyBtnId);
 
       // Toolbar with color buttons
       if (!toolbar) {
@@ -5996,6 +5998,65 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           container.appendChild(group);
         });
       }
+
+      // Floating "Highlight selection" button (works on touch + desktop)
+      if (!applyBtn) {
+        applyBtn = document.createElement("button");
+        applyBtn.id = studyHighlightApplyBtnId;
+        applyBtn.type = "button";
+        applyBtn.textContent = "Highlight selection";
+        applyBtn.style.marginTop = "6px";
+        applyBtn.style.alignSelf = "flex-start";
+        applyBtn.style.fontSize = "11px";
+        applyBtn.style.padding = "4px 10px";
+        applyBtn.style.borderRadius = "999px";
+        applyBtn.style.border = "1px solid rgba(148,163,184,0.9)";
+        applyBtn.style.background = "var(--card-bg, rgba(15,23,42,0.85))";
+        applyBtn.style.display = "none"; // only visible when there is a selection
+        applyBtn.style.cursor = "pointer";
+
+        // small color dot inside the button
+        const dot = document.createElement("span");
+        dot.style.display = "inline-block";
+        dot.style.width = "8px";
+        dot.style.height = "8px";
+        dot.style.borderRadius = "999px";
+        dot.style.marginLeft = "6px";
+        dot.id = studyHighlightApplyBtnId + "-dot";
+
+        const cfg = getColorConfig(currentStudyColorKey) || STUDY_HIGHLIGHT_COLORS[0];
+        dot.style.backgroundColor = cfg.lightBg.replace(/, ?0\.\d+\)/, ", 1)");
+
+        applyBtn.appendChild(dot);
+
+        applyBtn.addEventListener("click", function () {
+          applySelectionHighlight();
+        });
+
+        const toolbarEl = document.getElementById(studyHighlightToolbarId);
+        if (toolbarEl) {
+          if (toolbarEl.nextSibling) {
+            toolbarEl.parentNode.insertBefore(applyBtn, toolbarEl.nextSibling);
+          } else {
+            toolbarEl.parentNode.appendChild(applyBtn);
+          }
+        } else {
+          studyResult.parentNode.appendChild(applyBtn);
+        }
+
+        // Update dot color when currentStudyColorKey changes (via toolbar buttons)
+        const originalSetColor = currentStudyColorKey;
+        // We don't override the logic; instead we update the dot in a MutationObserver on toolbar:
+        const toolbarObserver = new MutationObserver(() => {
+          const dotEl = document.getElementById(studyHighlightApplyBtnId + "-dot");
+          if (!dotEl) return;
+          const cfgNow = getColorConfig(currentStudyColorKey) || STUDY_HIGHLIGHT_COLORS[0];
+          dotEl.style.backgroundColor = cfgNow.lightBg.replace(/, ?0\.\d+\)/, ", 1)");
+        });
+        if (toolbarEl) {
+          toolbarObserver.observe(toolbarEl, { attributes: true, subtree: true });
+        }
+      }
     }
 
     function refreshStudyHighlightsUI() {
@@ -6068,14 +6129,9 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       return range;
     }
 
-    function highlightCurrentSelection(ev) {
-      const toolbar   = document.getElementById(studyHighlightToolbarId);
-      const container = document.getElementById(studyHighlightContainerId);
+    let suppressSelectionChange = false;
 
-      // ignore interaction in toolbar or highlight container
-      if (toolbar && toolbar.contains(ev.target)) return;
-      if (container && container.contains(ev.target)) return;
-
+    function applySelectionHighlight() {
       const range = getSelectionRangeWithinStudy();
       if (!range) return;
 
@@ -6090,10 +6146,14 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       applyHighlightStylesToSpan(span);
 
       try {
+        suppressSelectionChange = true;
         range.surroundContents(span);
       } catch (e) {
+        suppressSelectionChange = false;
         // If selection crosses complex DOM boundaries, skip
         return;
+      } finally {
+        suppressSelectionChange = false;
       }
 
       // store clean text in grouped div
@@ -6104,31 +6164,34 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       if (sel && sel.removeAllRanges) {
         sel.removeAllRanges();
       }
+
+      // hide "Highlight selection" button until next selection
+      const applyBtn = document.getElementById(studyHighlightApplyBtnId);
+      if (applyBtn) {
+        applyBtn.style.display = "none";
+      }
     }
 
-    // Desktop + mobile support:
-    // Listen on the whole document so it works even when touch selection
-    // doesn't fire events directly on #studyResult.
-    let lastTouchTime = 0;
+    // Show / hide the "Highlight selection" button based on active selection
+    document.addEventListener("selectionchange", function () {
+      if (suppressSelectionChange) return;
 
-    document.addEventListener("touchend", function (ev) {
-      lastTouchTime = Date.now();
-      // small timeout to make sure selection is finalized on mobile
-      setTimeout(function () {
-        highlightCurrentSelection(ev);
-      }, 80);
-    });
+      const applyBtn = document.getElementById(studyHighlightApplyBtnId);
+      if (!applyBtn) return;
 
-    document.addEventListener("mouseup", function (ev) {
-      // ignore mouseup that immediately follows a touch (mobile browsers)
-      if (Date.now() - lastTouchTime < 350) return;
-      highlightCurrentSelection(ev);
+      const range = getSelectionRangeWithinStudy();
+      if (range) {
+        applyBtn.style.display = "inline-flex";
+      } else {
+        applyBtn.style.display = "none";
+      }
     });
 
     // init Study highlight UI
     ensureStudyHighlightUI();
   });
 </script>
+
 
 
 
