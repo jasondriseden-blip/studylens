@@ -1526,7 +1526,7 @@ li {
 
 
 :root[data-theme="dark"] #cardsCard.flashcard-card-dark {
-      background-color: #060d1d;
+      background-color: #0e1629;
     border: 1px solid var(--outline);
     border-bottom: border: 1px solid var(--outline);
     border-top: border: 1px solid var(--outline);
@@ -5799,7 +5799,6 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
     const studyHighlightToolbarId   = "studyHighlightToolbar";
     const studyHighlightContainerId = "studyHighlightContainer";
-    const studyHighlightApplyBtnId  = "studyHighlightApplyBtn";
 
     let currentStudyColorKey = STUDY_HIGHLIGHT_COLORS[0].key;
     const studyHighlightsByColor = {};
@@ -5865,7 +5864,6 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
       let toolbar   = document.getElementById(studyHighlightToolbarId);
       let container = document.getElementById(studyHighlightContainerId);
-      let applyBtn  = document.getElementById(studyHighlightApplyBtnId);
 
       // Toolbar with color buttons
       if (!toolbar) {
@@ -5997,65 +5995,6 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           group.appendChild(content);
           container.appendChild(group);
         });
-      }
-
-      // Floating "Highlight selection" button (works on touch + desktop)
-      if (!applyBtn) {
-        applyBtn = document.createElement("button");
-        applyBtn.id = studyHighlightApplyBtnId;
-        applyBtn.type = "button";
-        applyBtn.textContent = "Highlight selection";
-        applyBtn.style.marginTop = "6px";
-        applyBtn.style.alignSelf = "flex-start";
-        applyBtn.style.fontSize = "11px";
-        applyBtn.style.padding = "4px 10px";
-        applyBtn.style.borderRadius = "999px";
-        applyBtn.style.border = "1px solid rgba(148,163,184,0.9)";
-        applyBtn.style.background = "var(--card-bg, rgba(15,23,42,0.85))";
-        applyBtn.style.display = "none"; // only visible when there is a selection
-        applyBtn.style.cursor = "pointer";
-
-        // small color dot inside the button
-        const dot = document.createElement("span");
-        dot.style.display = "inline-block";
-        dot.style.width = "8px";
-        dot.style.height = "8px";
-        dot.style.borderRadius = "999px";
-        dot.style.marginLeft = "6px";
-        dot.id = studyHighlightApplyBtnId + "-dot";
-
-        const cfg = getColorConfig(currentStudyColorKey) || STUDY_HIGHLIGHT_COLORS[0];
-        dot.style.backgroundColor = cfg.lightBg.replace(/, ?0\.\d+\)/, ", 1)");
-
-        applyBtn.appendChild(dot);
-
-        applyBtn.addEventListener("click", function () {
-          applySelectionHighlight();
-        });
-
-        const toolbarEl = document.getElementById(studyHighlightToolbarId);
-        if (toolbarEl) {
-          if (toolbarEl.nextSibling) {
-            toolbarEl.parentNode.insertBefore(applyBtn, toolbarEl.nextSibling);
-          } else {
-            toolbarEl.parentNode.appendChild(applyBtn);
-          }
-        } else {
-          studyResult.parentNode.appendChild(applyBtn);
-        }
-
-        // Update dot color when currentStudyColorKey changes (via toolbar buttons)
-        const originalSetColor = currentStudyColorKey;
-        // We don't override the logic; instead we update the dot in a MutationObserver on toolbar:
-        const toolbarObserver = new MutationObserver(() => {
-          const dotEl = document.getElementById(studyHighlightApplyBtnId + "-dot");
-          if (!dotEl) return;
-          const cfgNow = getColorConfig(currentStudyColorKey) || STUDY_HIGHLIGHT_COLORS[0];
-          dotEl.style.backgroundColor = cfgNow.lightBg.replace(/, ?0\.\d+\)/, ", 1)");
-        });
-        if (toolbarEl) {
-          toolbarObserver.observe(toolbarEl, { attributes: true, subtree: true });
-        }
       }
     }
 
@@ -6129,9 +6068,14 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       return range;
     }
 
-    let suppressSelectionChange = false;
+    function highlightCurrentSelection(ev) {
+      const toolbar   = document.getElementById(studyHighlightToolbarId);
+      const container = document.getElementById(studyHighlightContainerId);
 
-    function applySelectionHighlight() {
+      // ignore interaction in toolbar or highlight container
+      if (toolbar && toolbar.contains(ev.target)) return;
+      if (container && container.contains(ev.target)) return;
+
       const range = getSelectionRangeWithinStudy();
       if (!range) return;
 
@@ -6146,14 +6090,10 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       applyHighlightStylesToSpan(span);
 
       try {
-        suppressSelectionChange = true;
         range.surroundContents(span);
       } catch (e) {
-        suppressSelectionChange = false;
         // If selection crosses complex DOM boundaries, skip
         return;
-      } finally {
-        suppressSelectionChange = false;
       }
 
       // store clean text in grouped div
@@ -6164,27 +6104,25 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       if (sel && sel.removeAllRanges) {
         sel.removeAllRanges();
       }
-
-      // hide "Highlight selection" button until next selection
-      const applyBtn = document.getElementById(studyHighlightApplyBtnId);
-      if (applyBtn) {
-        applyBtn.style.display = "none";
-      }
     }
 
-    // Show / hide the "Highlight selection" button based on active selection
-    document.addEventListener("selectionchange", function () {
-      if (suppressSelectionChange) return;
+    // Desktop + mobile support:
+    // Listen on the whole document so it works even when touch selection
+    // doesn't fire events directly on #studyResult.
+    let lastTouchTime = 0;
 
-      const applyBtn = document.getElementById(studyHighlightApplyBtnId);
-      if (!applyBtn) return;
+    document.addEventListener("touchend", function (ev) {
+      lastTouchTime = Date.now();
+      // small timeout to make sure selection is finalized on mobile
+      setTimeout(function () {
+        highlightCurrentSelection(ev);
+      }, 80);
+    });
 
-      const range = getSelectionRangeWithinStudy();
-      if (range) {
-        applyBtn.style.display = "inline-flex";
-      } else {
-        applyBtn.style.display = "none";
-      }
+    document.addEventListener("mouseup", function (ev) {
+      // ignore mouseup that immediately follows a touch (mobile browsers)
+      if (Date.now() - lastTouchTime < 350) return;
+      highlightCurrentSelection(ev);
     });
 
     // init Study highlight UI
@@ -6196,461 +6134,446 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
 
 
-<!-- BLOCK STUDY: Neon highlighting + grouped snippets for Study tool (desktop + mobile) -->
+
+<!--Saving -->
+<!-- BLOCK TOOL STATE: Persist data + settings for all tools -->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    const studyResult = document.getElementById("studyResult");
-    if (!studyResult) return;
-
-    // 5 NEON HIGHLIGHTER COLORS (easily tweakable)
-    // Use lightBg / darkBg RGBA so opacity is easy to change.
-    // lightText / darkText can override text color if needed ("" = keep default).
-    const STUDY_HIGHLIGHT_COLORS = [
-      {
-        key: "yellow",
-        label: "Yellow",
-        lightBg: "rgba(250, 204, 21, 0.35)", // neon-ish yellow
-        darkBg: "rgba(234, 179, 8, 0.45)",
-        lightText: "",
-        darkText: ""
-      },
-      {
-        key: "blue",
-        label: "Blue",
-        lightBg: "rgba(56, 189, 248, 0.35)", // bright cyan-blue
-        darkBg: "rgba(56, 189, 248, 0.45)",
-        lightText: "",
-        darkText: ""
-      },
-      {
-        key: "green",
-        label: "Green",
-        lightBg: "rgba(74, 222, 128, 0.35)", // neon green
-        darkBg: "rgba(34, 197, 94, 0.45)",
-        lightText: "",
-        darkText: ""
-      },
-      {
-        key: "pink",
-        label: "Pink",
-        lightBg: "rgba(244, 114, 182, 0.35)", // hot pink
-        darkBg: "rgba(236, 72, 153, 0.45)",
-        lightText: "",
-        darkText: ""
-      },
-      {
-        key: "purple",
-        label: "Purple",
-        lightBg: "rgba(168, 85, 247, 0.35)", // neon purple
-        darkBg: "rgba(129, 56, 231, 0.45)",
-        lightText: "",
-        darkText: ""
-      }
-    ];
-
-    const studyHighlightToolbarId   = "studyHighlightToolbar";
-    const studyHighlightContainerId = "studyHighlightContainer";
-    const studyHighlightApplyBtnId  = "studyHighlightApplyBtn";
-
-    let currentStudyColorKey = STUDY_HIGHLIGHT_COLORS[0].key;
-    const studyHighlightsByColor = {};
-    STUDY_HIGHLIGHT_COLORS.forEach((cfg) => {
-      studyHighlightsByColor[cfg.key] = [];
-    });
-
-    function getTheme() {
-      return document.documentElement.getAttribute("data-theme") || "dark";
-    }
-
-    function getColorConfig(key) {
-      return STUDY_HIGHLIGHT_COLORS.find((c) => c.key === key);
-    }
-
-    function applyHighlightStylesToSpan(span) {
-      if (!span || !span.dataset) return;
-      const cfg = getColorConfig(span.dataset.colorKey);
-      if (!cfg) return;
-      const theme = getTheme();
-      const bg = theme === "light" ? cfg.lightBg : cfg.darkBg;
-      const textColor = theme === "light" ? cfg.lightText : cfg.darkText;
-
-      span.style.backgroundColor = bg;
-      span.style.borderRadius = "3px";
-      span.style.padding = "0 2px";
-
-      if (textColor) {
-        span.style.color = textColor; // override text color if configured
-      } else {
-        span.style.removeProperty("color"); // keep default (e.g. white in dark theme)
-      }
-    }
-
-    function updateAllStudyHighlightSpans() {
-      const spans = document.querySelectorAll(".study-highlight-token");
-      spans.forEach(applyHighlightStylesToSpan);
-    }
-
-    // Watch for theme changes so highlights match dark/light themes
-    (function watchThemeForStudyHighlights() {
-      if (typeof MutationObserver !== "function") return;
-      const obs = new MutationObserver((mutations) => {
-        for (const m of mutations) {
-          if (
-            m.type === "attributes" &&
-            m.attributeName === "data-theme"
-          ) {
-            updateAllStudyHighlightSpans();
-            break;
-          }
-        }
-      });
-      obs.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ["data-theme"]
-      });
-    })();
-
-    // Build toolbar + grouped highlight container under #studyResult
-    function ensureStudyHighlightUI() {
-      if (!studyResult || !studyResult.parentNode) return;
-
-      let toolbar   = document.getElementById(studyHighlightToolbarId);
-      let container = document.getElementById(studyHighlightContainerId);
-      let applyBtn  = document.getElementById(studyHighlightApplyBtnId);
-
-      // Toolbar with color buttons
-      if (!toolbar) {
-        toolbar = document.createElement("div");
-        toolbar.id = studyHighlightToolbarId;
-        toolbar.style.display = "flex";
-        toolbar.style.flexWrap = "wrap";
-        toolbar.style.gap = "6px";
-        toolbar.style.marginTop = "8px";
-        toolbar.style.marginBottom = "8px";
-        toolbar.style.alignItems = "center";
-
-        const label = document.createElement("span");
-        label.textContent = "Highlight color:";
-        label.style.fontSize = "12px";
-        label.style.opacity = "0.8";
-        toolbar.appendChild(label);
-
-        STUDY_HIGHLIGHT_COLORS.forEach((cfg) => {
-          const btn = document.createElement("button");
-          btn.type = "button";
-          btn.textContent = cfg.label;
-          btn.dataset.colorKey = cfg.key;
-          btn.style.borderRadius = "999px";
-          btn.style.fontSize = "11px";
-          btn.style.padding = "4px 8px";
-          btn.style.border = "1px solid rgba(148,163,184,0.8)";
-          btn.style.display = "inline-flex";
-          btn.style.alignItems = "center";
-          btn.style.gap = "4px";
-          btn.style.cursor = "pointer";
-          btn.style.background = "transparent";
-
-          const dot = document.createElement("span");
-          dot.style.width = "10px";
-          dot.style.height = "10px";
-          dot.style.borderRadius = "999px";
-          // use lightBg color for the dot (full opacity)
-          dot.style.backgroundColor = cfg.lightBg.replace(/, ?0\.\d+\)/, ", 1)");
-
-          btn.appendChild(dot);
-
-          btn.addEventListener("click", () => {
-            currentStudyColorKey = cfg.key;
-            Array.from(toolbar.querySelectorAll("button[data-color-key]")).forEach((b) => {
-              if (b.dataset.colorKey === currentStudyColorKey) {
-                b.style.boxShadow = "0 0 0 2px rgba(59,130,246,0.8)";
-              } else {
-                b.style.boxShadow = "none";
-              }
-            });
-
-            // update apply button dot color if it exists
-            const dotEl = document.getElementById(studyHighlightApplyBtnId + "-dot");
-            if (dotEl) {
-              const cfgNow = getColorConfig(currentStudyColorKey) || STUDY_HIGHLIGHT_COLORS[0];
-              dotEl.style.backgroundColor = cfgNow.lightBg.replace(/, ?0\.\d+\)/, ", 1)");
-            }
-          });
-
-          toolbar.appendChild(btn);
-        });
-
-        // mark first active
-        setTimeout(() => {
-          const firstBtn = toolbar.querySelector(
-            'button[data-color-key="' + currentStudyColorKey + '"]'
-          );
-          if (firstBtn) {
-            firstBtn.style.boxShadow = "0 0 0 2px rgba(59,130,246,0.8)";
-          }
-        }, 0);
-
-        // insert toolbar right after studyResult
-        if (studyResult.nextSibling) {
-          studyResult.parentNode.insertBefore(toolbar, studyResult.nextSibling);
-        } else {
-          studyResult.parentNode.appendChild(toolbar);
-        }
-      }
-
-      // Container for grouped highlights
-      if (!container) {
-        container = document.createElement("div");
-        container.id = studyHighlightContainerId;
-        container.style.marginTop = "8px";
-        container.style.display = "none"; // hidden until we have at least one highlight
-        container.style.flexDirection = "column";
-        container.style.gap = "8px";
-
-        const toolbarEl = document.getElementById(studyHighlightToolbarId);
-        if (toolbarEl && toolbarEl.nextSibling) {
-          toolbarEl.parentNode.insertBefore(container, toolbarEl.nextSibling);
-        } else if (toolbarEl) {
-          toolbarEl.parentNode.appendChild(container);
-        }
-
-        // build groups (one per color)
-        STUDY_HIGHLIGHT_COLORS.forEach((cfg) => {
-          const group = document.createElement("div");
-          group.className = "study-highlight-group";
-          group.dataset.colorKey = cfg.key;
-          group.style.borderRadius = "8px";
-          group.style.padding = "6px 8px";
-          group.style.display = "none"; // hide until this color has items
-          group.style.gap = "8px";
-          group.style.alignItems = "stretch";
-          group.style.border = "1px solid rgba(148,163,184,0.5)";
-
-          // vertical color strip ONLY
-          const strip = document.createElement("div");
-          strip.style.width = "4px";
-          strip.style.borderRadius = "999px";
-          strip.style.alignSelf = "stretch";
-          // solid color strip, use full-opacity variant of darkBg for punch
-          const base = cfg.darkBg || cfg.lightBg;
-          strip.style.backgroundColor = base.replace(/, ?0\.\d+\)/, ", 1)");
-
-          const content = document.createElement("div");
-          content.style.flex = "1";
-          content.style.display = "flex";
-          content.style.flexDirection = "column";
-
-          const list = document.createElement("ul");
-          list.className = "study-highlight-list";
-          list.style.listStyle = "none";
-          list.style.paddingLeft = "0";
-          list.style.margin = "0";
-          list.style.fontSize = "12px";
-          list.style.display = "flex";
-          list.style.flexDirection = "column";
-          list.style.gap = "2px";
-
-          content.appendChild(list);
-          group.appendChild(strip);
-          group.appendChild(content);
-          container.appendChild(group);
-        });
-      }
-
-      // "Highlight selection" button (works on touch + desktop, but does NOT steal selection)
-      if (!applyBtn) {
-        applyBtn = document.createElement("button");
-        applyBtn.id = studyHighlightApplyBtnId;
-        applyBtn.type = "button";
-        applyBtn.textContent = "Highlight selection";
-        applyBtn.style.marginTop = "6px";
-        applyBtn.style.alignSelf = "flex-start";
-        applyBtn.style.fontSize = "11px";
-        applyBtn.style.padding = "4px 10px";
-        applyBtn.style.borderRadius = "999px";
-        applyBtn.style.border = "1px solid rgba(148,163,184,0.9)";
-        applyBtn.style.background = "var(--card-bg, rgba(15,23,42,0.85))";
-        applyBtn.style.display = "none"; // only visible when there is a selection
-        applyBtn.style.cursor = "pointer";
-
-        const dot = document.createElement("span");
-        dot.id = studyHighlightApplyBtnId + "-dot";
-        dot.style.display = "inline-block";
-        dot.style.width = "8px";
-        dot.style.height = "8px";
-        dot.style.borderRadius = "999px";
-        dot.style.marginLeft = "6px";
-        const cfg = getColorConfig(currentStudyColorKey) || STUDY_HIGHLIGHT_COLORS[0];
-        dot.style.backgroundColor = cfg.lightBg.replace(/, ?0\.\d+\)/, ", 1)");
-        applyBtn.appendChild(dot);
-
-        // Use mousedown/touchstart so we don't lose selection before we highlight
-        function onApplyActivate(e) {
-          e.preventDefault(); // stop focus/selection change
-          applySelectionHighlight();
-        }
-
-        applyBtn.addEventListener("mousedown", onApplyActivate);
-        applyBtn.addEventListener("touchstart", onApplyActivate);
-
-        const toolbarEl = document.getElementById(studyHighlightToolbarId);
-        if (toolbarEl) {
-          if (toolbarEl.nextSibling) {
-            toolbarEl.parentNode.insertBefore(applyBtn, toolbarEl.nextSibling);
-          } else {
-            toolbarEl.parentNode.appendChild(applyBtn);
-          }
-        } else {
-          studyResult.parentNode.appendChild(applyBtn);
-        }
-      }
-    }
-
-    function refreshStudyHighlightsUI() {
-      const container = document.getElementById(studyHighlightContainerId);
-      if (!container) return;
-
-      let totalItems = 0;
-
-      STUDY_HIGHLIGHT_COLORS.forEach((cfg) => {
-        const group = container.querySelector(
-          '.study-highlight-group[data-color-key="' + cfg.key + '"]'
-        );
-        if (!group) return;
-        const list = group.querySelector(".study-highlight-list");
-        if (!list) return;
-        list.innerHTML = "";
-        const items = studyHighlightsByColor[cfg.key] || [];
-        totalItems += items.length;
-
-        if (items.length === 0) {
-          group.style.display = "none";
-        } else {
-          group.style.display = "flex";
-        }
-
-        items.forEach((text) => {
-          const li = document.createElement("li");
-          li.textContent = text;
-          list.appendChild(li);
-        });
-      });
-
-      if (totalItems === 0) {
-        container.style.display = "none";
-      } else {
-        container.style.display = "flex";
-      }
-    }
-
-    function addStudyHighlight(colorKey, text) {
-      const trimmed = (text || "").trim();
-      if (!trimmed) return;
-      if (!studyHighlightsByColor[colorKey]) {
-        studyHighlightsByColor[colorKey] = [];
-      }
-      studyHighlightsByColor[colorKey].push(trimmed);
-      refreshStudyHighlightsUI();
-    }
-
-    // track last selection inside studyResult so button works even on touch
-    let lastStudySelectionRange = null;
-    let lastStudySelectionText  = "";
-    let suppressSelectionChange = false;
-
-    function selectionIsInsideStudy(range) {
-      if (!range) return false;
-      let container = range.commonAncestorContainer;
-      while (container) {
-        if (container === studyResult) return true;
-        container = container.parentNode;
-      }
-      return false;
-    }
-
-    function updateApplyButtonVisibility() {
-      const applyBtn = document.getElementById(studyHighlightApplyBtnId);
-      if (!applyBtn) return;
-      if (lastStudySelectionRange && lastStudySelectionText.trim()) {
-        applyBtn.style.display = "inline-flex";
-      } else {
-        applyBtn.style.display = "none";
-      }
-    }
-
-    document.addEventListener("selectionchange", function () {
-      if (suppressSelectionChange) return;
-
-      const sel = window.getSelection();
-      if (!sel || sel.rangeCount === 0) {
-        lastStudySelectionRange = null;
-        lastStudySelectionText  = "";
-        updateApplyButtonVisibility();
-        return;
-      }
-
-      const range = sel.getRangeAt(0);
-      if (!range || range.collapsed || !selectionIsInsideStudy(range)) {
-        lastStudySelectionRange = null;
-        lastStudySelectionText  = "";
-        updateApplyButtonVisibility();
-        return;
-      }
-
-      lastStudySelectionRange = range.cloneRange(); // keep a copy
-      lastStudySelectionText  = range.toString();
-      updateApplyButtonVisibility();
-    });
-
-    function applySelectionHighlight() {
-      if (!lastStudySelectionRange || !lastStudySelectionText.trim()) return;
-
-      const range = lastStudySelectionRange;
-      const selectedText = lastStudySelectionText.trim();
-
-      const doc = document;
-      const span = doc.createElement("span");
-      span.className = "study-highlight-token";
-      span.dataset.colorKey = currentStudyColorKey;
-
-      applyHighlightStylesToSpan(span);
-
+    // --------- helpers ---------
+    function saveToolState(key, value) {
       try {
-        suppressSelectionChange = true;
-        range.surroundContents(span);
+        localStorage.setItem(key, value);
       } catch (e) {
-        suppressSelectionChange = false;
-        return;
-      } finally {
-        suppressSelectionChange = false;
+        // ignore
       }
-
-      addStudyHighlight(currentStudyColorKey, selectedText);
-
-      // clear actual selection
-      const sel = window.getSelection();
-      if (sel && sel.removeAllRanges) {
-        sel.removeAllRanges();
-      }
-
-      // reset saved selection + hide button
-      lastStudySelectionRange = null;
-      lastStudySelectionText  = "";
-      updateApplyButtonVisibility();
     }
 
-    // init Study highlight UI
-    ensureStudyHighlightUI();
+    function loadToolState(key) {
+      try {
+        const v = localStorage.getItem(key);
+        return v === null ? null : v;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function clearToolState(key) {
+      try {
+        localStorage.removeItem(key);
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    function setupInputPersistence(el, storageKey) {
+      if (!el) return;
+      const saved = loadToolState(storageKey);
+      if (saved !== null) {
+        el.value = saved;
+        if (window.autoResizeTextarea && el.tagName === "TEXTAREA") {
+          window.autoResizeTextarea(el);
+        }
+      }
+      el.addEventListener("input", () => {
+        saveToolState(storageKey, el.value);
+      });
+    }
+
+    function setupResultPersistence(el, storageKey) {
+      if (!el) return;
+      const saved = loadToolState(storageKey);
+      if (saved !== null) {
+        el.innerHTML = saved;
+      }
+      const observer = new MutationObserver(() => {
+        // don't persist temporary "Thinking..." animation states
+        if (el.dataset && el.dataset.loadingIntervalId) return;
+        saveToolState(storageKey, el.innerHTML);
+      });
+      observer.observe(el, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
+    }
+
+    // --------- SNAP main text + subject + extra instructions ---------
+    const snapText = document.getElementById("snapText");
+    setupInputPersistence(snapText, "studyai-snap-text");
+
+    const saveSubjectInput = document.getElementById("saveSubjectInput");
+    setupInputPersistence(saveSubjectInput, "studyai-save-subject");
+
+    // extra instructions input (whichever ID exists)
+    const extraInput =
+      document.getElementById("extraInstructionsInput") ||
+      document.getElementById("extraInstructions") ||
+      document.getElementById("extraPrompt");
+    setupInputPersistence(extraInput, "studyai-extra-instructions");
+
+    // --------- SNAP result ---------
+    const snapResult = document.getElementById("snapResult");
+    setupResultPersistence(snapResult, "studyai-snap-result");
+
+    // --------- SOLVE tool (if present) ---------
+    const solveInput  = document.getElementById("solveInput");
+    const solveResult = document.getElementById("solveResult");
+    setupInputPersistence(solveInput, "studyai-solve-input");
+    setupResultPersistence(solveResult, "studyai-solve-result");
+
+    // --------- MATH tool ---------
+    const mathInput    = document.getElementById("mathInput");
+    const mathResult   = document.getElementById("mathResult");
+    const mathClearBtn = document.getElementById("mathClearBtn");
+
+    setupInputPersistence(mathInput, "studyai-math-input");
+    setupResultPersistence(mathResult, "studyai-math-result");
+
+    if (mathClearBtn) {
+      mathClearBtn.addEventListener("click", () => {
+        clearToolState("studyai-math-result");
+      });
+    }
+
+    // --------- STUDY tool ---------
+    const studyInput    = document.getElementById("studyInput");
+    const studyResult   = document.getElementById("studyResult");
+    const studyClearBtn = document.getElementById("studyClearBtn");
+
+    setupInputPersistence(studyInput, "studyai-study-input");
+    setupResultPersistence(studyResult, "studyai-study-result");
+
+    if (studyClearBtn) {
+      studyClearBtn.addEventListener("click", () => {
+        clearToolState("studyai-study-result");
+      });
+    }
+
+    // --------- ESSAY tool ---------
+    const essayInput    = document.getElementById("essayInput");
+    const essayResult   = document.getElementById("essayResult");
+    const essayClearBtn = document.getElementById("essayClearBtn");
+
+    setupInputPersistence(essayInput, "studyai-essay-input");
+    setupResultPersistence(essayResult, "studyai-essay-result");
+
+    if (essayClearBtn) {
+      essayClearBtn.addEventListener("click", () => {
+        clearToolState("studyai-essay-result");
+      });
+    }
+
+    // --------- FLASHCARDS extra UI state (cardsResult) ---------
+    // (Flashcard deck + progress are already persisted in BLOCK 7)
+    const cardsResult   = document.getElementById("cardsResult");
+    const cardsClearBtn = document.getElementById("cardsClearBtn");
+    setupResultPersistence(cardsResult, "studyai-cards-result");
+
+    if (cardsClearBtn) {
+      // "Reset" currently resets card progress; also clear the saved raw output
+      cardsClearBtn.addEventListener("click", () => {
+        clearToolState("studyai-cards-result");
+      });
+    }
+
+    // --------- SNAP Clear: wipe main tool state when user clears ---------
+    const snapClearBtn = document.getElementById("snapClearBtn");
+    if (snapClearBtn) {
+      snapClearBtn.addEventListener("click", () => {
+        clearToolState("studyai-snap-text");
+        clearToolState("studyai-snap-result");
+        clearToolState("studyai-save-subject");
+        // keep extra instructions unless you want them cleared too:
+        // clearToolState("studyai-extra-instructions");
+      });
+    }
+
+    // --------- ACTIVE TAB persistence (which tool was open) ---------
+    if (typeof window.activateTab === "function") {
+      const originalActivateTab = window.activateTab;
+      window.activateTab = function (tabId) {
+        saveToolState("studyai-active-tab", tabId);
+        return originalActivateTab.apply(this, arguments);
+      };
+
+      const savedTab = loadToolState("studyai-active-tab");
+      if (savedTab) {
+        try {
+          originalActivateTab(savedTab);
+        } catch (e) {
+          // ignore if tab doesn't exist anymore
+        }
+      }
+    }
   });
 </script>
 
 
+<!-- Supabase client library (from CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<!-- PassingGrade auth setup (Supabase) -->
+<!-- PassingGrade auth setup (Supabase) -->
+<script>
+  const SUPABASE_URL = "https://rwjijfffirbpmkhcptrb.supabase.co";
+  const SUPABASE_ANON_KEY =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3amlqZmZmaXJicG1raGNwdHJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwMzYxNDgsImV4cCI6MjA4MDYxMjE0OH0.Lfv2HGMbdyyjF_SUA-7rWWN5XpvaLX8I36-upjH8_nQ";
 
+  // Create a single Supabase client for the page
+  const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
+  window.supabaseClient = supabaseClient;
 
+  // Test helper (manual)
+  async function testIncrementUsage() {
+    const { error } = await supabaseClient.rpc("increment_usage", {
+      p_action: "ocr",
+      p_amount: 1,
+    });
 
+    if (error) {
+      console.error("increment_usage failed", error);
+    } else {
+      console.log("increment_usage succeeded");
+    }
+  }
 
+  // Read current OCR usage for the logged-in user (console helper)
+  async function showCurrentUsage() {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabaseClient.auth.getUser();
 
+    if (userError || !user) {
+      console.error("no logged-in user", userError);
+      return;
+    }
+
+    // First day of this month (dynamic)
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const periodStart = `${now.getFullYear()}-${month}-01`;
+
+    const { data, error } = await supabaseClient
+      .from("usage_counters")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("period_start", periodStart)
+      .eq("action", "ocr")
+      .maybeSingle();
+
+    if (error) {
+      console.error("error reading usage", error);
+    } else {
+      console.log("current usage row:", data);
+    }
+  }
+
+  // --- handle OAuth tokens in URL (hash OR query) ---
+  async function handleAuthFromUrl() {
+    // Supabase / Google might put tokens in the hash (#...) or query (?...).
+    const raw = window.location.hash || window.location.search || "";
+    if (!raw) return;
+
+    const qs = raw.replace(/^[#?]/, "");
+    const params = new URLSearchParams(qs);
+    const accessToken = params.get("access_token");
+    const refreshToken = params.get("refresh_token");
+
+    if (!accessToken || !refreshToken) return;
+
+    try {
+      await supabaseClient.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+
+      // Clean the URL (remove tokens from address bar)
+      window.history.replaceState(
+        {},
+        document.title,
+        window.location.pathname + window.location.search
+      );
+    } catch (err) {
+      console.error("Error setting session from OAuth redirect:", err);
+    }
+  }
+
+  // Internal helper to read a specific user's plan (by USER_ID now)
+  async function fetchUserPlan(userId) {
+    try {
+      const { data, error } = await supabaseClient
+        .from("user_plans")
+        .select("plan")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error("error loading user plan", error);
+        return "free";
+      }
+
+      return data?.plan || "free";
+    } catch (e) {
+      console.error("fetchUserPlan exception", e);
+      return "free";
+    }
+  }
+
+  // Simple helper to update the header status text + button label
+  async function updateAuthUI() {
+    const userPlanLabel = document.getElementById("userPlanLabel");
+    const authButton = document.getElementById("authButton");
+
+    if (!userPlanLabel || !authButton) return;
+
+    // Check if user is logged in
+    const { data, error } = await supabaseClient.auth.getUser();
+
+    // Not logged in
+    if (error || !data.user) {
+      // 🔹 Read guest usage from the same localStorage key the limiter uses
+      let anonUses = 0;
+      try {
+        const raw = localStorage.getItem("passinggrade-anon-uses");
+        anonUses = raw ? parseInt(raw, 10) || 0 : 0;
+      } catch (e) {
+        anonUses = 0;
+      }
+      const limit = 10;
+
+      userPlanLabel.textContent =
+        `Guest · ${anonUses}/${limit} free OCR scans`;
+
+      authButton.textContent = "Sign in";
+      authButton.dataset.authState = "signed-out";
+      return;
+    }
+
+    const user = data.user;
+    const email = user.email || "";
+    const namePart = email.split("@")[0] || "your account";
+
+    // Read plan from user_plans (free / pro) BY USER_ID
+    const plan = await fetchUserPlan(user.id);
+    const isPro = plan === "pro";
+
+    let usageText = "";
+
+    try {
+      // Same month logic as limiter: YYYY-MM-01
+      const now = new Date();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const periodStart = `${now.getFullYear()}-${month}-01`;
+
+      // Read this month's OCR usage row
+      const { data: row, error: usageError } = await supabaseClient
+        .from("usage_counters")
+        .select("count")
+        .eq("user_id", user.id)
+        .eq("period_start", periodStart)
+        .eq("action", "ocr")
+        .maybeSingle();
+
+      if (usageError) {
+        console.error("usage label read error", usageError);
+      }
+
+      const currentCount = row?.count || 0;
+
+      if (isPro) {
+        // Pro: no /10 cap
+        usageText = ` · ${currentCount} uses this month`;
+      } else {
+        // Free: show count out of 10
+        usageText = ` · ${currentCount}/10 uses this month`;
+      }
+    } catch (e) {
+      console.error("usage label exception", e);
+    }
+
+    // Build label: no "Pro plan" text for Pro users
+    let label = `signed in as ${namePart}`;
+    if (!isPro) {
+      label = `Free plan · ${label}`;
+    }
+
+    userPlanLabel.textContent = `${label}${usageText}`;
+    authButton.textContent = "Sign out";
+    authButton.dataset.authState = "signed-in";
+  }
+
+  // Handle click on the auth button (Sign in / Sign out) – GOOGLE OAUTH
+  async function handleAuthButtonClick() {
+    const authButton = document.getElementById("authButton");
+    if (!authButton) return;
+
+    const state = authButton.dataset.authState || "signed-out";
+
+    if (state === "signed-in") {
+      // Sign out
+      await supabaseClient.auth.signOut();
+      await updateAuthUI();
+      alert("Signed out.");
+      return;
+    }
+
+    // Signed out → Google OAuth sign-in
+    try {
+      const { error } = await supabaseClient.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          // Must match your Supabase Auth "Site URL"
+          redirectTo: "https://passinggrade.app",
+        },
+      });
+
+      if (error) {
+        console.error("Google sign-in error:", error);
+        alert("Error starting Google sign-in. Please try again.");
+        return;
+      }
+    } catch (err) {
+      console.error("OAuth error:", err);
+      alert("Error starting sign-in. Please try again.");
+    }
+  }
+
+  // Wire things up once the DOM is ready
+  document.addEventListener("DOMContentLoaded", async () => {
+    // 1) If we just came back from Google/Supabase, set the session
+    await handleAuthFromUrl();
+
+    // 2) Wire the button
+    const authButton = document.getElementById("authButton");
+    if (authButton) {
+      authButton.addEventListener("click", handleAuthButtonClick);
+    }
+
+    // 3) Update header (will now see the session if it was set)
+    updateAuthUI();
+  });
+
+  // Global helper: check the current logged-in user's plan (free/pro)
+  window.getCurrentUserPlan = async function () {
+    try {
+      const { data, error } = await supabaseClient.auth.getUser();
+      if (error || !data.user) {
+        console.warn("no logged-in user for getCurrentUserPlan", error);
+        return null;
+      }
+
+      const user = data.user;
+      return await fetchUserPlan(user.id);
+    } catch (e) {
+      console.error("getCurrentUserPlan exception", e);
+      return "free";
+    }
+  };
+</script>
 
 <script>
   document.addEventListener("DOMContentLoaded", () => {
