@@ -1850,6 +1850,35 @@ padding: 8px;
     gap: 0.25rem;
   }
 }
+/* Mobile styles for Study highlighter toolbar */
+@media (max-width: 640px) {
+  /* Keep everything in ONE row, allow horizontal scroll instead of wrapping */
+  #studyHighlightToolbar {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    justify-content: flex-end; /* still right-aligned */
+  }
+
+  /* Hide the word "Highlight color:" on mobile */
+  #studyHighlightToolbar .study-highlight-label {
+    display: none;
+  }
+
+  /* Make color buttons narrower so they don't wrap */
+  #studyHighlightToolbar button[data-color-key] {
+    padding: 2px 6px !important;
+    font-size: 10px !important;
+    gap: 2px !important;
+    white-space: nowrap;
+    flex: 0 0 auto; /* don't shrink awkwardly */
+  }
+
+  /* Optional: slightly smaller dots */
+  #studyHighlightToolbar button[data-color-key] span {
+    width: 8px;
+    height: 8px;
+  }
+}
 
 
 </style>
@@ -5851,9 +5880,9 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       });
     })();
 
-    // Build toolbar + grouped highlight container under #studyResult
+    // Build toolbar + grouped highlight container under/inside #studyResult
     function ensureStudyHighlightUI() {
-      if (!studyResult || !studyResult.parentNode) return;
+      if (!studyResult) return;
 
       let toolbar   = document.getElementById(studyHighlightToolbarId);
       let container = document.getElementById(studyHighlightContainerId);
@@ -5869,16 +5898,20 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
         toolbar.style.marginBottom = "8px";
         toolbar.style.alignItems = "center";
 
-        // make it stick at the top of the area it's in
+        // RIGHT align
+        toolbar.style.justifyContent = "flex-end";
+
+        // sticky with your offsets
         toolbar.style.position = "sticky";
-        toolbar.style.top = "70px";
+        toolbar.style.top = "55px";
         toolbar.style.zIndex = "10";
         toolbar.style.background = "var(--card-bg, rgba(15,23,42,0.95))";
-        toolbar.style.paddingTop = "4px";
-        toolbar.style.paddingBottom = "4px";
+        toolbar.style.paddingTop = "20px";
+        toolbar.style.paddingBottom = "20px";
 
         const label = document.createElement("span");
         label.textContent = "Highlight color:";
+        label.className = "study-highlight-label"; // for mobile hiding
         label.style.fontSize = "12px";
         label.style.opacity = "0.8";
         toolbar.appendChild(label);
@@ -5937,8 +5970,12 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           }
         }, 0);
 
-        // *** key change: put toolbar right BEFORE studyResult so it's at top of that block ***
-        studyResult.parentNode.insertBefore(toolbar, studyResult);
+        // insert toolbar at the TOP INSIDE the studyResult div
+        if (studyResult.firstChild) {
+          studyResult.insertBefore(toolbar, studyResult.firstChild);
+        } else {
+          studyResult.appendChild(toolbar);
+        }
       }
 
       // Container for grouped highlights
@@ -6043,7 +6080,8 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
             toolbarEl.parentNode.appendChild(applyBtn);
           }
         } else {
-          studyResult.parentNode.appendChild(applyBtn);
+          // Fallback just in case
+          studyResult.appendChild(applyBtn);
         }
       }
     }
@@ -6159,7 +6197,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       try {
         suppressSelectionChange = true;
 
-        // *** This is the critical change: wrap the WHOLE fragment, not just simple text nodes ***
+        // wrap the WHOLE fragment, not just simple text nodes
         const extracted = range.extractContents(); // can span multiple text nodes / elements
         span.appendChild(extracted);
         range.insertNode(span);
