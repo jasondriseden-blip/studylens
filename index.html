@@ -1516,11 +1516,11 @@ li {
   font-size: 1em;
 }
 /* Flashcard question text: black in light, white in dark */
-:root[data-theme="light"] #cardsFront.flashcard-question-light {
+:root[data-theme="light"] .pg-loop-pill-label, #cardsFront.flashcard-question-light {
   color: #000000;
 }
 
-:root[data-theme="dark"] #cardsFront.flashcard-question-dark {
+:root[data-theme="dark"] .pg-loop-pill-label,  #cardsFront.flashcard-question-dark {
   color: #ffffff;
 }
 
@@ -1670,8 +1670,8 @@ padding: 0.5rem 1rem;  border-radius: 999px;
   font-size: 0.8rem;
   line-height: 1.2;
   white-space: nowrap;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  background: var(--surface);
+border: 1px solid var(--outline);  
+background: var(--surface);
   cursor: default;
   user-select: none;
   color:#ff6c00;
