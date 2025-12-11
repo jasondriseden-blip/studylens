@@ -5744,6 +5744,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
 
 
+
 <!-- BLOCK STUDY: Neon highlighting + grouped snippets for Study tool (desktop + mobile) -->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
@@ -5946,10 +5947,11 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
         container.style.flexDirection = "column";
         container.style.gap = "8px";
 
-        if (toolbar.nextSibling) {
-          toolbar.parentNode.insertBefore(container, toolbar.nextSibling);
-        } else {
-          toolbar.parentNode.appendChild(container);
+        const toolbarEl = document.getElementById(studyHighlightToolbarId);
+        if (toolbarEl && toolbarEl.nextSibling) {
+          toolbarEl.parentNode.insertBefore(container, toolbarEl.nextSibling);
+        } else if (toolbarEl) {
+          toolbarEl.parentNode.appendChild(container);
         }
 
         // build groups (one per color)
@@ -6105,19 +6107,19 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     }
 
     // Desktop + mobile support:
-    // - mouseup for desktop
-    // - touchend for mobile (with guard to avoid double-firing from synthetic mouse events)
+    // Listen on the whole document so it works even when touch selection
+    // doesn't fire events directly on #studyResult.
     let lastTouchTime = 0;
 
-    studyResult.addEventListener("touchend", function (ev) {
+    document.addEventListener("touchend", function (ev) {
       lastTouchTime = Date.now();
       // small timeout to make sure selection is finalized on mobile
       setTimeout(function () {
         highlightCurrentSelection(ev);
-      }, 50);
+      }, 80);
     });
 
-    studyResult.addEventListener("mouseup", function (ev) {
+    document.addEventListener("mouseup", function (ev) {
       // ignore mouseup that immediately follows a touch (mobile browsers)
       if (Date.now() - lastTouchTime < 350) return;
       highlightCurrentSelection(ev);
@@ -6128,6 +6130,183 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
   });
 </script>
 
+
+
+
+
+
+<!--Saving -->
+<!-- BLOCK TOOL STATE: Persist data + settings for all tools -->
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // --------- helpers ---------
+    function saveToolState(key, value) {
+      try {
+        localStorage.setItem(key, value);
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    function loadToolState(key) {
+      try {
+        const v = localStorage.getItem(key);
+        return v === null ? null : v;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function clearToolState(key) {
+      try {
+        localStorage.removeItem(key);
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    function setupInputPersistence(el, storageKey) {
+      if (!el) return;
+      const saved = loadToolState(storageKey);
+      if (saved !== null) {
+        el.value = saved;
+        if (window.autoResizeTextarea && el.tagName === "TEXTAREA") {
+          window.autoResizeTextarea(el);
+        }
+      }
+      el.addEventListener("input", () => {
+        saveToolState(storageKey, el.value);
+      });
+    }
+
+    function setupResultPersistence(el, storageKey) {
+      if (!el) return;
+      const saved = loadToolState(storageKey);
+      if (saved !== null) {
+        el.innerHTML = saved;
+      }
+      const observer = new MutationObserver(() => {
+        // don't persist temporary "Thinking..." animation states
+        if (el.dataset && el.dataset.loadingIntervalId) return;
+        saveToolState(storageKey, el.innerHTML);
+      });
+      observer.observe(el, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
+    }
+
+    // --------- SNAP main text + subject + extra instructions ---------
+    const snapText = document.getElementById("snapText");
+    setupInputPersistence(snapText, "studyai-snap-text");
+
+    const saveSubjectInput = document.getElementById("saveSubjectInput");
+    setupInputPersistence(saveSubjectInput, "studyai-save-subject");
+
+    // extra instructions input (whichever ID exists)
+    const extraInput =
+      document.getElementById("extraInstructionsInput") ||
+      document.getElementById("extraInstructions") ||
+      document.getElementById("extraPrompt");
+    setupInputPersistence(extraInput, "studyai-extra-instructions");
+
+    // --------- SNAP result ---------
+    const snapResult = document.getElementById("snapResult");
+    setupResultPersistence(snapResult, "studyai-snap-result");
+
+    // --------- SOLVE tool (if present) ---------
+    const solveInput  = document.getElementById("solveInput");
+    const solveResult = document.getElementById("solveResult");
+    setupInputPersistence(solveInput, "studyai-solve-input");
+    setupResultPersistence(solveResult, "studyai-solve-result");
+
+    // --------- MATH tool ---------
+    const mathInput    = document.getElementById("mathInput");
+    const mathResult   = document.getElementById("mathResult");
+    const mathClearBtn = document.getElementById("mathClearBtn");
+
+    setupInputPersistence(mathInput, "studyai-math-input");
+    setupResultPersistence(mathResult, "studyai-math-result");
+
+    if (mathClearBtn) {
+      mathClearBtn.addEventListener("click", () => {
+        clearToolState("studyai-math-result");
+      });
+    }
+
+    // --------- STUDY tool ---------
+    const studyInput    = document.getElementById("studyInput");
+    const studyResult   = document.getElementById("studyResult");
+    const studyClearBtn = document.getElementById("studyClearBtn");
+
+    setupInputPersistence(studyInput, "studyai-study-input");
+    setupResultPersistence(studyResult, "studyai-study-result");
+
+    if (studyClearBtn) {
+      studyClearBtn.addEventListener("click", () => {
+        clearToolState("studyai-study-result");
+      });
+    }
+
+    // --------- ESSAY tool ---------
+    const essayInput    = document.getElementById("essayInput");
+    const essayResult   = document.getElementById("essayResult");
+    const essayClearBtn = document.getElementById("essayClearBtn");
+
+    setupInputPersistence(essayInput, "studyai-essay-input");
+    setupResultPersistence(essayResult, "studyai-essay-result");
+
+    if (essayClearBtn) {
+      essayClearBtn.addEventListener("click", () => {
+        clearToolState("studyai-essay-result");
+      });
+    }
+
+    // --------- FLASHCARDS extra UI state (cardsResult) ---------
+    // (Flashcard deck + progress are already persisted in BLOCK 7)
+    const cardsResult   = document.getElementById("cardsResult");
+    const cardsClearBtn = document.getElementById("cardsClearBtn");
+    setupResultPersistence(cardsResult, "studyai-cards-result");
+
+    if (cardsClearBtn) {
+      // "Reset" currently resets card progress; also clear the saved raw output
+      cardsClearBtn.addEventListener("click", () => {
+        clearToolState("studyai-cards-result");
+      });
+    }
+
+    // --------- SNAP Clear: wipe main tool state when user clears ---------
+    const snapClearBtn = document.getElementById("snapClearBtn");
+    if (snapClearBtn) {
+      snapClearBtn.addEventListener("click", () => {
+        clearToolState("studyai-snap-text");
+        clearToolState("studyai-snap-result");
+        clearToolState("studyai-save-subject");
+        // keep extra instructions unless you want them cleared too:
+        // clearToolState("studyai-extra-instructions");
+      });
+    }
+
+    // --------- ACTIVE TAB persistence (which tool was open) ---------
+    if (typeof window.activateTab === "function") {
+      const originalActivateTab = window.activateTab;
+      window.activateTab = function (tabId) {
+        saveToolState("studyai-active-tab", tabId);
+        return originalActivateTab.apply(this, arguments);
+      };
+
+      const savedTab = loadToolState("studyai-active-tab");
+      if (savedTab) {
+        try {
+          originalActivateTab(savedTab);
+        } catch (e) {
+          // ignore if tab doesn't exist anymore
+        }
+      }
+    }
+  });
+</script>
 
 
 <!-- Supabase client library (from CDN) -->
