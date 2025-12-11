@@ -7090,175 +7090,387 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     studyResult.addEventListener("mouseup", handleStudyMouseUp);
   });
 </script>
-<!-- BLOCK TOOL STATE: Persist data + settings for all tools -->
+<!-- BLOCK STUDY: Neon highlighting + grouped snippets for Study tool (desktop + mobile) -->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    // --------- helpers ---------
-    function saveToolState(key, value) {
-      try {
-        localStorage.setItem(key, value);
-      } catch (e) {
-        // ignore
+    const studyResult = document.getElementById("studyResult");
+    if (!studyResult) return;
+
+    // 5 NEON HIGHLIGHTER COLORS (easily tweakable)
+    // Use lightBg / darkBg RGBA so opacity is easy to change.
+    // lightText / darkText can override text color if needed ("" = keep default).
+    const STUDY_HIGHLIGHT_COLORS = [
+      {
+        key: "yellow",
+        label: "Yellow",
+        lightBg: "rgba(250, 204, 21, 0.35)", // neon-ish yellow
+        darkBg: "rgba(234, 179, 8, 0.45)",
+        lightText: "",
+        darkText: ""
+      },
+      {
+        key: "blue",
+        label: "Blue",
+        lightBg: "rgba(56, 189, 248, 0.35)", // bright cyan-blue
+        darkBg: "rgba(56, 189, 248, 0.45)",
+        lightText: "",
+        darkText: ""
+      },
+      {
+        key: "green",
+        label: "Green",
+        lightBg: "rgba(74, 222, 128, 0.35)", // neon green
+        darkBg: "rgba(34, 197, 94, 0.45)",
+        lightText: "",
+        darkText: ""
+      },
+      {
+        key: "pink",
+        label: "Pink",
+        lightBg: "rgba(244, 114, 182, 0.35)", // hot pink
+        darkBg: "rgba(236, 72, 153, 0.45)",
+        lightText: "",
+        darkText: ""
+      },
+      {
+        key: "purple",
+        label: "Purple",
+        lightBg: "rgba(168, 85, 247, 0.35)", // neon purple
+        darkBg: "rgba(129, 56, 231, 0.45)",
+        lightText: "",
+        darkText: ""
+      }
+    ];
+
+    const studyHighlightToolbarId   = "studyHighlightToolbar";
+    const studyHighlightContainerId = "studyHighlightContainer";
+
+    let currentStudyColorKey = STUDY_HIGHLIGHT_COLORS[0].key;
+    const studyHighlightsByColor = {};
+    STUDY_HIGHLIGHT_COLORS.forEach((cfg) => {
+      studyHighlightsByColor[cfg.key] = [];
+    });
+
+    function getTheme() {
+      return document.documentElement.getAttribute("data-theme") || "dark";
+    }
+
+    function getColorConfig(key) {
+      return STUDY_HIGHLIGHT_COLORS.find((c) => c.key === key);
+    }
+
+    function applyHighlightStylesToSpan(span) {
+      if (!span || !span.dataset) return;
+      const cfg = getColorConfig(span.dataset.colorKey);
+      if (!cfg) return;
+      const theme = getTheme();
+      const bg = theme === "light" ? cfg.lightBg : cfg.darkBg;
+      const textColor = theme === "light" ? cfg.lightText : cfg.darkText;
+
+      span.style.backgroundColor = bg;
+      span.style.borderRadius = "3px";
+      span.style.padding = "0 2px";
+
+      if (textColor) {
+        span.style.color = textColor; // override text color if configured
+      } else {
+        span.style.removeProperty("color"); // keep default (e.g. white in dark theme)
       }
     }
 
-    function loadToolState(key) {
-      try {
-        const v = localStorage.getItem(key);
-        return v === null ? null : v;
-      } catch (e) {
-        return null;
-      }
+    function updateAllStudyHighlightSpans() {
+      const spans = document.querySelectorAll(".study-highlight-token");
+      spans.forEach(applyHighlightStylesToSpan);
     }
 
-    function clearToolState(key) {
-      try {
-        localStorage.removeItem(key);
-      } catch (e) {
-        // ignore
-      }
-    }
+    // Watch for theme changes so highlights match dark/light themes
+    (function watchThemeForStudyHighlights() {
+      if (typeof MutationObserver !== "function") return;
+      const obs = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+          if (
+            m.type === "attributes" &&
+            m.attributeName === "data-theme"
+          ) {
+            updateAllStudyHighlightSpans();
+            break;
+          }
+        }
+      });
+      obs.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["data-theme"]
+      });
+    })();
 
-    function setupInputPersistence(el, storageKey) {
-      if (!el) return;
-      const saved = loadToolState(storageKey);
-      if (saved !== null) {
-        el.value = saved;
-        if (window.autoResizeTextarea && el.tagName === "TEXTAREA") {
-          window.autoResizeTextarea(el);
+    // Build toolbar + grouped highlight container under #studyResult
+    function ensureStudyHighlightUI() {
+      if (!studyResult || !studyResult.parentNode) return;
+
+      let toolbar   = document.getElementById(studyHighlightToolbarId);
+      let container = document.getElementById(studyHighlightContainerId);
+
+      // Toolbar with color buttons
+      if (!toolbar) {
+        toolbar = document.createElement("div");
+        toolbar.id = studyHighlightToolbarId;
+        toolbar.style.display = "flex";
+        toolbar.style.flexWrap = "wrap";
+        toolbar.style.gap = "6px";
+        toolbar.style.marginTop = "8px";
+        toolbar.style.marginBottom = "8px";
+        toolbar.style.alignItems = "center";
+
+        const label = document.createElement("span");
+        label.textContent = "Highlight color:";
+        label.style.fontSize = "12px";
+        label.style.opacity = "0.8";
+        toolbar.appendChild(label);
+
+        STUDY_HIGHLIGHT_COLORS.forEach((cfg) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = cfg.label;
+          btn.dataset.colorKey = cfg.key;
+          btn.style.borderRadius = "999px";
+          btn.style.fontSize = "11px";
+          btn.style.padding = "4px 8px";
+          btn.style.border = "1px solid rgba(148,163,184,0.8)";
+          btn.style.display = "inline-flex";
+          btn.style.alignItems = "center";
+          btn.style.gap = "4px";
+          btn.style.cursor = "pointer";
+          btn.style.background = "transparent";
+
+          const dot = document.createElement("span");
+          dot.style.width = "10px";
+          dot.style.height = "10px";
+          dot.style.borderRadius = "999px";
+          // use lightBg color for the dot (full opacity)
+          dot.style.backgroundColor = cfg.lightBg.replace(/, ?0\.\d+\)/, ", 1)");
+
+          btn.appendChild(dot);
+
+          btn.addEventListener("click", () => {
+            currentStudyColorKey = cfg.key;
+            Array.from(toolbar.querySelectorAll("button[data-color-key]")).forEach((b) => {
+              if (b.dataset.colorKey === currentStudyColorKey) {
+                b.style.boxShadow = "0 0 0 2px rgba(59,130,246,0.8)";
+              } else {
+                b.style.boxShadow = "none";
+              }
+            });
+          });
+
+          toolbar.appendChild(btn);
+        });
+
+        // mark first active
+        setTimeout(() => {
+          const firstBtn = toolbar.querySelector(
+            'button[data-color-key="' + currentStudyColorKey + '"]'
+          );
+          if (firstBtn) {
+            firstBtn.style.boxShadow = "0 0 0 2px rgba(59,130,246,0.8)";
+          }
+        }, 0);
+
+        // insert toolbar right after studyResult
+        if (studyResult.nextSibling) {
+          studyResult.parentNode.insertBefore(toolbar, studyResult.nextSibling);
+        } else {
+          studyResult.parentNode.appendChild(toolbar);
         }
       }
-      el.addEventListener("input", () => {
-        saveToolState(storageKey, el.value);
-      });
-    }
 
-    function setupResultPersistence(el, storageKey) {
-      if (!el) return;
-      const saved = loadToolState(storageKey);
-      if (saved !== null) {
-        el.innerHTML = saved;
-      }
-      const observer = new MutationObserver(() => {
-        // don't persist temporary "Thinking..." animation states
-        if (el.dataset && el.dataset.loadingIntervalId) return;
-        saveToolState(storageKey, el.innerHTML);
-      });
-      observer.observe(el, {
-        childList: true,
-        subtree: true,
-        characterData: true
-      });
-    }
+      // Container for grouped highlights
+      if (!container) {
+        container = document.createElement("div");
+        container.id = studyHighlightContainerId;
+        container.style.marginTop = "8px";
+        container.style.display = "none"; // hidden until we have at least one highlight
+        container.style.flexDirection = "column";
+        container.style.gap = "8px";
 
-    // --------- SNAP main text + subject + extra instructions ---------
-    const snapText = document.getElementById("snapText");
-    setupInputPersistence(snapText, "studyai-snap-text");
-
-    const saveSubjectInput = document.getElementById("saveSubjectInput");
-    setupInputPersistence(saveSubjectInput, "studyai-save-subject");
-
-    // extra instructions input (whichever ID exists)
-    const extraInput =
-      document.getElementById("extraInstructionsInput") ||
-      document.getElementById("extraInstructions") ||
-      document.getElementById("extraPrompt");
-    setupInputPersistence(extraInput, "studyai-extra-instructions");
-
-    // --------- SNAP result ---------
-    const snapResult = document.getElementById("snapResult");
-    setupResultPersistence(snapResult, "studyai-snap-result");
-
-    // --------- SOLVE tool (if present) ---------
-    const solveInput  = document.getElementById("solveInput");
-    const solveResult = document.getElementById("solveResult");
-    setupInputPersistence(solveInput, "studyai-solve-input");
-    setupResultPersistence(solveResult, "studyai-solve-result");
-
-    // --------- MATH tool ---------
-    const mathInput    = document.getElementById("mathInput");
-    const mathResult   = document.getElementById("mathResult");
-    const mathClearBtn = document.getElementById("mathClearBtn");
-
-    setupInputPersistence(mathInput, "studyai-math-input");
-    setupResultPersistence(mathResult, "studyai-math-result");
-
-    if (mathClearBtn) {
-      mathClearBtn.addEventListener("click", () => {
-        clearToolState("studyai-math-result");
-      });
-    }
-
-    // --------- STUDY tool ---------
-    const studyInput    = document.getElementById("studyInput");
-    const studyResult   = document.getElementById("studyResult");
-    const studyClearBtn = document.getElementById("studyClearBtn");
-
-    setupInputPersistence(studyInput, "studyai-study-input");
-    setupResultPersistence(studyResult, "studyai-study-result");
-
-    if (studyClearBtn) {
-      studyClearBtn.addEventListener("click", () => {
-        clearToolState("studyai-study-result");
-      });
-    }
-
-    // --------- ESSAY tool ---------
-    const essayInput    = document.getElementById("essayInput");
-    const essayResult   = document.getElementById("essayResult");
-    const essayClearBtn = document.getElementById("essayClearBtn");
-
-    setupInputPersistence(essayInput, "studyai-essay-input");
-    setupResultPersistence(essayResult, "studyai-essay-result");
-
-    if (essayClearBtn) {
-      essayClearBtn.addEventListener("click", () => {
-        clearToolState("studyai-essay-result");
-      });
-    }
-
-    // --------- FLASHCARDS extra UI state (cardsResult) ---------
-    // (Flashcard deck + progress are already persisted in BLOCK 7)
-    const cardsResult   = document.getElementById("cardsResult");
-    const cardsClearBtn = document.getElementById("cardsClearBtn");
-    setupResultPersistence(cardsResult, "studyai-cards-result");
-
-    if (cardsClearBtn) {
-      // "Reset" currently resets card progress; also clear the saved raw output
-      cardsClearBtn.addEventListener("click", () => {
-        clearToolState("studyai-cards-result");
-      });
-    }
-
-    // --------- SNAP Clear: wipe main tool state when user clears ---------
-    const snapClearBtn = document.getElementById("snapClearBtn");
-    if (snapClearBtn) {
-      snapClearBtn.addEventListener("click", () => {
-        clearToolState("studyai-snap-text");
-        clearToolState("studyai-snap-result");
-        clearToolState("studyai-save-subject");
-        // keep extra instructions unless you want them cleared too:
-        // clearToolState("studyai-extra-instructions");
-      });
-    }
-
-    // --------- ACTIVE TAB persistence (which tool was open) ---------
-    if (typeof window.activateTab === "function") {
-      const originalActivateTab = window.activateTab;
-      window.activateTab = function (tabId) {
-        saveToolState("studyai-active-tab", tabId);
-        return originalActivateTab.apply(this, arguments);
-      };
-
-      const savedTab = loadToolState("studyai-active-tab");
-      if (savedTab) {
-        try {
-          originalActivateTab(savedTab);
-        } catch (e) {
-          // ignore if tab doesn't exist anymore
+        if (toolbar.nextSibling) {
+          toolbar.parentNode.insertBefore(container, toolbar.nextSibling);
+        } else {
+          toolbar.parentNode.appendChild(container);
         }
+
+        // build groups (one per color)
+        STUDY_HIGHLIGHT_COLORS.forEach((cfg) => {
+          const group = document.createElement("div");
+          group.className = "study-highlight-group";
+          group.dataset.colorKey = cfg.key;
+          group.style.borderRadius = "8px";
+          group.style.padding = "6px 8px";
+          group.style.display = "none"; // hide until this color has items
+          group.style.gap = "8px";
+          group.style.alignItems = "stretch";
+          group.style.border = "1px solid rgba(148,163,184,0.5)";
+
+          // vertical color strip ONLY
+          const strip = document.createElement("div");
+          strip.style.width = "4px";
+          strip.style.borderRadius = "999px";
+          strip.style.alignSelf = "stretch";
+          // solid color strip, use full-opacity variant of darkBg for punch
+          const base = cfg.darkBg || cfg.lightBg;
+          strip.style.backgroundColor = base.replace(/, ?0\.\d+\)/, ", 1)");
+
+          const content = document.createElement("div");
+          content.style.flex = "1";
+          content.style.display = "flex";
+          content.style.flexDirection = "column";
+
+          const list = document.createElement("ul");
+          list.className = "study-highlight-list";
+          list.style.listStyle = "none";
+          list.style.paddingLeft = "0";
+          list.style.margin = "0";
+          list.style.fontSize = "12px";
+          list.style.display = "flex";
+          list.style.flexDirection = "column";
+          list.style.gap = "2px";
+
+          content.appendChild(list);
+          group.appendChild(strip);
+          group.appendChild(content);
+          container.appendChild(group);
+        });
       }
     }
+
+    function refreshStudyHighlightsUI() {
+      const container = document.getElementById(studyHighlightContainerId);
+      if (!container) return;
+
+      let totalItems = 0;
+
+      STUDY_HIGHLIGHT_COLORS.forEach((cfg) => {
+        const group = container.querySelector(
+          '.study-highlight-group[data-color-key="' + cfg.key + '"]'
+        );
+        if (!group) return;
+        const list = group.querySelector(".study-highlight-list");
+        if (!list) return;
+        list.innerHTML = "";
+        const items = studyHighlightsByColor[cfg.key] || [];
+        totalItems += items.length;
+
+        if (items.length === 0) {
+          group.style.display = "none";
+        } else {
+          group.style.display = "flex";
+        }
+
+        items.forEach((text) => {
+          const li = document.createElement("li");
+          li.textContent = text;
+          list.appendChild(li);
+        });
+      });
+
+      if (totalItems === 0) {
+        container.style.display = "none";
+      } else {
+        container.style.display = "flex";
+      }
+    }
+
+    function addStudyHighlight(colorKey, text) {
+      const trimmed = (text || "").trim();
+      if (!trimmed) return;
+      if (!studyHighlightsByColor[colorKey]) {
+        studyHighlightsByColor[colorKey] = [];
+      }
+      studyHighlightsByColor[colorKey].push(trimmed);
+      refreshStudyHighlightsUI();
+    }
+
+    // Use user selection (can be one word OR whole sentence / paragraph)
+    function getSelectionRangeWithinStudy() {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return null;
+
+      const range = sel.getRangeAt(0);
+      if (range.collapsed) return null;
+
+      // ensure selection is inside studyResult
+      let container = range.commonAncestorContainer;
+      let within = false;
+      while (container) {
+        if (container === studyResult) {
+          within = true;
+          break;
+        }
+        container = container.parentNode;
+      }
+      if (!within) return null;
+
+      return range;
+    }
+
+    function highlightCurrentSelection(ev) {
+      const toolbar   = document.getElementById(studyHighlightToolbarId);
+      const container = document.getElementById(studyHighlightContainerId);
+
+      // ignore interaction in toolbar or highlight container
+      if (toolbar && toolbar.contains(ev.target)) return;
+      if (container && container.contains(ev.target)) return;
+
+      const range = getSelectionRangeWithinStudy();
+      if (!range) return;
+
+      const selectedText = range.toString().trim();
+      if (!selectedText) return;
+
+      const doc = document;
+      const span = doc.createElement("span");
+      span.className = "study-highlight-token";
+      span.dataset.colorKey = currentStudyColorKey;
+
+      applyHighlightStylesToSpan(span);
+
+      try {
+        range.surroundContents(span);
+      } catch (e) {
+        // If selection crosses complex DOM boundaries, skip
+        return;
+      }
+
+      // store clean text in grouped div
+      addStudyHighlight(currentStudyColorKey, selectedText);
+
+      // clear browser selection so user just sees highlight
+      const sel = window.getSelection();
+      if (sel && sel.removeAllRanges) {
+        sel.removeAllRanges();
+      }
+    }
+
+    // Desktop + mobile support:
+    // - mouseup for desktop
+    // - touchend for mobile (with guard to avoid double-firing from synthetic mouse events)
+    let lastTouchTime = 0;
+
+    studyResult.addEventListener("touchend", function (ev) {
+      lastTouchTime = Date.now();
+      // small timeout to make sure selection is finalized on mobile
+      setTimeout(function () {
+        highlightCurrentSelection(ev);
+      }, 50);
+    });
+
+    studyResult.addEventListener("mouseup", function (ev) {
+      // ignore mouseup that immediately follows a touch (mobile browsers)
+      if (Date.now() - lastTouchTime < 350) return;
+      highlightCurrentSelection(ev);
+    });
+
+    // init Study highlight UI
+    ensureStudyHighlightUI();
   });
 </script>
 
