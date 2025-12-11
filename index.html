@@ -2083,7 +2083,6 @@ padding: 8px;
             Take a photo or screenshot of homework → text → AI explanation.
           </p>
 
-          <label for="snapInput">Homework image</label>
 
           <!-- Hidden file inputs: gallery + camera -->
           <input
@@ -2165,8 +2164,7 @@ padding: 8px;
 
           <div class="snap-text-header">
             <label for="snapText">
-              Recognized text (main input for all tools — you can also type
-              here)
+             You can also type or pastehere)
             </label>
 
             <button
@@ -2335,7 +2333,7 @@ padding: 8px;
 
           
           <label for="snapText"
-            >Math problem</label
+            ></label
           >
           <textarea
             id="mathInput"
@@ -2385,7 +2383,7 @@ padding: 8px;
 
  
           <label for="snapText"
-            >Notes or textbook text</label
+            ></label
           >
           <textarea
             id="studyInput"
@@ -2435,7 +2433,7 @@ padding: 8px;
 
         
           <label for="snapText"
-            >Essay text or assignment prompt</label
+            ></label
           >
           <textarea
             id="essayInput"
@@ -5741,6 +5739,364 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     window.__canUseAIOnce = canUseAIOnce;
   })();
 </script>
+
+
+
+
+
+
+
+
+
+<!-- BLOCK STUDY: Neon highlighting (persistent) for Study tool (desktop + mobile) -->
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const studyResult = document.getElementById("studyResult");
+    if (!studyResult) return;
+
+    // 5 NEON HIGHLIGHTER COLORS (unchanged)
+    const STUDY_HIGHLIGHT_COLORS = [
+      {
+        key: "yellow",
+        label: "Yellow",
+        lightBg: "rgba(250, 204, 21, 0.35)",
+        darkBg: "rgba(234, 179, 8, 0.45)",
+        lightText: "",
+        darkText: ""
+      },
+      {
+        key: "blue",
+        label: "Blue",
+        lightBg: "rgba(56, 189, 248, 0.35)",
+        darkBg: "rgba(56, 189, 248, 0.45)",
+        lightText: "",
+        darkText: ""
+      },
+      {
+        key: "green",
+        label: "Green",
+        lightBg: "rgba(74, 222, 128, 0.35)",
+        darkBg: "rgba(34, 197, 94, 0.45)",
+        lightText: "",
+        darkText: ""
+      },
+      {
+        key: "pink",
+        label: "Pink",
+        lightBg: "rgba(244, 114, 182, 0.35)",
+        darkBg: "rgba(236, 72, 153, 0.45)",
+        lightText: "",
+        darkText: ""
+      },
+      {
+        key: "purple",
+        label: "Purple",
+        lightBg: "rgba(168, 85, 247, 0.35)",
+        darkBg: "rgba(129, 56, 231, 0.45)",
+        lightText: "",
+        darkText: ""
+      }
+    ];
+
+    // Keep same IDs (even if we don't use the container anymore)
+    const studyHighlightToolbarId   = "studyHighlightToolbar";
+    const studyHighlightContainerId = "studyHighlightContainer";
+
+    let currentStudyColorKey = STUDY_HIGHLIGHT_COLORS[0].key;
+
+    // Local storage key (scoped to this page)
+    const STORAGE_KEY = "studyHighlightsHtml::" + location.pathname;
+
+    function getTheme() {
+      return document.documentElement.getAttribute("data-theme") || "dark";
+    }
+
+    function getColorConfig(key) {
+      return STUDY_HIGHLIGHT_COLORS.find((c) => c.key === key);
+    }
+
+    function applyHighlightStylesToSpan(span) {
+      if (!span || !span.dataset) return;
+      const cfg = getColorConfig(span.dataset.colorKey);
+      if (!cfg) return;
+      const theme = getTheme();
+      const bg = theme === "light" ? cfg.lightBg : cfg.darkBg;
+      const textColor = theme === "light" ? cfg.lightText : cfg.darkText;
+
+      span.style.backgroundColor = bg;
+      span.style.borderRadius = "3px";
+      span.style.padding = "0 2px";
+
+      if (textColor) {
+        span.style.color = textColor;
+      } else {
+        span.style.removeProperty("color");
+      }
+    }
+
+    function updateAllStudyHighlightSpans() {
+      const spans = document.querySelectorAll(".study-highlight-token");
+      spans.forEach(applyHighlightStylesToSpan);
+    }
+
+    // Watch for theme changes so highlights match dark/light themes
+    (function watchThemeForStudyHighlights() {
+      if (typeof MutationObserver !== "function") return;
+      const obs = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+          if (m.type === "attributes" && m.attributeName === "data-theme") {
+            updateAllStudyHighlightSpans();
+            break;
+          }
+        }
+      });
+      obs.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["data-theme"]
+      });
+    })();
+
+    // Kill default blue selection + tap highlight inside the study area
+    (function injectStudySelectionCSS() {
+      const style = document.createElement("style");
+      style.textContent = `
+        #studyResult ::selection {
+          background: transparent;
+          color: inherit;
+        }
+        #studyResult ::-moz-selection {
+          background: transparent;
+          color: inherit;
+        }
+        #studyResult * {
+          -webkit-tap-highlight-color: transparent;
+        }
+      `;
+      document.head.appendChild(style);
+    })();
+
+    function saveStudyHighlightsToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY, studyResult.innerHTML);
+      } catch (e) {
+        // ignore storage errors
+      }
+    }
+
+    function restoreStudyHighlightsFromStorage() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved && typeof saved === "string") {
+          studyResult.innerHTML = saved;
+        }
+      } catch (e) {
+        // ignore
+      }
+      updateAllStudyHighlightSpans();
+    }
+
+    // Build toolbar only (no grouped snippet container now)
+    function ensureStudyHighlightUI() {
+      if (!studyResult || !studyResult.parentNode) return;
+
+      let toolbar = document.getElementById(studyHighlightToolbarId);
+
+      if (!toolbar) {
+        toolbar = document.createElement("div");
+        toolbar.id = studyHighlightToolbarId;
+        toolbar.style.display = "flex";
+        toolbar.style.flexWrap = "wrap";
+        toolbar.style.gap = "6px";
+        toolbar.style.marginTop = "8px";
+        toolbar.style.marginBottom = "8px";
+        toolbar.style.alignItems = "center";
+
+        const label = document.createElement("span");
+        label.textContent = "Highlight color:";
+        label.style.fontSize = "12px";
+        label.style.opacity = "0.8";
+        toolbar.appendChild(label);
+
+        STUDY_HIGHLIGHT_COLORS.forEach((cfg) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = cfg.label;
+          btn.dataset.colorKey = cfg.key;
+          btn.style.borderRadius = "999px";
+          btn.style.fontSize = "11px";
+          btn.style.padding = "4px 8px";
+          btn.style.border = "1px solid rgba(148,163,184,0.8)";
+          btn.style.display = "inline-flex";
+          btn.style.alignItems = "center";
+          btn.style.gap = "4px";
+          btn.style.cursor = "pointer";
+          btn.style.background = "transparent";
+
+          const dot = document.createElement("span");
+          dot.style.width = "10px";
+          dot.style.height = "10px";
+          dot.style.borderRadius = "999px";
+          // use lightBg color for the dot (full opacity)
+          dot.style.backgroundColor = cfg.lightBg.replace(/, ?0\.\d+\)/, ", 1)");
+
+          btn.appendChild(dot);
+
+          btn.addEventListener("click", () => {
+            currentStudyColorKey = cfg.key;
+            Array.from(toolbar.querySelectorAll("button[data-color-key]")).forEach((b) => {
+              if (b.dataset.colorKey === currentStudyColorKey) {
+                b.style.boxShadow = "0 0 0 2px rgba(59,130,246,0.8)";
+              } else {
+                b.style.boxShadow = "none";
+              }
+            });
+          });
+
+          toolbar.appendChild(btn);
+        });
+
+        // Optional: clear highlights button
+        const clearBtn = document.createElement("button");
+        clearBtn.type = "button";
+        clearBtn.textContent = "Clear highlights";
+        clearBtn.style.fontSize = "11px";
+        clearBtn.style.padding = "4px 8px";
+        clearBtn.style.borderRadius = "999px";
+        clearBtn.style.border = "1px solid rgba(148,163,184,0.8)";
+        clearBtn.style.cursor = "pointer";
+        clearBtn.style.background = "transparent";
+
+        clearBtn.addEventListener("click", () => {
+          const spans = studyResult.querySelectorAll(".study-highlight-token");
+          spans.forEach((span) => {
+            const parent = span.parentNode;
+            while (span.firstChild) {
+              parent.insertBefore(span.firstChild, span);
+            }
+            parent.removeChild(span);
+          });
+          saveStudyHighlightsToStorage();
+        });
+
+        toolbar.appendChild(clearBtn);
+
+        // insert toolbar right after studyResult
+        if (studyResult.nextSibling) {
+          studyResult.parentNode.insertBefore(toolbar, studyResult.nextSibling);
+        } else {
+          studyResult.parentNode.appendChild(toolbar);
+        }
+
+        // Keep container ID alive if you already have markup with that ID.
+        // We don't use it now, but we won't rename it.
+        if (!document.getElementById(studyHighlightContainerId)) {
+          const dummyContainer = document.createElement("div");
+          dummyContainer.id = studyHighlightContainerId;
+          dummyContainer.style.display = "none";
+          toolbar.parentNode.insertBefore(dummyContainer, toolbar.nextSibling);
+        }
+      }
+
+      // Mark first color active
+      setTimeout(() => {
+        const firstBtn = toolbar.querySelector(
+          'button[data-color-key="' + currentStudyColorKey + '"]'
+        );
+        if (firstBtn) {
+          firstBtn.style.boxShadow = "0 0 0 2px rgba(59,130,246,0.8)";
+        }
+      }, 0);
+    }
+
+    // Selection helpers
+    function getSelectionRangeWithinStudy() {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return null;
+
+      const range = sel.getRangeAt(0);
+      if (range.collapsed) return null;
+
+      // ensure selection is inside studyResult
+      let container = range.commonAncestorContainer;
+      let within = false;
+      while (container) {
+        if (container === studyResult) {
+          within = true;
+          break;
+        }
+        container = container.parentNode;
+      }
+      if (!within) return null;
+
+      return range;
+    }
+
+    function highlightCurrentSelection(ev) {
+      const toolbar   = document.getElementById(studyHighlightToolbarId);
+      const container = document.getElementById(studyHighlightContainerId);
+
+      // ignore interaction in toolbar or (legacy) container
+      if (toolbar && toolbar.contains(ev.target)) return;
+      if (container && container.contains(ev.target)) return;
+
+      const range = getSelectionRangeWithinStudy();
+      if (!range) return;
+
+      const selectedText = range.toString().trim();
+      if (!selectedText) return;
+
+      const span = document.createElement("span");
+      span.className = "study-highlight-token";
+      span.dataset.colorKey = currentStudyColorKey;
+
+      applyHighlightStylesToSpan(span);
+
+      try {
+        range.surroundContents(span);
+      } catch (e) {
+        // If selection crosses complex DOM boundaries, skip
+        return;
+      }
+
+      // clear browser selection so user just sees highlight
+      const sel = window.getSelection();
+      if (sel && sel.removeAllRanges) {
+        sel.removeAllRanges();
+      }
+
+      // persist the updated HTML
+      saveStudyHighlightsToStorage();
+    }
+
+    // Desktop + mobile support:
+    let lastTouchTime = 0;
+
+    studyResult.addEventListener("touchend", function (ev) {
+      lastTouchTime = Date.now();
+      // small timeout to make sure selection is finalized on mobile
+      setTimeout(function () {
+        highlightCurrentSelection(ev);
+      }, 50);
+    });
+
+    studyResult.addEventListener("mouseup", function (ev) {
+      // ignore mouseup that immediately follows a touch (mobile browsers)
+      if (Date.now() - lastTouchTime < 350) return;
+      highlightCurrentSelection(ev);
+    });
+
+    // Restore any saved highlights, then build UI
+    restoreStudyHighlightsFromStorage();
+    ensureStudyHighlightUI();
+  });
+</script>
+
+
+
+
+
+
+
 
 
 
