@@ -698,6 +698,7 @@
 
   .flashcard {
     margin-top: 8px;
+	margin-bottom: 15px;
     padding: 14px 12px;
     border-radius: 6px;
     background: var(--field-bg);
@@ -1525,13 +1526,13 @@ li {
 
 
 :root[data-theme="dark"] #cardsCard.flashcard-card-dark {
-      background-color: #020617;
+      background-color: #0e1629;
     border: 1px solid var(--outline);
     border-bottom: border: 1px solid var(--outline);
     border-top: border: 1px solid var(--outline);
 }
 :root[data-theme="light"] #cardsCard.flashcard-card-light {
-      background-color: #ffffff;
+      background-color: #fafafa;
     border: 1px solid var(--outline);
     border-bottom: border: 1px solid var(--outline);
     border-top: border: 1px solid var(--outline);
@@ -6824,6 +6825,333 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       observer.observe(header);
     });
   })();
+</script>
+<!-- BLOCK STUDY: Highlighting + grouped snippets for Study tool -->
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const studyResult = document.getElementById("studyResult");
+    const snapText    = document.getElementById("snapText");
+    if (!studyResult) return;
+
+    // 5 highlight colors for Study
+    const STUDY_HIGHLIGHT_COLORS = [
+      { key: "yellow", label: "Yellow", color: "#facc15" },
+      { key: "blue",   label: "Blue",   color: "#38bdf8" },
+      { key: "green",  label: "Green",  color: "#4ade80" },
+      { key: "pink",   label: "Pink",   color: "#fb7185" },
+      { key: "purple", label: "Purple", color: "#a855f7" }
+    ];
+
+    const studyHighlightToolbarId   = "studyHighlightToolbar";
+    const studyHighlightContainerId = "studyHighlightContainer";
+
+    let currentStudyColorKey = STUDY_HIGHLIGHT_COLORS[0].key;
+    const studyHighlightsByColor = {};
+    STUDY_HIGHLIGHT_COLORS.forEach((cfg) => {
+      studyHighlightsByColor[cfg.key] = [];
+    });
+
+    // Build toolbar + grouped highlight container under #studyResult
+    function ensureStudyHighlightUI() {
+      if (!studyResult || !studyResult.parentNode) return;
+
+      let toolbar   = document.getElementById(studyHighlightToolbarId);
+      let container = document.getElementById(studyHighlightContainerId);
+
+      // Toolbar with color buttons
+      if (!toolbar) {
+        toolbar = document.createElement("div");
+        toolbar.id = studyHighlightToolbarId;
+        toolbar.style.display = "flex";
+        toolbar.style.flexWrap = "wrap";
+        toolbar.style.gap = "6px";
+        toolbar.style.marginTop = "8px";
+        toolbar.style.marginBottom = "8px";
+        toolbar.style.alignItems = "center";
+
+        const label = document.createElement("span");
+        label.textContent = "Highlight color:";
+        label.style.fontSize = "12px";
+        label.style.opacity = "0.8";
+        toolbar.appendChild(label);
+
+        STUDY_HIGHLIGHT_COLORS.forEach((cfg) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = cfg.label;
+          btn.dataset.colorKey = cfg.key;
+          btn.style.borderRadius = "999px";
+          btn.style.fontSize = "11px";
+          btn.style.padding = "4px 8px";
+          btn.style.border = "1px solid rgba(148,163,184,0.8)";
+          btn.style.display = "inline-flex";
+          btn.style.alignItems = "center";
+          btn.style.gap = "4px";
+          btn.style.cursor = "pointer";
+          btn.style.background = "transparent";
+
+          const dot = document.createElement("span");
+          dot.style.width = "10px";
+          dot.style.height = "10px";
+          dot.style.borderRadius = "999px";
+          dot.style.backgroundColor = cfg.color;
+
+          btn.appendChild(dot);
+
+          btn.addEventListener("click", () => {
+            currentStudyColorKey = cfg.key;
+            Array.from(toolbar.querySelectorAll("button[data-color-key]")).forEach((b) => {
+              if (b.dataset.colorKey === currentStudyColorKey) {
+                b.style.boxShadow = "0 0 0 2px rgba(59,130,246,0.8)";
+              } else {
+                b.style.boxShadow = "none";
+              }
+            });
+          });
+
+          toolbar.appendChild(btn);
+        });
+
+        // mark first active
+        setTimeout(() => {
+          const firstBtn = toolbar.querySelector(
+            'button[data-color-key="' + currentStudyColorKey + '"]'
+          );
+          if (firstBtn) {
+            firstBtn.style.boxShadow = "0 0 0 2px rgba(59,130,246,0.8)";
+          }
+        }, 0);
+
+        // insert toolbar right after studyResult
+        if (studyResult.nextSibling) {
+          studyResult.parentNode.insertBefore(toolbar, studyResult.nextSibling);
+        } else {
+          studyResult.parentNode.appendChild(toolbar);
+        }
+      }
+
+      // Container for grouped highlights
+      if (!container) {
+        container = document.createElement("div");
+        container.id = studyHighlightContainerId;
+        container.style.marginTop = "8px";
+        container.style.display = "flex";
+        container.style.flexDirection = "column";
+        container.style.gap = "8px";
+
+        if (toolbar.nextSibling) {
+          toolbar.parentNode.insertBefore(container, toolbar.nextSibling);
+        } else {
+          toolbar.parentNode.appendChild(container);
+        }
+
+        // build groups (one per color)
+        STUDY_HIGHLIGHT_COLORS.forEach((cfg) => {
+          const group = document.createElement("div");
+          group.className = "study-highlight-group";
+          group.dataset.colorKey = cfg.key;
+          group.style.borderRadius = "8px";
+          group.style.padding = "6px 8px";
+          group.style.display = "flex";
+          group.style.flexDirection = "column";
+          group.style.gap = "4px";
+          group.style.border = "1px solid rgba(148,163,184,0.5)";
+
+          const header = document.createElement("div");
+          header.style.display = "flex";
+          header.style.alignItems = "center";
+          header.style.gap = "8px";
+
+          // vertical color strip
+          const stripWrapper = document.createElement("div");
+          stripWrapper.style.display = "flex";
+          stripWrapper.style.alignItems = "stretch";
+
+          const strip = document.createElement("div");
+          strip.style.width = "4px";
+          strip.style.borderRadius = "999px";
+          strip.style.backgroundColor = cfg.color;
+          strip.style.alignSelf = "stretch";
+
+          stripWrapper.appendChild(strip);
+
+          const title = document.createElement("div");
+          title.textContent = cfg.label + " highlights";
+          title.style.fontSize = "12px";
+          title.style.fontWeight = "600";
+          title.style.flex = "1";
+
+          const sendBtn = document.createElement("button");
+          sendBtn.type = "button";
+          sendBtn.textContent = "Open in tools";
+          sendBtn.style.fontSize = "11px";
+          sendBtn.style.padding = "2px 6px";
+          sendBtn.style.borderRadius = "999px";
+          sendBtn.style.border = "1px solid rgba(148,163,184,0.8)";
+          sendBtn.style.cursor = "pointer";
+
+          sendBtn.addEventListener("click", () => {
+            const items = studyHighlightsByColor[cfg.key] || [];
+            if (!items.length) {
+              alert("No highlights in this color yet.");
+              return;
+            }
+            const joined = items.join("\n");
+            if (snapText) {
+              snapText.value = joined;
+              if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
+              // optional: jump back to main text / another tool
+              if (typeof activateTab === "function") {
+                activateTab("snap");
+              }
+            }
+          });
+
+          header.appendChild(stripWrapper);
+          header.appendChild(title);
+          header.appendChild(sendBtn);
+
+          const list = document.createElement("ul");
+          list.className = "study-highlight-list";
+          list.style.listStyle = "none";
+          list.style.paddingLeft = "0";
+          list.style.margin = "0";
+          list.style.fontSize = "12px";
+          list.style.display = "flex";
+          list.style.flexDirection = "column";
+          list.style.gap = "2px";
+
+          group.appendChild(header);
+          group.appendChild(list);
+          container.appendChild(group);
+        });
+      }
+    }
+
+    function refreshStudyHighlightsUI() {
+      const container = document.getElementById(studyHighlightContainerId);
+      if (!container) return;
+
+      STUDY_HIGHLIGHT_COLORS.forEach((cfg) => {
+        const group = container.querySelector(
+          '.study-highlight-group[data-color-key="' + cfg.key + '"]'
+        );
+        if (!group) return;
+        const list = group.querySelector(".study-highlight-list");
+        if (!list) return;
+        list.innerHTML = "";
+        const items = studyHighlightsByColor[cfg.key] || [];
+        items.forEach((text) => {
+          const li = document.createElement("li");
+          li.textContent = text;
+          list.appendChild(li);
+        });
+      });
+    }
+
+    function addStudyHighlight(colorKey, text) {
+      const trimmed = (text || "").trim();
+      if (!trimmed) return;
+      if (!studyHighlightsByColor[colorKey]) {
+        studyHighlightsByColor[colorKey] = [];
+      }
+      studyHighlightsByColor[colorKey].push(trimmed);
+      refreshStudyHighlightsUI();
+    }
+
+    function getWordRangeFromEvent(ev) {
+      const doc = document;
+      let baseRange = null;
+
+      if (doc.caretRangeFromPoint) {
+        baseRange = doc.caretRangeFromPoint(ev.clientX, ev.clientY);
+      } else if (doc.caretPositionFromPoint) {
+        const pos = doc.caretPositionFromPoint(ev.clientX, ev.clientY);
+        if (pos) {
+          baseRange = doc.createRange();
+          baseRange.setStart(pos.offsetNode, pos.offset);
+          baseRange.setEnd(pos.offsetNode, pos.offset);
+        }
+      }
+
+      if (!baseRange) return null;
+
+      let node = baseRange.startContainer;
+      if (!node) return null;
+
+      if (node.nodeType !== Node.TEXT_NODE) {
+        if (node.childNodes && node.childNodes.length) {
+          for (let i = 0; i < node.childNodes.length; i++) {
+            const child = node.childNodes[i];
+            if (child.nodeType === Node.TEXT_NODE) {
+              node = child;
+              break;
+            }
+          }
+        }
+      }
+
+      if (!node || node.nodeType !== Node.TEXT_NODE) return null;
+
+      const text = node.textContent || "";
+      if (!text.trim()) return null;
+
+      let start = baseRange.startOffset;
+      let end = baseRange.startOffset;
+
+      while (start > 0 && !/\s/.test(text[start - 1])) start--;
+      while (end < text.length && !/\s/.test(text[end])) end++;
+
+      if (start === end) return null;
+
+      const wordRange = doc.createRange();
+      wordRange.setStart(node, start);
+      wordRange.setEnd(node, end);
+      return wordRange;
+    }
+
+    function handleStudyResultClick(ev) {
+      const toolbar   = document.getElementById(studyHighlightToolbarId);
+      const container = document.getElementById(studyHighlightContainerId);
+
+      // ignore clicks in toolbar or highlight container
+      if (toolbar && toolbar.contains(ev.target)) return;
+      if (container && container.contains(ev.target)) return;
+
+      const range = getWordRangeFromEvent(ev);
+      if (!range) return;
+
+      const selectedText = range.toString().trim();
+      if (!selectedText) return;
+
+      const doc = document;
+      const span = doc.createElement("span");
+      span.className = "study-highlight-token";
+      span.dataset.colorKey = currentStudyColorKey;
+
+      const cfg = STUDY_HIGHLIGHT_COLORS.find(
+        (c) => c.key === currentStudyColorKey
+      );
+      if (cfg) {
+        span.style.backgroundColor = cfg.color;
+      }
+      span.style.borderRadius = "3px";
+      span.style.padding = "0 2px";
+
+      try {
+        range.surroundContents(span);
+      } catch (e) {
+        // if fragment crossing nodes, just skip
+        return;
+      }
+
+      addStudyHighlight(currentStudyColorKey, selectedText);
+    }
+
+    // init Study highlight UI + click handler
+    ensureStudyHighlightUI();
+    studyResult.addEventListener("click", handleStudyResultClick);
+  });
 </script>
 
 </body>
