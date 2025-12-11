@@ -6830,7 +6830,6 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const studyResult = document.getElementById("studyResult");
-    const snapText    = document.getElementById("snapText");
     if (!studyResult) return;
 
     // 5 highlight colors for Study
@@ -6953,63 +6952,21 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           group.style.borderRadius = "8px";
           group.style.padding = "6px 8px";
           group.style.display = "flex";
-          group.style.flexDirection = "column";
-          group.style.gap = "4px";
+          group.style.gap = "8px";
+          group.style.alignItems = "stretch";
           group.style.border = "1px solid rgba(148,163,184,0.5)";
 
-          const header = document.createElement("div");
-          header.style.display = "flex";
-          header.style.alignItems = "center";
-          header.style.gap = "8px";
-
-          // vertical color strip
-          const stripWrapper = document.createElement("div");
-          stripWrapper.style.display = "flex";
-          stripWrapper.style.alignItems = "stretch";
-
+          // vertical color strip ONLY
           const strip = document.createElement("div");
           strip.style.width = "4px";
           strip.style.borderRadius = "999px";
           strip.style.backgroundColor = cfg.color;
           strip.style.alignSelf = "stretch";
 
-          stripWrapper.appendChild(strip);
-
-          const title = document.createElement("div");
-          title.textContent = cfg.label + " highlights";
-          title.style.fontSize = "12px";
-          title.style.fontWeight = "600";
-          title.style.flex = "1";
-
-          const sendBtn = document.createElement("button");
-          sendBtn.type = "button";
-          sendBtn.textContent = "Open in tools";
-          sendBtn.style.fontSize = "11px";
-          sendBtn.style.padding = "2px 6px";
-          sendBtn.style.borderRadius = "999px";
-          sendBtn.style.border = "1px solid rgba(148,163,184,0.8)";
-          sendBtn.style.cursor = "pointer";
-
-          sendBtn.addEventListener("click", () => {
-            const items = studyHighlightsByColor[cfg.key] || [];
-            if (!items.length) {
-              alert("No highlights in this color yet.");
-              return;
-            }
-            const joined = items.join("\n");
-            if (snapText) {
-              snapText.value = joined;
-              if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
-              // optional: jump back to main text / another tool
-              if (typeof activateTab === "function") {
-                activateTab("snap");
-              }
-            }
-          });
-
-          header.appendChild(stripWrapper);
-          header.appendChild(title);
-          header.appendChild(sendBtn);
+          const content = document.createElement("div");
+          content.style.flex = "1";
+          content.style.display = "flex";
+          content.style.flexDirection = "column";
 
           const list = document.createElement("ul");
           list.className = "study-highlight-list";
@@ -7021,8 +6978,9 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           list.style.flexDirection = "column";
           list.style.gap = "2px";
 
-          group.appendChild(header);
-          group.appendChild(list);
+          content.appendChild(list);
+          group.appendChild(strip);
+          group.appendChild(content);
           container.appendChild(group);
         });
       }
@@ -7059,66 +7017,38 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       refreshStudyHighlightsUI();
     }
 
-    function getWordRangeFromEvent(ev) {
-      const doc = document;
-      let baseRange = null;
+    // Use user selection (can be one word OR whole sentence)
+    function getSelectionRangeWithinStudy() {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return null;
 
-      if (doc.caretRangeFromPoint) {
-        baseRange = doc.caretRangeFromPoint(ev.clientX, ev.clientY);
-      } else if (doc.caretPositionFromPoint) {
-        const pos = doc.caretPositionFromPoint(ev.clientX, ev.clientY);
-        if (pos) {
-          baseRange = doc.createRange();
-          baseRange.setStart(pos.offsetNode, pos.offset);
-          baseRange.setEnd(pos.offsetNode, pos.offset);
+      const range = sel.getRangeAt(0);
+      if (range.collapsed) return null;
+
+      // ensure selection is inside studyResult
+      let container = range.commonAncestorContainer;
+      let within = false;
+      while (container) {
+        if (container === studyResult) {
+          within = true;
+          break;
         }
+        container = container.parentNode;
       }
+      if (!within) return null;
 
-      if (!baseRange) return null;
-
-      let node = baseRange.startContainer;
-      if (!node) return null;
-
-      if (node.nodeType !== Node.TEXT_NODE) {
-        if (node.childNodes && node.childNodes.length) {
-          for (let i = 0; i < node.childNodes.length; i++) {
-            const child = node.childNodes[i];
-            if (child.nodeType === Node.TEXT_NODE) {
-              node = child;
-              break;
-            }
-          }
-        }
-      }
-
-      if (!node || node.nodeType !== Node.TEXT_NODE) return null;
-
-      const text = node.textContent || "";
-      if (!text.trim()) return null;
-
-      let start = baseRange.startOffset;
-      let end = baseRange.startOffset;
-
-      while (start > 0 && !/\s/.test(text[start - 1])) start--;
-      while (end < text.length && !/\s/.test(text[end])) end++;
-
-      if (start === end) return null;
-
-      const wordRange = doc.createRange();
-      wordRange.setStart(node, start);
-      wordRange.setEnd(node, end);
-      return wordRange;
+      return range;
     }
 
-    function handleStudyResultClick(ev) {
+    function handleStudyMouseUp(ev) {
       const toolbar   = document.getElementById(studyHighlightToolbarId);
       const container = document.getElementById(studyHighlightContainerId);
 
-      // ignore clicks in toolbar or highlight container
+      // ignore mouseup in toolbar or highlight container
       if (toolbar && toolbar.contains(ev.target)) return;
       if (container && container.contains(ev.target)) return;
 
-      const range = getWordRangeFromEvent(ev);
+      const range = getSelectionRangeWithinStudy();
       if (!range) return;
 
       const selectedText = range.toString().trim();
@@ -7141,16 +7071,23 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       try {
         range.surroundContents(span);
       } catch (e) {
-        // if fragment crossing nodes, just skip
+        // If selection crosses complex DOM boundaries, skip
         return;
       }
 
+      // store clean text in grouped div
       addStudyHighlight(currentStudyColorKey, selectedText);
+
+      // clear browser selection so user just sees highlight
+      const sel = window.getSelection();
+      if (sel && sel.removeAllRanges) {
+        sel.removeAllRanges();
+      }
     }
 
-    // init Study highlight UI + click handler
+    // init Study highlight UI + mouseup handler
     ensureStudyHighlightUI();
-    studyResult.addEventListener("click", handleStudyResultClick);
+    studyResult.addEventListener("mouseup", handleStudyMouseUp);
   });
 </script>
 
