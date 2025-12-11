@@ -672,7 +672,7 @@
   }
 
   .notebook-meta {
-    font-size: 0.72rem;
+    font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 0.09em;
     font-weight: 600;
@@ -825,7 +825,7 @@
     display: block;
   }
 
-  @media (min-width: 800px) {
+  @media (min-width: 700px) {
     .app {
       padding-bottom: 18px;
     }
@@ -833,6 +833,7 @@
     .main-layout {
       display: flex;
     }
+
 
     .side-drawer {
       position: static;
@@ -936,15 +937,7 @@
       line-height: 1.3;
     }
 
-    .header-top-row {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 6px;
-    }
+
 
     .chip.learn-mode {
       flex: 0 0 auto;
@@ -1630,6 +1623,228 @@ li {
   }
 }
 
+/* ---------- Sticky Loop Bar ---------- */
+
+#pg-sticky-loop-shell {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  padding: 0.5rem 0;
+  margin-bottom: 0.75rem;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+    border-radius: var(--radius-lg);;
+  border: 1px solid rgba(125, 125, 255, 0.22);
+  background: background: var(--card-bg);
+}
+
+/* Light / dark friendly subtle color */
+#pg-sticky-loop-shell-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+
+}
+
+/* Respect dark mode if you already flip background/text colors */
+@media (prefers-color-scheme: dark) {
+  #pg-sticky-loop-shell-inner {
+    border-color: rgba(165, 180, 252, 0.4);
+    background: linear-gradient(
+      120deg,
+      rgba(129, 140, 248, 0.35),
+      rgba(56, 189, 248, 0.22),
+      rgba(15, 23, 42, 0.7)
+    );
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Pills inside loop */
+.pg-loop-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+padding: 0.5rem 1rem;  border-radius: 999px;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(15, 23, 42, 0.06);
+  cursor: default;
+  user-select: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .pg-loop-pill {
+    border-color: rgba(148, 163, 184, 0.7);
+    background: rgba(15, 23, 42, 0.75);
+  }
+}
+/* Action pills (Menu / Tools used elsewhere too) */
+.pg-loop-pill--action {
+  cursor: pointer;
+  font-weight: 600;
+  border-style: solid;
+  border-width: 1px;
+  border-color: rgba(96, 165, 250, 0.9);
+  background: rgba(37, 99, 235, 0.08);
+  transition:
+    transform 0.12s ease-out,
+    box-shadow 0.12s ease-out,
+    background 0.12s ease-out;
+}
+
+.pg-loop-pill--action:active {
+  transform: translateY(1px) scale(0.99);
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+}
+
+/* Metric pills (streak, weekly recap) */
+.pg-loop-pill-label {
+  opacity: 0.7;
+  font-weight: 500;
+}
+
+.pg-loop-pill-value {
+  font-weight: 700;
+}
+
+/* Loop animation: items fade/slide in sequence */
+.pg-loop-items {
+  display: inline-flex;
+  position: relative;
+  overflow: hidden;
+}
+
+.pg-loop-item {
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 0.3s ease-out,
+    transform 0.3s ease-out;
+  position: absolute;
+  left: 0;
+}
+
+.pg-loop-item.pg-loop-item--active {
+  opacity: 1;
+  transform: translateY(0);
+  position: relative;
+}
+
+/* --------- STICKY BAR: just the two buttons, styled like .card --------- */
+
+#pg-sticky-loop-shell {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  background: var(--card-bg);
+  border-radius: var(--card-radius, 6px);
+}
+
+/* Row inside sticky bar = Menu + Tools */
+.pg-loop-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pg-loop-row--actions {
+  justify-content: flex-end;
+  flex-wrap: nowrap; /* keep buttons side by side */
+}
+
+/* Make sure Menu wrapper & Tools button don't become full-width on mobile */
+.pg-loop-row--actions .header-top-row {
+  display: flex;
+  align-items: center;
+  width: auto !important;
+  flex: 0 0 auto !important;
+}
+
+.pg-loop-row--actions summary.pill-button,
+.pg-loop-row--actions #pg-loop-tools-toggle {
+  width: auto !important;
+  flex: 0 0 auto !important;
+}
+
+/* ---------- Reusable "loop" behavior: NOT sticky anymore ---------- */
+/* (used for the header metrics container) */
+
+[data-sticky-loop] {
+  position: relative; /* was sticky before – now only used for JS loop */
+  z-index: 1;
+  margin-top:10px;
+}
+
+/* Mobile tweaks: keep Menu + Tools on one line */
+@media (max-width: 700px) {
+  #pg-sticky-loop-shell {
+    top: 0;
+  }
+.header-menu .pill-button, #pg-loop-tools-toggle{
+padding: 8px;
+}
+  .pg-loop-row--actions {
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+  }
+}
+
+/* Utility: hide original toggles on mobile ONLY when we've wired the loop */
+.pg-mobile-hide-original-toggle {
+  display: inline-flex;
+}
+
+@media (max-width: 700px) {
+  .pg-mobile-hide-original-toggle {
+    display: none !important;
+  }
+}
+/* Mobile: stack metric pills (Today / Weekly recap) on their own lines */
+@media (max-width: 500px) {
+  .pg-loop-row--metrics {
+    flex-direction: column;      /* stack instead of row */
+    align-items: flex-start;
+	margin-top:10px;
+  }
+
+  .pg-loop-row--metrics .pg-loop-pill {
+    width: 100%;                 /* optional: make each pill full-width */
+  }
+}
+
+/* Smooth transform for the Menu + Tools buttons */
+#pg-sticky-loop-shell summary.pill-button,
+#pg-sticky-loop-shell #pg-loop-tools-toggle {
+  transition:
+    transform 0.15s ease-out,
+    padding 0.15s ease-out;
+}
+
+/* When sticky bar is "stuck", shrink the buttons slightly */
+#pg-sticky-loop-shell.pg-is-stuck summary.pill-button,
+#pg-sticky-loop-shell.pg-is-stuck #pg-loop-tools-toggle {
+  transform: scale(0.9);
+  padding-block: 0.5rem;
+}
+/* Default: hide sticky Tools button */
+#pg-loop-tools-toggle {
+  display: none !important;
+}
+
+/* Mobile: show sticky Tools button */
+@media (max-width: 700px) {
+  #pg-loop-tools-toggle {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.25rem;
+  }
+}
 
 
 </style>
@@ -1639,140 +1854,194 @@ li {
 
 <body>
 <div class="app">
-  <header>
-    <div class="title-block">
-      <div class="title-row">
-        <div class="brand-logo-wrap">
-          <img
-            src="studylens-light.png"
-            class="brand-logo brand-logo-light"
-            alt="StudyLens"
-          />
-          <img
-            src="studylens-dark-highvis.png"
-            class="brand-logo brand-logo-dark"
-            alt="StudyLens"
-          />
-        </div>
-        <h1 class="visually-hidden">StudyLens</h1>
+ <header>
+  <div class="title-block">
+    <div class="title-row">
+      <div class="brand-logo-wrap">
+        <img
+          src="studylens-light.png"
+          class="brand-logo brand-logo-light"
+          alt="StudyLens"
+        />
+        <img
+          src="studylens-dark-highvis.png"
+          class="brand-logo brand-logo-dark"
+          alt="StudyLens"
+        />
       </div>
-      <div class="subtitle">
-        Snap, solve, study & write.<span class="mobile-break"><br></span> Built
-        for students.
-      </div>
+      <h1 class="visually-hidden">StudyLens</h1>
+    </div>
+    <div class="subtitle">
+      Snap, solve, study & write.<span class="mobile-break"><br></span> Built
+      for students.
     </div>
 
-    <div class="header-right">
-      <!-- Row 1: plan label only -->
-      <div class="auth-row">
-        <span id="proBadge" style="display:none; font-weight:bold;">
-          Pro account ✅
-        </span>
-		        <span id="userPlanLabel">Guest · 10 free uses</span>
-
+    <!-- NEW: metrics row lives in the header now -->
+    <div
+      class="header-metrics pg-loop-row pg-loop-row--metrics"
+      data-sticky-loop
+      data-loop-interval="6000"
+    >
+      <div class="pg-loop-pill">
+        <span class="pg-loop-pill-label">Today</span>
+        <span class="pg-loop-pill-value" data-pg-streak-value>—</span>
       </div>
 
-      <!-- Row 2: Modes & Tools dropdown (now also has Upgrade / Sign in) -->
-      <div class="header-top-row">
-        <details
-          class="header-menu"
-          style="position:relative; display:inline-block;"
-        >
-          <summary
-            class="pill-button"
-            style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;"
-          >
-            <span class="material-symbols-outlined" style="font-size:18px;"
-              >expand_more</span
+      <div class="pg-loop-pill">
+        <div class="pg-loop-items" id="pg-loop-metrics-rotator">
+          <div class="pg-loop-item pg-loop-item--active">
+            <span class="pg-loop-pill-label">Weekly recap</span>
+            <span
+              class="pg-loop-pill-value"
+              data-pg-weekly-summary
             >
-            <span>Menu</span>
-			
-          </summary>
-
-          <div
-            class="header-menu-inner"
-            style="
-              position:absolute;
-              top:calc(-100%);
-              left:-100%;
-              transform:translateX(-50%);
-              display:flex;
-              flex-direction:column;
-              gap:6px;
-              align-items:stretch;
-              width:1*0px;
-              z-index:30;
-              background: var(--card-bg);
-              padding: 16px;
-              border-radius: 6px;
-              box-shadow: 0 10px 24px rgba(15, 23, 42, 0.35);
-            "
-          >
-		  <button
-              class="drawer-toggle"
-              id="drawerToggle"
-              type="button"
-              style="width:100%; justify-content:center;"
-            >
-              <span class="material-symbols-outlined">view_sidebar</span>
-              <span>Tools</span>
-            </button>
-            <button
-              class="theme-toggle"
-              id="themeToggle"
-              type="button"
-              style="width:100%; justify-content:center;"
-            >
-              <svg id="iconSun" viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M12 4a1 1 0 0 1 1 1V6a1 1 0 1 1-2 0V5a1 1 0 0 1 1-1Zm0 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-4a1 1 0 0 1-1 1h-1a1 1 0 1 1 0-2h1a1 1 0 0 1 1 1ZM6 13a1 1 0 1 1 0-2H5a1 1 0 1 1 0 2h1Zm11.07-5.07a1 1 0 0 1-1.41 0L14.9 7.17a1 1 0 0 1 1.42-1.41l.76.76a1 1 0 0 1 0 1.41Zm-9.54 9.54a1 1 0 0 1-1.41 0l-.76-.76A1 1 0 0 1 6.24 15.3l.76.76a1 1 0 0 1 0 1.41ZM18 17.24a1 1 0 0 1 0-1.41l.76-.76a1 1 0 1 1 1.41 1.41l-.76.76a1 1 0 0 1-1.41 0ZM6.24 8.7a1 1 0 0 1-1.41-1.41l.76-.76A1 1 0 0 1 7 7.24l-.76.76Z"
-                />
-              </svg>
-              <svg id="iconMoon" viewBox="0 0 24 24" style="display: none">
-                <path
-                  fill="currentColor"
-                  d="M20.3 14.8A7.5 7.5 0 0 1 11.2 3.7 1 1 0 0 0 10 2.49 9.5 9.5 0 1 0 21.51 14a1 1 0 0 0-1.21-1.22Z"
-                />
-              </svg>
-              <span id="themeLabel">Dark</span>
-            </button>
-
-            
-
-            <!-- Upgrade + Sign in moved into dropdown -->
-            <button
-              id="upgradeButton"
-              class="pill-button"
-              type="button"
-              style="width:100%; justify-content:center;"
-            >
-              Upgrade to Pro
-            </button>
-
-            <button
-              id="authButton"
-              class="pill-button"
-              type="button"
-              style="width:100%; justify-content:center;"
-            >
-              Sign in
-            </button>
-
-            <!-- Learn mode toggle chip -->
-            <div
-              class="chip learn-mode"
-              id="modeChip"
-              style="width:100%; justify-content:space-between;"
-            >
-              <span class="chip-dot"></span>
-              <span class="mode-label">Learn mode ON</span>
-            </div>
+              —
+            </span>
           </div>
-        </details>
+          <div class="pg-loop-item">
+            <span class="pg-loop-pill-label">Questions solved</span>
+            <span
+              class="pg-loop-pill-value"
+              data-pg-session-count
+            >
+              —
+            </span>
+          </div>
+        </div>
       </div>
     </div>
-  </header>
+    <!-- end header-metrics -->
+  </div>
+
+  <div class="header-right">
+    <!-- your existing auth-row etc stays the same -->
+    <div class="auth-row">
+      <span id="proBadge" style="display:none; font-weight:bold;">
+        Pro account ✅
+      </span>
+      <span id="userPlanLabel">Guest · 10 free uses</span>
+    </div>
+  </div>
+</header>
+
+  
+  <!-- Sticky progress / loop bar (right under header) -->
+<!-- Sticky bar: JUST the two buttons -->
+<section id="pg-sticky-loop-shell">
+  <div class="pg-loop-row pg-loop-row--actions">
+    <!-- existing Menu dropdown -->
+    <div class="header-top-row">
+		  <div
+            class="chip learn-mode"
+            id="modeChip"
+            style="justify-content:space-between;"
+          >
+            <span class="chip-dot"></span>
+            <span class="mode-label">Learn mode ON</span>
+          </div>
+      <details
+        class="header-menu"
+        style="position:relative; display:inline-block;"
+      >
+
+        <summary
+          class="pill-button"
+          style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;"
+        >
+          <span class="material-symbols-outlined" style="font-size:18px;"
+            >expand_more</span
+          >
+          <span>Menu</span>
+        </summary>
+
+        <div
+          class="header-menu-inner"
+          style="
+            position:absolute;
+            top:calc(-100%);
+            left:-100%;
+            transform:translateX(-50%);
+            display:flex;
+            flex-direction:column;
+            gap:6px;
+            align-items:stretch;
+            width:1*0px;
+            z-index:30;
+            background: var(--card-bg);
+            padding: 16px;
+            border-radius: 6px;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.35);
+          "
+        >
+          <!-- everything inside the dropdown stays exactly the same -->
+		  
+          <button
+            class="drawer-toggle" style="display:none";
+            id="drawerToggle"
+            type="button"
+            style="width:100%; justify-content:center;"
+          >
+            <span class="material-symbols-outlined">view_sidebar</span>
+            <span>Tools</span>
+          </button>
+
+          <button
+            class="theme-toggle"
+            id="themeToggle"
+            type="button"
+            style="width:100%; justify-content:center;"
+          >
+            <svg id="iconSun" viewBox="0 0 24 24">
+              <path
+                fill="currentColor"
+                d="M12 4a1 1 0 0 1 1 1V6a1 1 0 1 1-2 0V5a1 1 0 0 1 1-1Zm0 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-4a1 1 0 0 1-1 1h-1a1 1 0 1 1 0-2h1a1 1 0 0 1 1 1ZM6 13a1 1 0 1 1 0-2H5a1 1 0 1 1 0 2h1Zm11.07-5.07a1 1 0 0 1-1.41 0L14.9 7.17a1 1 0 0 1 1.42-1.41l.76.76a1 1 0 0 1 0 1.41Zm-9.54 9.54a1 1 0 0 1-1.41 0l-.76-.76A1 1 0 0 1 6.24 15.3l.76.76a1 1 0 0 1 0 1.41ZM18 17.24a1 1 0 0 1 0-1.41l.76-.76a1 1 0 1 1 1.41 1.41l-.76.76a1 1 0 0 1-1.41 0ZM6.24 8.7a1 1 0 0 1-1.41-1.41l.76-.76A1 1 0 0 1 7 7.24l-.76.76Z"
+              />
+            </svg>
+            <svg id="iconMoon" viewBox="0 0 24 24" style="display: none">
+              <path
+                fill="currentColor"
+                d="M20.3 14.8A7.5 7.5 0 0 1 11.2 3.7 1 1 0 0 0 10 2.49 9.5 9.5 0 1 0 21.51 14a1 1 0 0 0-1.21-1.22Z"
+              />
+            </svg>
+            <span id="themeLabel">Dark</span>
+          </button>
+
+          <button
+            id="upgradeButton"
+            class="pill-button"
+            type="button"
+            style="width:100%; justify-content:center;"
+          >
+            Upgrade to Pro
+          </button>
+
+          <button
+            id="authButton"
+            class="pill-button"
+            type="button"
+            style="width:100%; justify-content:center;"
+          >
+            Sign in
+          </button>
+
+          
+        </div>
+      </details>
+    </div>
+
+    <!-- Tools pill in the loop -->
+    <button
+      type="button"
+      class="pill-button"
+      id="pg-loop-tools-toggle"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">view_sidebar</span>
+      <span>Tools</span>
+    </button>
+  </div>
+</section>
+
+
 
   <div class="top-bar">
     <select id="subjectSelect" class="text-input">
@@ -1822,6 +2091,7 @@ li {
           />
 
           <!-- DROPDOWN WRAPPER FOR SNAP ACTIONS -->
+		  
           <div class="btn-row snap-actions-wrapper">
             <div class="snap-actions-dropdown">
               <button
@@ -6029,6 +6299,245 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 </script>
 
 
+<script>
+  (function () {
+    function onReady(fn) {
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", fn);
+      } else {
+        fn();
+      }
+    }
+
+    onReady(function () {
+      setupStickyLoop();
+      setupProgressMetrics();
+      wireMobileToggles();
+    });
+
+    /* ---------- 1. Generic looping behavior for [data-sticky-loop] containers ---------- */
+
+    function setupStickyLoop() {
+      var containers = document.querySelectorAll("[data-sticky-loop]");
+      containers.forEach(function (container) {
+        var rotator = container.querySelector("#pg-loop-metrics-rotator");
+        if (!rotator) return;
+
+        var items = Array.from(rotator.querySelectorAll(".pg-loop-item"));
+        if (items.length <= 1) return;
+
+        var intervalMs = parseInt(
+          container.getAttribute("data-loop-interval") || "6000",
+          10
+        );
+        var index = 0;
+
+        setInterval(function () {
+          items[index].classList.remove("pg-loop-item--active");
+          index = (index + 1) % items.length;
+          items[index].classList.add("pg-loop-item--active");
+        }, intervalMs);
+      });
+    }
+
+    /* ---------- 2. Streaks + weekly recap + session count ---------- */
+
+    function setupProgressMetrics() {
+      try {
+        var now = new Date();
+        var todayKey = now.toISOString().slice(0, 10); // YYYY-MM-DD
+
+        var lastVisit = localStorage.getItem("pg_last_visit");
+        var streakStr = localStorage.getItem("pg_streak") || "0";
+        var streak = parseInt(streakStr, 10) || 0;
+
+        if (!lastVisit) {
+          streak = 1;
+        } else if (lastVisit !== todayKey) {
+          var lastDate = new Date(lastVisit + "T00:00:00");
+          var diff =
+            (Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) -
+              Date.UTC(
+                lastDate.getFullYear(),
+                lastDate.getMonth(),
+                lastDate.getDate()
+              )) /
+            (1000 * 60 * 60 * 24);
+
+          if (diff === 1) {
+            streak += 1;
+          } else if (diff > 1) {
+            streak = 1; // streak broken
+          }
+        }
+
+        localStorage.setItem("pg_last_visit", todayKey);
+        localStorage.setItem("pg_streak", String(streak));
+
+        // Weekly active days (Mon–Sun)
+        var activeDaysRaw = localStorage.getItem("pg_active_days");
+        var activeDays = activeDaysRaw ? JSON.parse(activeDaysRaw) : {};
+        activeDays[todayKey] = true;
+        localStorage.setItem("pg_active_days", JSON.stringify(activeDays));
+
+        var weeklyCount = countActiveDaysThisWeek(activeDays, now);
+
+        // Simple “session count”: increment when page is loaded
+        var sessionsRaw = localStorage.getItem("pg_sessions_this_week") || "0";
+        var sessions = parseInt(sessionsRaw, 10) || 0;
+        var weekKey = getWeekKey(now);
+        var lastWeekKey = localStorage.getItem("pg_sessions_week_key");
+
+        if (lastWeekKey !== weekKey) {
+          // new week -> reset
+          sessions = 0;
+        }
+        sessions += 1;
+
+        localStorage.setItem("pg_sessions_this_week", String(sessions));
+        localStorage.setItem("pg_sessions_week_key", weekKey);
+
+        // Write into the pills
+        var streakNode = document.querySelector("[data-pg-streak-value]");
+        if (streakNode) {
+          streakNode.textContent =
+            streak + " day" + (streak === 1 ? "" : "s") + " in a row";
+        }
+
+        var weeklyNode = document.querySelector("[data-pg-weekly-summary]");
+        if (weeklyNode) {
+          weeklyNode.textContent =
+            weeklyCount +
+            " active day" +
+            (weeklyCount === 1 ? "" : "s") +
+            " this week";
+        }
+
+        var sessionsNode = document.querySelector("[data-pg-session-count]");
+        if (sessionsNode) {
+          sessionsNode.textContent =
+            sessions + " session" + (sessions === 1 ? "" : "s");
+        }
+      } catch (e) {
+        // Fail silently; this is just for engagement
+        console.warn("PassingGrade progress metrics error", e);
+      }
+    }
+
+    function getWeekKey(date) {
+      var d = new Date(
+        Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+      );
+      var dayNum = d.getUTCDay() || 7;
+      d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+      var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      var weekNo = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+      return d.getUTCFullYear() + "-W" + weekNo;
+    }
+
+    function countActiveDaysThisWeek(activeDaysObj, now) {
+      var count = 0;
+      var today = new Date(
+        Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+      );
+      var dayNum = today.getUTCDay() || 7; // 1-7 (Mon-Sun)
+      var monday = new Date(today);
+      monday.setUTCDate(today.getUTCDate() - (dayNum - 1)); // go back to Monday
+
+      for (var i = 0; i < 7; i++) {
+        var d = new Date(monday);
+        d.setUTCDate(monday.getUTCDate() + i);
+        var key = d.toISOString().slice(0, 10);
+        if (activeDaysObj[key]) count++;
+      }
+      return count;
+    }
+
+    /* ---------- 3. Wire Menu & Tools toggles into the sticky loop (mobile) ---------- */
+
+    function wireMobileToggles() {
+      var loopMenuButton = document.getElementById("pg-loop-menu-toggle");
+      var loopToolsButton = document.getElementById("pg-loop-tools-toggle");
+
+      if (!loopMenuButton && !loopToolsButton) return;
+
+      // Find existing Menu / Tools controls by text (keeps your current behavior)
+      var allButtons = Array.prototype.slice.call(
+        document.querySelectorAll("button, [role='button']")
+      );
+
+      var menuOriginal = findByText(allButtons, "Menu");
+      var toolsOriginal = findByText(allButtons, "Tools");
+
+      // Mark originals as "mobile-hide" without changing desktop behavior
+      [menuOriginal, toolsOriginal].forEach(function (el) {
+        if (el && !el.classList.contains("pg-mobile-hide-original-toggle")) {
+          el.classList.add("pg-mobile-hide-original-toggle");
+        }
+      });
+
+      if (loopMenuButton && menuOriginal) {
+        loopMenuButton.addEventListener("click", function () {
+          menuOriginal.click();
+        });
+      }
+
+      if (loopToolsButton && toolsOriginal) {
+        loopToolsButton.addEventListener("click", function () {
+          toolsOriginal.click();
+        });
+      }
+    }
+
+    function findByText(nodes, text) {
+      text = text.toLowerCase();
+      for (var i = 0; i < nodes.length; i++) {
+        var t = (nodes[i].textContent || "").toLowerCase();
+        if (t.indexOf(text) !== -1) return nodes[i];
+      }
+      return null;
+    }
+  })();
+</script>
+
+
+
+<script>
+  (function () {
+    function onReady(fn) {
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", fn);
+      } else {
+        fn();
+      }
+    }
+
+    onReady(function () {
+      var header = document.querySelector("header");
+      var sticky = document.getElementById("pg-sticky-loop-shell");
+      if (!header || !sticky) return;
+
+      var observer = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              // header visible -> not stuck
+              sticky.classList.remove("pg-is-stuck");
+            } else {
+              // header scrolled off -> sticky bar is stuck
+              sticky.classList.add("pg-is-stuck");
+            }
+          });
+        },
+        {
+          threshold: 0
+        }
+      );
+
+      observer.observe(header);
+    });
+  })();
+</script>
 
 </body>
 
