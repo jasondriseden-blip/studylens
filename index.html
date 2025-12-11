@@ -1785,6 +1785,7 @@ padding: 0.5rem 1rem;  border-radius: 999px;
 @media (max-width: 700px) {
   #pg-sticky-loop-shell {
     top: 2em;
+	z-index: 20;
   }
 .header-menu .pill-button, #pg-loop-tools-toggle{
 padding: 8px;
@@ -4595,8 +4596,18 @@ text.trim();
   }
 
   let flashcards = [];
-  let currentCardIndex = 0;
+  let currentCardIndex = 0;       // index within the *current deck*
   let showingBack = false;
+
+  // NEW: which stack user is viewing: "needs" (default), "got", "all"
+  let currentDeck = "needs";
+  // NEW: references to stack buttons
+  let cardsStackAllBtn = null;
+  let cardsStackNeedsBtn = null;
+  let cardsStackGotBtn = null;
+
+  // NEW: lock card height so page doesn’t bounce
+  let fixedCardHeight = null;
 
   // Move flashcards viewer above the source textbox
   (function moveViewerAboveTextarea() {
@@ -4887,20 +4898,174 @@ text.trim();
     }));
   }
 
+  // NEW: build decks based on status and currentDeck
+  function getDeckIndices() {
+    if (!flashcards.length) return [];
+    if (currentDeck === "all") {
+      return flashcards.map((c, idx) => idx);
+    }
+    if (currentDeck === "got") {
+      return flashcards.reduce((arr, c, idx) => {
+        if (c.status === "got") arr.push(idx);
+        return arr;
+      }, []);
+    }
+    // "needs": everything that still needs work (not got)
+    return flashcards.reduce((arr, c, idx) => {
+      if (c.status !== "got") arr.push(idx);
+      return arr;
+    }, []);
+  }
+
+  // NEW: create the small stack square buttons under the viewer
+  function initDeckStacksUI() {
+    if (!cardsViewer || !cardsViewer.parentNode) return;
+
+    const container = cardsViewer.parentNode;
+    const existing = document.getElementById("cardsStacksWrapper");
+    if (existing) return;
+
+    const wrapper = document.createElement("div");
+    wrapper.id = "cardsStacksWrapper";
+    wrapper.style.display = "flex";
+    wrapper.style.gap = "8px";
+    wrapper.style.marginTop = "8px";
+
+    function makeStackButton(label, deckKey) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.dataset.deck = deckKey;
+      btn.style.minWidth = "68px";
+      btn.style.minHeight = "44px";
+      btn.style.borderRadius = "10px";
+      btn.style.border = "1px solid rgba(148, 163, 184, 0.9)";
+      btn.style.background = "var(--card-bg)";
+      btn.style.fontSize = "11px";
+      btn.style.display = "flex";
+      btn.style.flexDirection = "column";
+      btn.style.alignItems = "center";
+      btn.style.justifyContent = "center";
+      btn.style.padding = "4px 6px";
+      btn.style.cursor = "pointer";
+      btn.style.gap = "2px";
+
+      const labelSpan = document.createElement("span");
+      labelSpan.textContent = label;
+      labelSpan.style.fontWeight = "600";
+
+      const countSpan = document.createElement("span");
+      countSpan.className = "cards-stack-count";
+      countSpan.textContent = "0";
+      countSpan.style.opacity = "0.75";
+
+      btn.appendChild(labelSpan);
+      btn.appendChild(countSpan);
+
+      btn.addEventListener("click", () => {
+        currentDeck = deckKey;
+        currentCardIndex = 0;
+        renderCurrentCard();
+        updateStacksUI();
+      });
+
+      return btn;
+    }
+
+    cardsStackGotBtn = makeStackButton("Got it", "got");
+    cardsStackNeedsBtn = makeStackButton("Needs work", "needs");
+    cardsStackAllBtn = makeStackButton("All", "all");
+
+    wrapper.appendChild(cardsStackGotBtn);
+    wrapper.appendChild(cardsStackNeedsBtn);
+    wrapper.appendChild(cardsStackAllBtn);
+
+    // Insert right after cardsViewer
+    if (cardsViewer.nextSibling) {
+      container.insertBefore(wrapper, cardsViewer.nextSibling);
+    } else {
+      container.appendChild(wrapper);
+    }
+  }
+
+  // NEW: update counts and active stack styling
+  function updateStacksUI() {
+    if (!flashcards || !flashcards.length) {
+      if (cardsStackGotBtn) {
+        const c = cardsStackGotBtn.querySelector(".cards-stack-count");
+        if (c) c.textContent = "0";
+      }
+      if (cardsStackNeedsBtn) {
+        const c = cardsStackNeedsBtn.querySelector(".cards-stack-count");
+        if (c) c.textContent = "0";
+      }
+      if (cardsStackAllBtn) {
+        const c = cardsStackAllBtn.querySelector(".cards-stack-count");
+        if (c) c.textContent = "0";
+      }
+      return;
+    }
+
+    const total = flashcards.length;
+    const got = flashcards.filter((c) => c.status === "got").length;
+    const needs = flashcards.filter((c) => c.status !== "got").length;
+
+    if (cardsStackGotBtn) {
+      const c = cardsStackGotBtn.querySelector(".cards-stack-count");
+      if (c) c.textContent = String(got);
+    }
+    if (cardsStackNeedsBtn) {
+      const c = cardsStackNeedsBtn.querySelector(".cards-stack-count");
+      if (c) c.textContent = String(needs);
+    }
+    if (cardsStackAllBtn) {
+      const c = cardsStackAllBtn.querySelector(".cards-stack-count");
+      if (c) c.textContent = String(total);
+    }
+
+    // simple active state
+    [cardsStackGotBtn, cardsStackNeedsBtn, cardsStackAllBtn].forEach((btn) => {
+      if (!btn) return;
+      if (btn.dataset.deck === currentDeck) {
+        btn.style.boxShadow = "0 0 0 2px rgba(59,130,246,0.7)";
+      } else {
+        btn.style.boxShadow = "none";
+      }
+    });
+  }
+
   function updateCardsStats() {
     if (!flashcards.length) {
       cardsStats.textContent = "No cards yet. Create some above.";
       return;
     }
-    const total = flashcards.length;
+
+    const deck = getDeckIndices();
+    if (!deck.length) {
+      cardsStats.textContent = "No cards in this stack. Try another stack above.";
+      return;
+    }
+
+    const totalDeck = deck.length;
     const got = flashcards.filter((c) => c.status === "got").length;
-    const need = flashcards.filter((c) => c.status === "need_work").length;
+    const need = flashcards.filter((c) => c.status !== "got").length;
     const indexLabel = currentCardIndex + 1;
 
     cardsStats.textContent =
-      `Card ${indexLabel} of ${total}` +
+      `Card ${indexLabel} of ${totalDeck}` +
       ` • Got it ${got}` +
       ` • Need work ${need}`;
+  }
+
+  // NEW: lock card height once so the page doesn't jump
+  function lockCardHeightOnce() {
+    if (!cardsCard || fixedCardHeight !== null) return;
+    requestAnimationFrame(() => {
+      const h = cardsCard.offsetHeight;
+      if (h && h > 0) {
+        fixedCardHeight = h;
+        cardsCard.style.minHeight = h + "px";
+      }
+    });
   }
 
   function renderCurrentCard() {
@@ -4908,14 +5073,26 @@ text.trim();
 
     if (!flashcards.length) {
       cardsViewer.style.display = "none";
+      if (cardsStats) {
+        cardsStats.textContent = "No cards yet. Create some above.";
+      }
       return;
     }
 
-    if (currentCardIndex < 0 || currentCardIndex >= flashcards.length) {
+    const deck = getDeckIndices();
+    if (!deck.length) {
+      cardsViewer.style.display = "none";
+      if (cardsStats) {
+        cardsStats.textContent = "No cards in this stack. Try another stack above.";
+      }
+      return;
+    }
+
+    if (currentCardIndex < 0 || currentCardIndex >= deck.length) {
       currentCardIndex = 0;
     }
 
-    const card = flashcards[currentCardIndex];
+    const card = flashcards[deck[currentCardIndex]];
     cardsViewer.style.display = "block";
     showingBack = false;
 
@@ -4933,6 +5110,7 @@ text.trim();
 
     updateCardStylesForTheme();
     updateCardsStats();
+    lockCardHeightOnce();
   }
 
   // Restore from storage
@@ -4940,8 +5118,14 @@ text.trim();
     const stored = loadFlashcardsStorage();
     if (stored && stored.length) {
       flashcards = stored;
+      currentDeck = "needs";
       currentCardIndex = 0;
+      initDeckStacksUI();
+      updateStacksUI();
       renderCurrentCard();
+    } else {
+      initDeckStacksUI();
+      updateStacksUI();
     }
   })();
 
@@ -4985,8 +5169,12 @@ text.trim();
       }
 
       flashcards = parsed;
+      currentDeck = "needs";
       currentCardIndex = 0;
+      fixedCardHeight = null; // recalc height for new set
       saveFlashcards(flashcards);
+      initDeckStacksUI();
+      updateStacksUI();
       renderCurrentCard();
 
       addNotebookItem("Cards", answerText);
@@ -4997,12 +5185,19 @@ text.trim();
   });
 
   cardsClearBtn.addEventListener("click", () => {
+    const ok = confirm(
+      "Clear all flashcard stacks for this set? This will NOT clear your notebook."
+    );
+    if (!ok) return;
+
     cardsResult.textContent = "";
     flashcards = [];
     currentCardIndex = 0;
     showingBack = false;
+    fixedCardHeight = null;
     saveFlashcards(flashcards);
     if (cardsViewer) cardsViewer.style.display = "none";
+    updateStacksUI();
   });
 
   cardsFlipBtn.addEventListener("click", () => {
@@ -5013,14 +5208,25 @@ text.trim();
   });
 
   function goToNextCard() {
-    if (!flashcards.length) return;
-    currentCardIndex = (currentCardIndex + 1) % flashcards.length;
+    const deck = getDeckIndices();
+    if (!deck.length) {
+      renderCurrentCard();
+      return;
+    }
+    currentCardIndex = (currentCardIndex + 1) % deck.length;
     renderCurrentCard();
   }
 
   cardsGotItBtn.addEventListener("click", () => {
     if (!flashcards.length) return;
-    const card = flashcards[currentCardIndex];
+    const deck = getDeckIndices();
+    if (!deck.length) {
+      renderCurrentCard();
+      return;
+    }
+    const cardIndex = deck[currentCardIndex];
+    const card = flashcards[cardIndex];
+
     card.status = "got";
     card.seen = (card.seen || 0) + 1;
     card.correct = (card.correct || 0) + 1;
@@ -5040,16 +5246,25 @@ text.trim();
     // New: single colorful phrase burst from the Got it button
     spawnGotItBurst(cardsGotItBtn);
 
-    goToNextCard();
+    updateStacksUI();
+    goToNextCard(); // removed from current deck view
   });
 
   cardsNeedWorkBtn.addEventListener("click", () => {
     if (!flashcards.length) return;
-    const card = flashcards[currentCardIndex];
+    const deck = getDeckIndices();
+    if (!deck.length) {
+      renderCurrentCard();
+      return;
+    }
+    const cardIndex = deck[currentCardIndex];
+    const card = flashcards[cardIndex];
+
     card.status = "need_work";
     card.seen = (card.seen || 0) + 1;
     card.lastSeen = Date.now();
     saveFlashcards(flashcards);
+    updateStacksUI();
     goToNextCard();
   });
 </script>
