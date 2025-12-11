@@ -1850,30 +1850,6 @@ padding: 8px;
     gap: 0.25rem;
   }
 }
-/* Sticky Study highlighter bar (uses same pattern as sticky loop bar) */
-#studyHighlightToolbar {
-  position: sticky;
-  /* This offset makes it sit just under the sticky loop bar.
-     Tweak the value until it lines up how you like. */
-  top: 3.25rem;
-  z-index: 25;
-
-  /* Make it look like a little floating strip */
-  padding: 0.4rem 0.6rem;
-  margin-top: 0.4rem;
-  margin-bottom: 0.75rem;
-  border-radius: var(--radius-lg);
-  background: var(--card-bg);
-  border: 1px solid var(--outline);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-
-/* Optional: when it’s scrolled up, shrink slightly (same idea as pg-is-stuck) */
-#studyHighlightToolbar.pg-is-stuck {
-  padding-block: 0.2rem;
-  opacity: 0.96;
-}
 
 
 </style>
@@ -5954,12 +5930,9 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           }
         }, 0);
 
-        // insert toolbar right after studyResult
-        if (studyResult.nextSibling) {
-          studyResult.parentNode.insertBefore(toolbar, studyResult.nextSibling);
-        } else {
-          studyResult.parentNode.appendChild(toolbar);
-        }
+        // insert toolbar ABOVE studyResult
+        const parent = studyResult.parentNode;
+        parent.insertBefore(toolbar, studyResult);
       }
 
       // Container for grouped highlights
@@ -6210,6 +6183,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     ensureStudyHighlightUI();
   });
 </script>
+
 
 
 
