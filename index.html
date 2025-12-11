@@ -5744,7 +5744,6 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
 
 
-
 <!-- BLOCK STUDY: Neon highlighting + grouped snippets for Study tool (desktop + mobile) -->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
@@ -5947,11 +5946,10 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
         container.style.flexDirection = "column";
         container.style.gap = "8px";
 
-        const toolbarEl = document.getElementById(studyHighlightToolbarId);
-        if (toolbarEl && toolbarEl.nextSibling) {
-          toolbarEl.parentNode.insertBefore(container, toolbarEl.nextSibling);
-        } else if (toolbarEl) {
-          toolbarEl.parentNode.appendChild(container);
+        if (toolbar.nextSibling) {
+          toolbar.parentNode.insertBefore(container, toolbar.nextSibling);
+        } else {
+          toolbar.parentNode.appendChild(container);
         }
 
         // build groups (one per color)
@@ -6107,19 +6105,19 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     }
 
     // Desktop + mobile support:
-    // Listen on the whole document so it works even when touch selection
-    // doesn't fire events directly on #studyResult.
+    // - mouseup for desktop
+    // - touchend for mobile (with guard to avoid double-firing from synthetic mouse events)
     let lastTouchTime = 0;
 
-    document.addEventListener("touchend", function (ev) {
+    studyResult.addEventListener("touchend", function (ev) {
       lastTouchTime = Date.now();
       // small timeout to make sure selection is finalized on mobile
       setTimeout(function () {
         highlightCurrentSelection(ev);
-      }, 80);
+      }, 50);
     });
 
-    document.addEventListener("mouseup", function (ev) {
+    studyResult.addEventListener("mouseup", function (ev) {
       // ignore mouseup that immediately follows a touch (mobile browsers)
       if (Date.now() - lastTouchTime < 350) return;
       highlightCurrentSelection(ev);
@@ -6129,11 +6127,6 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     ensureStudyHighlightUI();
   });
 </script>
-
-
-
-
-
 
 <!--Saving -->
 <!-- BLOCK TOOL STATE: Persist data + settings for all tools -->
