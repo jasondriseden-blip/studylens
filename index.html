@@ -1678,7 +1678,7 @@ border: 1px solid var(--outline);
 background: var(--surface);
   cursor: default;
   user-select: none;
-  color:#ff6c00;
+
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1865,7 +1865,7 @@ padding: 8px;
     <div class="title-row">
       <div class="brand-logo-wrap">
         <img
-          src="studylens-light.png"
+          src="studylens-dark-highvis.png"
           class="brand-logo brand-logo-light"
           alt="StudyLens"
         />
@@ -2934,10 +2934,27 @@ function getModelChoice() {
 </script>
 
 
+<!-- BLOCK CHEAT MODE TOGGLE: remembers last mode across refresh -->
 <script>
   // ---------- CHEAT MODE TOGGLE ----------
   const modeChip = document.getElementById("modeChip");
-  window.__cheatMode = false; // false = learn mode ON, true = hidden cheat mode
+  const CHEAT_MODE_STORAGE_KEY = "pg_cheat_mode";
+
+  // Load last mode from storage (default = learn mode ON / cheatMode = false)
+  (function initCheatModeFlag() {
+    let savedCheat = false;
+    try {
+      const stored = localStorage.getItem(CHEAT_MODE_STORAGE_KEY);
+      if (stored === "true") {
+        savedCheat = true;
+      } else if (stored === "false") {
+        savedCheat = false;
+      }
+    } catch (e) {
+      // storage might be unavailable; default to false
+    }
+    window.__cheatMode = savedCheat; // false = learn mode ON, true = hidden cheat mode
+  })();
 
   // If the chip isn't on the page for some reason, bail out safely
   if (!modeChip) {
@@ -2964,8 +2981,8 @@ function getModelChoice() {
         : "rgba(239,68,68,0.6)";         // red border
 
       modeChip.style.backgroundColor = isLearnOn
-        ? "rgba(34,197,94,0.12)"         // light green bg
-        : "rgba(239,68,68,0.12)";        // light red bg
+        ? "rgba(80 219 131 / 12%)"         // light green bg
+        : "rgb(254 157 157 / 12%)";        // light red bg
 
       modeChip.setAttribute("data-state", isLearnOn ? "on" : "off");
     }
@@ -2973,13 +2990,22 @@ function getModelChoice() {
     modeChip.addEventListener("click", () => {
       // Flip between learn (false) and hidden cheat (true)
       window.__cheatMode = !window.__cheatMode;
+
+      // Save mode so it persists across refresh
+      try {
+        localStorage.setItem(CHEAT_MODE_STORAGE_KEY, String(window.__cheatMode));
+      } catch (e) {
+        // ignore storage errors
+      }
+
       updateModeChip();
     });
 
-    // Initial state: Learn mode ON (green)
+    // Initial state: whatever was last saved (default Learn mode ON / green)
     updateModeChip();
   }
 </script>
+
 
 
 
