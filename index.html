@@ -5786,7 +5786,6 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           gap: 8px;
           flex-wrap: wrap;
           background: var(--card-bg, rgba(15,23,42,0.95));
-          backdrop-filter: blur(10px);
 		  			margin-bottom: 15px;
 
         }
@@ -6031,7 +6030,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
             currentStudyColorKey = cfg.key;
             Array.from(toolbar.querySelectorAll("button[data-color-key]")).forEach((b) => {
               if (b.dataset.colorKey === currentStudyColorKey) {
-                b.style.boxShadow = "0 0 0 2px rgba(59,130,246,0.8)";
+                b.style.boxShadow = "0 0 0 3px rgba(187,183,193,0.8)";
               } else {
                 b.style.boxShadow = "none";
               }
@@ -6056,7 +6055,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
             'button[data-color-key="' + currentStudyColorKey + '"]'
           );
           if (firstBtn) {
-            firstBtn.style.boxShadow = "0 0 0 2px rgba(59,130,246,0.8)";
+            firstBtn.style.boxShadow = "0 0 0 3px rgba(187,183,193,0.8)";
           }
         }, 0);
 
