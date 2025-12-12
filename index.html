@@ -1678,7 +1678,7 @@ border: 1px solid var(--outline);
 background: var(--surface);
   cursor: default;
   user-select: none;
-  color:#ff6c00;
+
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1865,7 +1865,7 @@ padding: 8px;
     <div class="title-row">
       <div class="brand-logo-wrap">
         <img
-          src="studylens-light.png"
+          src="studylens-dark-highvis.png"
           class="brand-logo brand-logo-light"
           alt="StudyLens"
         />
@@ -2934,10 +2934,27 @@ function getModelChoice() {
 </script>
 
 
+<!-- BLOCK CHEAT MODE TOGGLE: remembers last mode across refresh -->
 <script>
   // ---------- CHEAT MODE TOGGLE ----------
   const modeChip = document.getElementById("modeChip");
-  window.__cheatMode = false; // false = learn mode ON, true = hidden cheat mode
+  const CHEAT_MODE_STORAGE_KEY = "pg_cheat_mode";
+
+  // Load last mode from storage (default = learn mode ON / cheatMode = false)
+  (function initCheatModeFlag() {
+    let savedCheat = false;
+    try {
+      const stored = localStorage.getItem(CHEAT_MODE_STORAGE_KEY);
+      if (stored === "true") {
+        savedCheat = true;
+      } else if (stored === "false") {
+        savedCheat = false;
+      }
+    } catch (e) {
+      // storage might be unavailable; default to false
+    }
+    window.__cheatMode = savedCheat; // false = learn mode ON, true = hidden cheat mode
+  })();
 
   // If the chip isn't on the page for some reason, bail out safely
   if (!modeChip) {
@@ -2964,8 +2981,8 @@ function getModelChoice() {
         : "rgba(239,68,68,0.6)";         // red border
 
       modeChip.style.backgroundColor = isLearnOn
-        ? "rgba(34,197,94,0.12)"         // light green bg
-        : "rgba(239,68,68,0.12)";        // light red bg
+        ? "rgba(80 219 131 / 12%)"         // light green bg
+        : "rgb(254 157 157 / 12%)";        // light red bg
 
       modeChip.setAttribute("data-state", isLearnOn ? "on" : "off");
     }
@@ -2973,13 +2990,22 @@ function getModelChoice() {
     modeChip.addEventListener("click", () => {
       // Flip between learn (false) and hidden cheat (true)
       window.__cheatMode = !window.__cheatMode;
+
+      // Save mode so it persists across refresh
+      try {
+        localStorage.setItem(CHEAT_MODE_STORAGE_KEY, String(window.__cheatMode));
+      } catch (e) {
+        // ignore storage errors
+      }
+
       updateModeChip();
     });
 
-    // Initial state: Learn mode ON (green)
+    // Initial state: whatever was last saved (default Learn mode ON / green)
     updateModeChip();
   }
 </script>
+
 
 
 
@@ -4158,6 +4184,139 @@ text.trim();
       return (el.value || "").trim();
     }
 
+    // 🔹 Generic per-tool history manager (stacked outputs with delete + localStorage)
+    function createToolHistoryManager(storageKey, containerEl, toolLabel) {
+      if (!containerEl || !storageKey) {
+        return {
+          add: function () {},
+          clearAll: function () {},
+        };
+      }
+
+      const LS_KEY = "passinggrade-" + storageKey + "-history";
+
+      function loadList() {
+        try {
+          const raw = localStorage.getItem(LS_KEY);
+          if (!raw) return [];
+          const parsed = JSON.parse(raw);
+          if (!Array.isArray(parsed)) return [];
+          return parsed;
+        } catch (e) {
+          console.warn("History load error for", storageKey, e);
+          return [];
+        }
+      }
+
+      function saveList(list) {
+        try {
+          localStorage.setItem(LS_KEY, JSON.stringify(list || []));
+        } catch (e) {
+          console.warn("History save error for", storageKey, e);
+        }
+      }
+
+      function renderList() {
+        const items = loadList();
+        containerEl.innerHTML = "";
+        if (!items.length) return;
+
+        items.forEach((item) => {
+          const wrapper = document.createElement("div");
+          wrapper.className = "tool-output-item";
+          wrapper.style.border = "1px solid rgba(148,163,184,0.4)";
+          wrapper.style.borderRadius = "0.5rem";
+          wrapper.style.padding = "0.5rem 0.75rem";
+          wrapper.style.marginBottom = "0.5rem";
+
+          const header = document.createElement("div");
+          header.style.display = "flex";
+          header.style.justifyContent = "space-between";
+          header.style.alignItems = "center";
+          header.style.marginBottom = "0.25rem";
+          header.style.gap = "0.5rem";
+
+          const title = document.createElement("div");
+          title.style.fontSize = "0.75rem";
+          title.style.opacity = "0.8";
+          const created = item.createdAt ? new Date(item.createdAt) : null;
+          title.textContent =
+            toolLabel +
+            (created && !isNaN(created)
+              ? " • " + created.toLocaleString()
+              : "");
+
+          const delBtn = document.createElement("button");
+          delBtn.type = "button";
+          delBtn.textContent = "Delete";
+          delBtn.style.fontSize = "0.7rem";
+          delBtn.style.padding = "0.1rem 0.4rem";
+          delBtn.style.borderRadius = "999px";
+          delBtn.style.border = "1px solid rgba(148,163,184,0.7)";
+          delBtn.style.background = "transparent";
+          delBtn.style.cursor = "pointer";
+          delBtn.addEventListener("click", () => {
+            const current = loadList();
+            const filtered = current.filter((x) => x.id !== item.id);
+            saveList(filtered);
+            renderList();
+          });
+
+          header.appendChild(title);
+          header.appendChild(delBtn);
+
+          const body = document.createElement("div");
+          body.className = "tool-output-body";
+
+          wrapper.appendChild(header);
+          wrapper.appendChild(body);
+          containerEl.appendChild(wrapper);
+
+          const contentStr =
+            typeof item.content === "string"
+              ? item.content
+              : String(item.content ?? "");
+
+          if (typeof renderAnswer === "function") {
+            renderAnswer(body, contentStr);
+          } else {
+            body.textContent = contentStr;
+          }
+        });
+      }
+
+      function add(content) {
+        if (content == null || content === "") return;
+        const asString =
+          typeof content === "string" ? content : String(content ?? "");
+        const current = loadList();
+        const newItem = {
+          id:
+            Date.now().toString(36) +
+            "-" +
+            Math.random().toString(16).slice(2),
+          createdAt: new Date().toISOString(),
+          content: asString,
+        };
+        const next = [newItem, ...current];
+        saveList(next);
+        renderList();
+      }
+
+      function clearAll() {
+        saveList([]);
+        renderList();
+      }
+
+      // initial render from storage
+      renderList();
+
+      return {
+        add: add,
+        clearAll: clearAll,
+      };
+    }
+
     // keep track of whichever file was chosen last
     let lastSnapFile = null;
 
@@ -4310,6 +4469,29 @@ text.trim();
       });
     }
 
+    // 🔹 history managers for stacked outputs
+    const snapHistory  = createToolHistoryManager("snap",  snapResult,  "Snap & Solve");
+    // MATH (usage counted based on snapText)
+    const mathInput    = document.getElementById("mathInput");
+    const mathSolveBtn = document.getElementById("mathSolveBtn");
+    const mathClearBtn = document.getElementById("mathClearBtn");
+    const mathResult   = document.getElementById("mathResult");
+    const mathHistory  = createToolHistoryManager("math",  mathResult,  "Math");
+
+    // STUDY (usage counted based on snapText)
+    const studyInput    = document.getElementById("studyInput");
+    const studyGuideBtn = document.getElementById("studyGuideBtn");
+    const studyClearBtn = document.getElementById("studyClearBtn");
+    const studyResult   = document.getElementById("studyResult");
+    const studyHistory  = createToolHistoryManager("study", studyResult, "Study guide");
+
+    // ESSAY (usage counted based on snapText)
+    const essayInput    = document.getElementById("essayInput");
+    const essayBtn      = document.getElementById("essayBtn");
+    const essayClearBtn = document.getElementById("essayClearBtn");
+    const essayResult   = document.getElementById("essayResult");
+    const essayHistory  = createToolHistoryManager("essay", essayResult, "Essay");
+
     // Run OCR on whichever file we last picked – DOES NOT affect usage counts
     if (snapOCRBtn) {
       snapOCRBtn.addEventListener("click", async () => {
@@ -4379,8 +4561,10 @@ text.trim();
           saveSubjectInput.value = "";
         }
 
-        // clear Snap result output
-        if (snapResult) {
+        // clear Snap result output (all stacked items)
+        if (snapHistory && snapHistory.clearAll) {
+          snapHistory.clearAll();
+        } else if (snapResult) {
           snapResult.textContent = "";
         }
 
@@ -4430,16 +4614,11 @@ text.trim();
         const ans = await runSnapSolve(promptText);
         stopResultLoading(snapResult);
         const clean = sanitizeAnswerText(ans);
-        renderAnswer(snapResult, clean); // 👈 formatting helper
+        // stacked + saved
+        snapHistory.add(clean);
         addNotebookItem("Snap", clean);
       });
     }
-
-    // MATH (usage counted based on snapText)
-    const mathInput    = document.getElementById("mathInput");
-    const mathSolveBtn = document.getElementById("mathSolveBtn");
-    const mathClearBtn = document.getElementById("mathClearBtn");
-    const mathResult   = document.getElementById("mathResult");
 
     if (mathSolveBtn) {
       mathSolveBtn.addEventListener("click", async () => {
@@ -4466,22 +4645,21 @@ text.trim();
         const ans = await runMathSolver(promptText);
         stopResultLoading(mathResult);
         const clean = sanitizeAnswerText(ans);
-        renderAnswer(mathResult, clean);   // 👈 formatted
+        // stacked + saved
+        mathHistory.add(clean);
         addNotebookItem("Math", clean);
       });
     }
 
     if (mathClearBtn) {
       mathClearBtn.addEventListener("click", () => {
-        mathResult.textContent = "";
+        if (mathHistory && mathHistory.clearAll) {
+          mathHistory.clearAll();
+        } else if (mathResult) {
+          mathResult.textContent = "";
+        }
       });
     }
-
-    // STUDY (usage counted based on snapText)
-    const studyInput    = document.getElementById("studyInput");
-    const studyGuideBtn = document.getElementById("studyGuideBtn");
-    const studyClearBtn = document.getElementById("studyClearBtn");
-    const studyResult   = document.getElementById("studyResult");
 
     if (studyGuideBtn) {
       studyGuideBtn.addEventListener("click", async () => {
@@ -4508,22 +4686,21 @@ text.trim();
         const ans = await runStudyGuide(promptText);
         stopResultLoading(studyResult);
         const clean = sanitizeAnswerText(ans);
-        renderAnswer(studyResult, clean);   // 👈 formatted
+        // stacked + saved
+        studyHistory.add(clean);
         addNotebookItem("Study", clean);
       });
     }
 
     if (studyClearBtn) {
       studyClearBtn.addEventListener("click", () => {
-        studyResult.textContent = "";
+        if (studyHistory && studyHistory.clearAll) {
+          studyHistory.clearAll();
+        } else if (studyResult) {
+          studyResult.textContent = "";
+        }
       });
     }
-
-    // ESSAY (usage counted based on snapText)
-    const essayInput    = document.getElementById("essayInput");
-    const essayBtn      = document.getElementById("essayBtn");
-    const essayClearBtn = document.getElementById("essayClearBtn");
-    const essayResult   = document.getElementById("essayResult");
 
     if (essayBtn) {
       essayBtn.addEventListener("click", async () => {
@@ -4550,14 +4727,19 @@ text.trim();
         const ans = await runEssayHelper(promptText);
         stopResultLoading(essayResult);
         const clean = sanitizeAnswerText(ans);
-        renderAnswer(essayResult, clean);   // 👈 formatted
+        // stacked + saved
+        essayHistory.add(clean);
         addNotebookItem("Essay", clean);
       });
     }
 
     if (essayClearBtn) {
       essayClearBtn.addEventListener("click", () => {
-        essayResult.textContent = "";
+        if (essayHistory && essayHistory.clearAll) {
+          essayHistory.clearAll();
+        } else if (essayResult) {
+          essayResult.textContent = "";
+        }
       });
     }
   });
@@ -7147,39 +7329,6 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       wireMobileToggles();
     });
 
-    /* Same neon palette as flashcards GOT IT burst */
-    var PG_PILL_COLORS = [
-      "#f97316", // orange
-      "#22c55e", // green
-      "#3b82f6", // blue
-      "#ec4899", // pink
-      "#eab308", // yellow
-      "#a855f7", // purple
-      "#06b6d4", // cyan
-      "#fb7185"  // rose
-    ];
-
-    function pickPillColor() {
-      var n = PG_PILL_COLORS.length;
-      if (!n) return "";
-      var idx = Math.floor(Math.random() * n);
-      return PG_PILL_COLORS[idx];
-    }
-
-    function applyRandomPillColor() {
-      var nodes = document.querySelectorAll(".pg-loop-pill-value");
-      if (!nodes.length) return;
-      var color = pickPillColor();
-      if (!color) return;
-      nodes.forEach(function (node) {
-        // smooth fade between colors
-        if (!node.style.transition) {
-          node.style.transition = "color 800ms ease";
-        }
-        node.style.color = color;
-      });
-    }
-
     /* ---------- 1. Generic looping behavior for [data-sticky-loop] containers ---------- */
 
     function setupStickyLoop() {
@@ -7284,10 +7433,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
             sessions + " session" + (sessions === 1 ? "" : "s");
         }
 
-        // First neon color
-        applyRandomPillColor();
-        // Then subtly change every few seconds
-        setInterval(applyRandomPillColor, 6000);
+        // No more JS color changes; color comes from CSS only.
       } catch (e) {
         // Fail silently; this is just for engagement
         console.warn("PassingGrade progress metrics error", e);
@@ -7395,6 +7541,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     }
   })();
 </script>
+
 
 
 
