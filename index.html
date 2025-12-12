@@ -2830,73 +2830,148 @@ padding: 8px;
 
 
 
-<!-- BLOCK 1: Theme toggle, cheat/learn mode, drawer/sidebar, subject/model helpers -->
+<!-- BLOCK 1: Theme toggle, drawer/sidebar, subject/model helpers -------------------------
+--------------------------------------------------------------------------------------=----
+===========================================================================================
+===========================================================================================
+------------------------------------------------------------------------------------------->
 <script>
-// ---------- THEME TOGGLE ----------
-const themeToggle = document.getElementById("themeToggle");
-const themeLabel = document.getElementById("themeLabel");
-const iconSun = document.getElementById("iconSun");
-const iconMoon = document.getElementById("iconMoon");
+/* =========================================================
+   SECTION 0: Grab the elements we will control (START)
+   - These IDs must match your HTML exactly (we did not change them)
+========================================================= */
+const themeToggle     = document.getElementById("themeToggle");
+const themeLabel      = document.getElementById("themeLabel");
+const iconSun         = document.getElementById("iconSun");
+const iconMoon        = document.getElementById("iconMoon");
 
-// NEW: keep browser/status bar color in sync
+const drawerToggle    = document.getElementById("drawerToggle");
+const sideDrawer      = document.getElementById("sideDrawer");
+const drawerBackdrop  = document.getElementById("drawerBackdrop");
+/* ===================== SECTION 0 (END) ===================== */
+
+
+
+/* =========================================================
+   SECTION 1: Theme toggle (START)
+   Goal:
+   - Switch between "dark" and "light"
+   - Update <html data-theme="...">
+   - Save it in localStorage so it can persist
+   - Update label + icons
+   - Update the browser/status bar color (meta theme-color)
+========================================================= */
+
+/* --- PART 1A: Keep browser/status bar color in sync (START) --- */
 function applyThemeColor(theme) {
+  // Find <meta name="theme-color" ...> in your <head>
   const meta = document.querySelector('meta[name="theme-color"]');
+
+  // Safety: if the meta tag doesn't exist, stop here
   if (!meta) return;
+
   const isDark = theme === "dark";
-  // dark uses your dark surface, light uses your light header/bg
+
+  // Dark uses your dark surface, light uses your light header/bg
   meta.setAttribute("content", isDark ? "#020617" : "#f9fafb");
 }
+/* --- PART 1A (END) --- */
 
+
+/* --- PART 1B: Apply a theme everywhere (START) --- */
 function setTheme(theme) {
+  // 1) Put the theme on the <html> element as an attribute
   document.documentElement.setAttribute("data-theme", theme);
+
+  // 2) Save theme so it persists in the browser
   localStorage.setItem("studyai-theme", theme);
 
+  // 3) Update label + icons (only if those elements exist)
   const dark = theme === "dark";
-  themeLabel.textContent = dark ? "Dark" : "Light";
-  iconSun.style.display = dark ? "block" : "none";
-  iconMoon.style.display = dark ? "none" : "block";
 
-  // NEW: sync meta tag
+  if (themeLabel) themeLabel.textContent = dark ? "Dark" : "Light";
+
+  if (iconSun)  iconSun.style.display  = dark ? "block" : "none";
+  if (iconMoon) iconMoon.style.display = dark ? "none"  : "block";
+
+  // 4) Sync the browser/status bar color
   applyThemeColor(theme);
 }
+/* --- PART 1B (END) --- */
 
-// use whatever the <html> tag currently has as the initial theme
+
+/* --- PART 1C: Initialize the theme on page load (START) --- */
 const initialTheme =
   document.documentElement.getAttribute("data-theme") || "dark";
+
 setTheme(initialTheme);
-
-themeToggle.addEventListener("click", () => {
-  const current =
-    document.documentElement.getAttribute("data-theme") || "dark";
-  setTheme(current === "dark" ? "light" : "dark");
-});
+/* --- PART 1C (END) --- */
 
 
+/* --- PART 1D: Click handler for theme toggle button (START) --- */
+if (themeToggle) {
+  themeToggle.addEventListener("click", () => {
+    const current =
+      document.documentElement.getAttribute("data-theme") || "dark";
+
+    // Flip the theme
+    setTheme(current === "dark" ? "light" : "dark");
+  });
+}
+/* --- PART 1D (END) --- */
+
+/* ===================== SECTION 1 (END) ===================== */
 
 
-// ---------- DRAWER / SIDEBAR ----------
-const drawerToggle = document.getElementById("drawerToggle");
-const sideDrawer = document.getElementById("sideDrawer");
-const drawerBackdrop = document.getElementById("drawerBackdrop");
 
+/* =========================================================
+   SECTION 2: Drawer / sidebar (START)
+   Goal:
+   - On desktop (>= 800px) the drawer stays open
+   - On mobile (< 800px) it opens/closes with a toggle
+   - Backdrop click closes it
+   - Resize adjusts the state
+========================================================= */
+
+/* --- PART 2A: Desktop check helper (START) --- */
 function isDesktop() {
   return window.innerWidth >= 800;
 }
+/* --- PART 2A (END) --- */
 
+
+/* --- PART 2B: Open drawer (START) --- */
 function openDrawer() {
-  if (isDesktop()) return; // always visible on desktop
+  // On desktop it is always visible; do nothing
+  if (isDesktop()) return;
+
+  // Safety: if elements missing, do nothing
+  if (!sideDrawer || !drawerBackdrop) return;
+
   sideDrawer.classList.add("open");
   drawerBackdrop.classList.add("show");
 }
+/* --- PART 2B (END) --- */
 
+
+/* --- PART 2C: Close drawer (START) --- */
 function closeDrawer() {
   if (isDesktop()) return;
+
+  if (!sideDrawer || !drawerBackdrop) return;
+
   sideDrawer.classList.remove("open");
   drawerBackdrop.classList.remove("show");
 }
+/* --- PART 2C (END) --- */
 
+
+/* --- PART 2D: Toggle button click (START) --- */
 if (drawerToggle) {
   drawerToggle.addEventListener("click", () => {
+    // Safety: if drawer element is missing, do nothing
+    if (!sideDrawer) return;
+
     if (sideDrawer.classList.contains("open")) {
       closeDrawer();
     } else {
@@ -2904,23 +2979,48 @@ if (drawerToggle) {
     }
   });
 }
+/* --- PART 2D (END) --- */
 
-drawerBackdrop.addEventListener("click", closeDrawer);
 
+/* --- PART 2E: Backdrop click closes drawer (START) --- */
+if (drawerBackdrop) {
+  drawerBackdrop.addEventListener("click", closeDrawer);
+}
+/* --- PART 2E (END) --- */
+
+
+/* --- PART 2F: Window resize behavior (START) --- */
 window.addEventListener("resize", () => {
+  if (!sideDrawer) return;
+
   if (isDesktop()) {
+    // Desktop: drawer open, backdrop hidden
     sideDrawer.classList.add("open");
-    drawerBackdrop.classList.remove("show");
+    if (drawerBackdrop) drawerBackdrop.classList.remove("show");
   } else {
+    // Mobile: drawer closed by default
     sideDrawer.classList.remove("open");
   }
 });
+/* --- PART 2F (END) --- */
 
-if (isDesktop()) {
+
+/* --- PART 2G: Initial state on page load (START) --- */
+if (isDesktop() && sideDrawer) {
   sideDrawer.classList.add("open");
 }
+/* --- PART 2G (END) --- */
 
-// ---------- SUBJECT / MODEL HELPERS ----------
+/* ===================== SECTION 2 (END) ===================== */
+
+
+
+/* =========================================================
+   SECTION 3: Subject / Model helpers (START)
+   Goal:
+   - Give you a safe "default" if the dropdown is missing or empty
+========================================================= */
+
 function getSubject() {
   const subjectSelect = document.getElementById("subjectSelect");
   return (subjectSelect && subjectSelect.value) ? subjectSelect.value : "general";
@@ -2930,674 +3030,1045 @@ function getModelChoice() {
   const modelSelect = document.getElementById("modelSelect");
   return (modelSelect && modelSelect.value) ? modelSelect.value : "smart";
 }
+
+/* ===================== SECTION 3 (END) ===================== */
 </script>
 
 
-<!-- BLOCK CHEAT MODE TOGGLE: remembers last mode across refresh -->
+
+<!-- BLOCK 2: Cheat mode toggle (remembers last mode across refresh) -----------------------
+--------------------------------------------------------------------------------------=----
+===========================================================================================
+===========================================================================================
+------------------------------------------------------------------------------------------->
+
 <script>
-  // ---------- CHEAT MODE TOGGLE ----------
-  const modeChip = document.getElementById("modeChip");
-  const CHEAT_MODE_STORAGE_KEY = "pg_cheat_mode";
+/* ===========================================================================================
+   SECTION 0: Get the main element + define storage key (START)
+   - We are NOT changing any IDs or classes
+=========================================================================================== */
+const modeChip = document.getElementById("modeChip");
+const CHEAT_MODE_STORAGE_KEY = "pg_cheat_mode";
+/* ================================== SECTION 0 (END) ===================================== */
 
-  // Load last mode from storage (default = learn mode ON / cheatMode = false)
-  (function initCheatModeFlag() {
-    let savedCheat = false;
+
+
+/* ===========================================================================================
+   SECTION 1: Load saved mode from localStorage (START)
+   Goal:
+   - On refresh, remember the last state
+   - Store it on window.__cheatMode
+     - false = Learn mode ON
+     - true  = (hidden) cheat mode ON  -> Learn mode OFF
+=========================================================================================== */
+
+/* --- PART 1A: Immediately-run setup function (IIFE) (START) ---
+   This runs once as soon as the script loads.
+*/
+(function initCheatModeFlag() {
+  // Default if nothing is saved (Learn mode ON)
+  let savedCheat = false;
+
+  try {
+    // Try to read the saved value from localStorage
+    const stored = localStorage.getItem(CHEAT_MODE_STORAGE_KEY);
+
+    // localStorage stores strings, so we compare against "true"/"false"
+    if (stored === "true") {
+      savedCheat = true;
+    } else if (stored === "false") {
+      savedCheat = false;
+    }
+  } catch (e) {
+    // If storage is blocked/unavailable, we just keep the default (false)
+  }
+
+  // Put the result somewhere global so other scripts can read it if needed
+  window.__cheatMode = savedCheat;
+})();
+/* --- PART 1A (END) --- */
+
+/* ================================== SECTION 1 (END) ===================================== */
+
+
+
+/* ===========================================================================================
+   SECTION 2: Safety check (START)
+   If #modeChip doesn't exist, do nothing (prevents errors).
+=========================================================================================== */
+if (!modeChip) {
+  console.warn("modeChip element not found; cheat/learn toggle not initialized.");
+} else {
+/* ================================== SECTION 2 (END) ===================================== */
+
+
+
+  /* =========================================================================================
+     SECTION 3: Find elements INSIDE the chip (START)
+     - These are looked up relative to #modeChip
+     - Classes stay the same: .mode-label and .chip-dot
+  ========================================================================================= */
+  const modeLabel = modeChip.querySelector(".mode-label");
+  const chipDot = modeChip.querySelector(".chip-dot");
+  /* ================================= SECTION 3 (END) ==================================== */
+
+
+
+  /* =========================================================================================
+     SECTION 4: Update the UI to match the current mode (START)
+     This function:
+     - Updates the text "Learn mode ON/OFF"
+     - Updates dot color (green/red)
+     - Updates chip border and background
+     - Sets a data-state attribute for styling/debugging
+  ========================================================================================= */
+  function updateModeChip() {
+    // Learn mode is ON when cheatMode is FALSE
+    const isLearnOn = !window.__cheatMode;
+
+    /* ---- PART 4A: Update the text label (START) ---- */
+    // Note: UI never mentions "cheat mode" (your original rule)
+    if (modeLabel) {
+      modeLabel.textContent = isLearnOn ? "Learn mode ON" : "Learn mode OFF";
+    }
+    /* ---- PART 4A (END) ---- */
+
+
+    /* ---- PART 4B: Update the dot color (START) ---- */
+    if (chipDot) {
+      chipDot.style.backgroundColor = isLearnOn ? "#22c55e" : "#ef4444"; // green / red
+    }
+    /* ---- PART 4B (END) ---- */
+
+
+    /* ---- PART 4C: Update the chip border color (START) ---- */
+    modeChip.style.borderColor = isLearnOn
+      ? "rgba(34,197,94,0.6)"   // green border
+      : "rgba(239,68,68,0.6)";  // red border
+    /* ---- PART 4C (END) ---- */
+
+
+    /* ---- PART 4D: Update the chip background color (START) ---- */
+    modeChip.style.backgroundColor = isLearnOn
+      ? "rgba(80 219 131 / 12%)"  // light green background
+      : "rgb(254 157 157 / 12%)"; // light red background
+    /* ---- PART 4D (END) ---- */
+
+
+    /* ---- PART 4E: Set a data attribute for state (START) ---- */
+    // This can help with CSS hooks or debugging.
+    modeChip.setAttribute("data-state", isLearnOn ? "on" : "off");
+    /* ---- PART 4E (END) ---- */
+  }
+  /* ================================= SECTION 4 (END) ==================================== */
+
+
+
+  /* =========================================================================================
+     SECTION 5: Click handler (START)
+     When the user clicks the chip:
+     - Flip window.__cheatMode
+     - Save it to localStorage
+     - Update the UI
+  ========================================================================================= */
+  modeChip.addEventListener("click", () => {
+    /* ---- PART 5A: Flip the mode (START) ---- */
+    window.__cheatMode = !window.__cheatMode;
+    /* ---- PART 5A (END) ---- */
+
+
+    /* ---- PART 5B: Save the new mode to storage (START) ---- */
     try {
-      const stored = localStorage.getItem(CHEAT_MODE_STORAGE_KEY);
-      if (stored === "true") {
-        savedCheat = true;
-      } else if (stored === "false") {
-        savedCheat = false;
-      }
+      localStorage.setItem(CHEAT_MODE_STORAGE_KEY, String(window.__cheatMode));
     } catch (e) {
-      // storage might be unavailable; default to false
+      // If saving fails, ignore it (the UI still works for this session)
     }
-    window.__cheatMode = savedCheat; // false = learn mode ON, true = hidden cheat mode
-  })();
+    /* ---- PART 5B (END) ---- */
 
-  // If the chip isn't on the page for some reason, bail out safely
-  if (!modeChip) {
-    console.warn("modeChip element not found; cheat/learn toggle not initialized.");
-  } else {
-    const modeLabel = modeChip.querySelector(".mode-label");
-    const chipDot = modeChip.querySelector(".chip-dot");
 
-    function updateModeChip() {
-      const isLearnOn = !window.__cheatMode;
-
-      // Text: never mention "cheat mode" in the UI
-      if (modeLabel) {
-        modeLabel.textContent = isLearnOn ? "Learn mode ON" : "Learn mode OFF";
-      }
-
-      // Visually act like a green/red toggle switch
-      if (chipDot) {
-        chipDot.style.backgroundColor = isLearnOn ? "#22c55e" : "#ef4444"; // green / red dot
-      }
-
-      modeChip.style.borderColor = isLearnOn
-        ? "rgba(34,197,94,0.6)"          // green border
-        : "rgba(239,68,68,0.6)";         // red border
-
-      modeChip.style.backgroundColor = isLearnOn
-        ? "rgba(80 219 131 / 12%)"         // light green bg
-        : "rgb(254 157 157 / 12%)";        // light red bg
-
-      modeChip.setAttribute("data-state", isLearnOn ? "on" : "off");
-    }
-
-    modeChip.addEventListener("click", () => {
-      // Flip between learn (false) and hidden cheat (true)
-      window.__cheatMode = !window.__cheatMode;
-
-      // Save mode so it persists across refresh
-      try {
-        localStorage.setItem(CHEAT_MODE_STORAGE_KEY, String(window.__cheatMode));
-      } catch (e) {
-        // ignore storage errors
-      }
-
-      updateModeChip();
-    });
-
-    // Initial state: whatever was last saved (default Learn mode ON / green)
+    /* ---- PART 5C: Refresh the UI (START) ---- */
     updateModeChip();
-  }
+    /* ---- PART 5C (END) ---- */
+  });
+  /* ================================= SECTION 5 (END) ==================================== */
+
+
+
+  /* =========================================================================================
+     SECTION 6: Initial UI sync on page load (START)
+     - Use the saved/default value and paint the chip correctly
+  ========================================================================================= */
+  updateModeChip();
+  /* ================================= SECTION 6 (END) ==================================== */
+
+} // end of "modeChip exists" else block
 </script>
 
+<!-- BLOCK 2: Notebook load/save/render, filters, add item ----------------------------------
+--------------------------------------------------------------------------------------=----
+===========================================================================================
+===========================================================================================
+------------------------------------------------------------------------------------------->
 
-
-
-<!-- BLOCK 2: Notebook load/save/render, filters, add item -->
 <script>
-  // ---------- NOTEBOOK ----------
-  const notebookKey = "studyai-notebook";
-  const notebookListEl = document.getElementById("notebookList");
-  const notebookFilterButtons = document.querySelectorAll(".notebook-filter");
-  const notebookSubjectsEl = document.getElementById("notebookSubjects");
-  let notebookFilter = "all";
-  let notebookSubjectFilter = "all";
-  let notebookLastSnapshot = null; // for undo
+/* ===========================================================================================
+   SECTION 0: Notebook globals + DOM elements (START)
+   - IDs/classes are unchanged
+=========================================================================================== */
+const notebookKey = "studyai-notebook";
 
-  // NEW: generic clipboard helper
-  function copyTextToClipboard(text) {
-    const value = String(text || "");
-    if (!value) return;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(value).catch((err) =>
-        console.error("Clipboard error:", err)
-      );
-      return;
-    }
-    // fallback
-    const ta = document.createElement("textarea");
-    ta.value = value;
-    ta.style.position = "fixed";
-    ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    ta.select();
-    try {
-      document.execCommand("copy");
-    } catch (e) {
-      console.error("execCommand copy failed:", e);
-    }
-    document.body.removeChild(ta);
-  }
+const notebookListEl = document.getElementById("notebookList");
+const notebookFilterButtons = document.querySelectorAll(".notebook-filter");
+const notebookSubjectsEl = document.getElementById("notebookSubjects");
 
-  function loadNotebook() {
-    try {
-      return JSON.parse(localStorage.getItem(notebookKey) || "[]");
-    } catch {
-      return [];
-    }
-  }
+let notebookFilter = "all";
+let notebookSubjectFilter = "all";
+let notebookLastSnapshot = null; // used for one-level undo
+/* ================================== SECTION 0 (END) ===================================== */
 
-  function saveNotebook(items) {
-    localStorage.setItem(notebookKey, JSON.stringify(items.slice(-200))); // keep last 200
-  }
 
-  // NEW: subject name used when saving notebook items
-  function getSaveSubject() {
-    const input = document.getElementById("saveSubjectInput");
-    if (!input) return "general";
-    const value = (input.value || "").trim();
-    return value || "general";
-  }
 
-  // NEW: render subjects list / chips
-  function renderNotebookSubjects(allItems) {
-    if (!notebookSubjectsEl) return;
+/* ===========================================================================================
+   SECTION 1: Clipboard helper (START)
+   Goal:
+   - Copy any text to the clipboard
+   - Uses modern navigator.clipboard if available
+   - Falls back to hidden textarea + execCommand("copy")
+=========================================================================================== */
+function copyTextToClipboard(text) {
+  const value = String(text || "");
+  if (!value) return;
 
-    const subjects = Array.from(
-      new Set(
-        allItems.map((i) => {
-          const s = (i.subject || "general").trim();
-          return s || "general";
-        })
-      )
-    ).sort((a, b) => a.localeCompare(b));
-
-    notebookSubjectsEl.innerHTML = "";
-
-    if (!subjects.length) {
-      return;
-    }
-
-    subjects.forEach((subj) => {
-      const row = document.createElement("div");
-      row.className = "notebook-subject-row";
-      row.style.position = "relative";
-      row.style.display = "inline-flex";
-      row.style.alignItems = "center";
-      row.style.gap = "4px";
-
-      const subjBtn = document.createElement("button");
-      subjBtn.type = "button";
-      subjBtn.className = "pill-button notebook-subject-btn";
-      if (notebookSubjectFilter === subj) {
-        subjBtn.classList.add("active");
-      }
-      subjBtn.dataset.subject = subj;
-      subjBtn.textContent = subj;
-
-      // small "menu" button to toggle dropdown
-      const menuBtn = document.createElement("button");
-      menuBtn.type = "button";
-      menuBtn.className = "pill-button notebook-subject-menu";
-      menuBtn.dataset.subject = subj;
-      menuBtn.textContent = "⋯";
-
-      // dropdown container (hidden by default)
-      const dropdown = document.createElement("div");
-      dropdown.className = "notebook-subject-dropdown";
-      dropdown.style.display = "none";
-      dropdown.style.position = "absolute";
-      dropdown.style.right = "0";
-      dropdown.style.top = "110%";
-      dropdown.style.background = "#fff";
-      dropdown.style.border = "1px solid var(--outline)";
-      dropdown.style.borderRadius = "0px";
-      dropdown.style.padding = "1em";
-      dropdown.style.zIndex = "20";
-      dropdown.style.whiteSpace = "nowrap";
-
-      const editBtn = document.createElement("button");
-      editBtn.type = "button";
-      editBtn.className = "pill-button notebook-subject-edit";
-      editBtn.dataset.subject = subj;
-      editBtn.textContent = "Rename subject";
-
-      const delBtn = document.createElement("button");
-      delBtn.type = "button";
-      delBtn.className = "pill-button notebook-subject-delete";
-      delBtn.dataset.subject = subj;
-      delBtn.textContent = "Delete subject & notes";
-
-      dropdown.appendChild(editBtn);
-      dropdown.appendChild(delBtn);
-
-      // 🔹 direct handler for this menu button
-      menuBtn.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        const isShowing = dropdown.style.display === "flex";
-        dropdown.style.display = isShowing ? "none" : "flex";
-      });
-
-      row.appendChild(subjBtn);
-      row.appendChild(menuBtn);
-      row.appendChild(dropdown);
-
-      notebookSubjectsEl.appendChild(row);
+  /* ---- PART 1A: Modern clipboard API (START) ---- */
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(value).catch((err) => {
+      console.error("Clipboard error:", err);
     });
+    return;
+  }
+  /* ---- PART 1A (END) ---- */
+
+
+  /* ---- PART 1B: Fallback copy method (START) ---- */
+  const ta = document.createElement("textarea");
+  ta.value = value;
+
+  // Make it invisible + not jump the page
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+
+  document.body.appendChild(ta);
+  ta.select();
+
+  try {
+    document.execCommand("copy");
+  } catch (e) {
+    console.error("execCommand copy failed:", e);
   }
 
-  function renderNotebook() {
-    if (!notebookListEl) return;
+  document.body.removeChild(ta);
+  /* ---- PART 1B (END) ---- */
+}
+/* ================================== SECTION 1 (END) ===================================== */
 
-    const allItems = loadNotebook();
-    notebookListEl.innerHTML = "";
 
-    // always render subjects list from full set
-    renderNotebookSubjects(allItems);
 
-    if (!allItems.length) {
-      notebookListEl.innerHTML =
-        '<p class="desc">Nothing saved yet. Solve something and it will appear here.</p>';
-      return;
-    }
-
-    const byType =
-      notebookFilter === "all"
-        ? allItems
-        : allItems.filter((i) => i.type === notebookFilter);
-
-    const items =
-      notebookSubjectFilter === "all"
-        ? byType
-        : byType.filter(
-            (i) =>
-              (i.subject || "general").trim() === notebookSubjectFilter
-          );
-
-    if (!items.length) {
-      notebookListEl.innerHTML =
-        '<p class="desc">No items for this filter yet.</p>';
-      return;
-    }
-
-    const labelMap = {
-      Snap: "Solve",
-      Math: "Math Solver",
-      Study: "Study Guide",
-      Essay: "Essay Helper",
-      Cards: "Flashcards",
-      Flashcards: "Flashcards",
-      Simplified: "Simplified answer",
-      Hint: "Hint",
-    };
-
-    items
-      .slice()
-      .reverse()
-      .forEach((item) => {
-        const wrapper = document.createElement("div");
-        wrapper.className = "notebook-item";
-
-        const header = document.createElement("div");
-        header.className = "notebook-item-header";
-
-        const meta = document.createElement("div");
-        meta.className = "notebook-meta";
-        const timeStr = new Date(item.time).toLocaleString();
-        meta.textContent = `${item.type} • ${timeStr} • ${
-          item.subject || "general"
-        } • ${item.model || "smart"} • ${item.mode || "learn"}`;
-
-        header.appendChild(meta);
-        wrapper.appendChild(header);
-
-        const body = document.createElement("div");
-        body.textContent = item.text;
-        wrapper.appendChild(body);
-
-        // footer with "Open in ..." + Copy + Delete
-        const footer = document.createElement("div");
-        footer.className = "notebook-item-footer";
-
-        const openBtn = document.createElement("button");
-        openBtn.className = "pill-button notebook-open-btn";
-        openBtn.type = "button";
-        openBtn.dataset.id = item.id;
-
-        const displayType =
-          labelMap[item.type] || item.type || "tool";
-        openBtn.textContent = "Open in " + displayType;
-
-        // NEW: copy icon button
-        const copyBtn = document.createElement("button");
-        copyBtn.className = "pill-button notebook-item-copy";
-        copyBtn.type = "button";
-        copyBtn.dataset.id = item.id;
-        copyBtn.innerHTML =
-          '<span class="material-symbols-outlined">content_copy</span>';
-
-        const deleteBtn = document.createElement("button");
-        deleteBtn.className = "pill-button notebook-item-delete";
-        deleteBtn.type = "button";
-        deleteBtn.dataset.id = item.id;
-        deleteBtn.textContent = "Delete";
-
-        footer.appendChild(openBtn);
-        footer.appendChild(copyBtn);
-        footer.appendChild(deleteBtn);
-        wrapper.appendChild(footer);
-
-        notebookListEl.appendChild(wrapper);
-      });
+/* ===========================================================================================
+   SECTION 2: Load/save notebook to localStorage (START)
+   - loadNotebook() returns an array
+   - saveNotebook(items) stores last 200 items
+=========================================================================================== */
+function loadNotebook() {
+  try {
+    return JSON.parse(localStorage.getItem(notebookKey) || "[]");
+  } catch (e) {
+    return [];
   }
+}
 
-  // open a saved notebook item back in its tool
-  function openNotebookItemById(itemId) {
-    const items = loadNotebook();
-    const item = items.find((i) => i.id === itemId);
-    if (!item) return;
+function saveNotebook(items) {
+  // Keep only the last 200 items so storage doesn't grow forever
+  localStorage.setItem(notebookKey, JSON.stringify(items.slice(-200)));
+}
+/* ================================== SECTION 2 (END) ===================================== */
 
-    const text = item.text || "";
 
-    function safeRender(elementId) {
-      const el = document.getElementById(elementId);
-      if (!el) return;
-      if (typeof renderAnswer === "function") {
-        renderAnswer(el, text);
-      } else {
-        el.textContent = text;
-      }
+
+/* ===========================================================================================
+   SECTION 3: Subject name used when SAVING new notebook items (START)
+   Reads #saveSubjectInput, defaults to "general"
+=========================================================================================== */
+function getSaveSubject() {
+  const input = document.getElementById("saveSubjectInput");
+  if (!input) return "general";
+
+  const value = (input.value || "").trim();
+  return value || "general";
+}
+/* ================================== SECTION 3 (END) ===================================== */
+
+
+
+/* ===========================================================================================
+   SECTION 4: Render the SUBJECT chips + dropdown menus (START)
+   - Builds subject list from ALL items (not filtered)
+   - Adds:
+     - .notebook-subject-btn (filter toggle)
+     - .notebook-subject-menu (opens dropdown)
+     - .notebook-subject-edit (rename)
+     - .notebook-subject-delete (delete subject + notes)
+   NOTE: We do NOT change existing IDs/classes, we only create elements using your same class names.
+=========================================================================================== */
+function renderNotebookSubjects(allItems) {
+  if (!notebookSubjectsEl) return;
+
+  /* ---- PART 4A: Build unique subject list (START) ---- */
+  const subjects = Array.from(
+    new Set(
+      allItems.map((i) => {
+        const s = (i.subject || "general").trim();
+        return s || "general";
+      })
+    )
+  ).sort((a, b) => a.localeCompare(b));
+  /* ---- PART 4A (END) ---- */
+
+  // Clear current subject chips
+  notebookSubjectsEl.innerHTML = "";
+
+  // If no subjects exist, stop here
+  if (!subjects.length) return;
+
+  /* ---- PART 4B: Create UI rows for each subject (START) ---- */
+  subjects.forEach((subj) => {
+    // Wrapper row
+    const row = document.createElement("div");
+    row.className = "notebook-subject-row";
+
+    // Inline styles (kept the same behavior)
+    row.style.position = "relative";
+    row.style.display = "inline-flex";
+    row.style.alignItems = "center";
+    row.style.gap = "4px";
+
+    // Main subject button
+    const subjBtn = document.createElement("button");
+    subjBtn.type = "button";
+    subjBtn.className = "pill-button notebook-subject-btn";
+
+    // Highlight active subject filter
+    if (notebookSubjectFilter === subj) {
+      subjBtn.classList.add("active");
     }
 
-    switch (item.type) {
-      case "Snap":
-        if (typeof activateTab === "function") {
-          if (document.getElementById("solve")) {
-            activateTab("solve");
-          } else {
-            activateTab("snap");
-          }
-        }
-        safeRender("snapResult");
-        break;
+    subjBtn.dataset.subject = subj;
+    subjBtn.textContent = subj;
 
-      case "Math":
-        if (typeof activateTab === "function") activateTab("math");
-        safeRender("mathResult");
-        break;
+    // Menu button (3 dots)
+    const menuBtn = document.createElement("button");
+    menuBtn.type = "button";
+    menuBtn.className = "pill-button notebook-subject-menu";
+    menuBtn.dataset.subject = subj;
+    menuBtn.textContent = "⋯";
 
-      case "Study":
-        if (typeof activateTab === "function") activateTab("study");
-        safeRender("studyResult");
-        break;
+    // Dropdown container (hidden by default)
+    const dropdown = document.createElement("div");
+    dropdown.className = "notebook-subject-dropdown";
 
-      case "Essay":
-        if (typeof activateTab === "function") activateTab("essay");
-        safeRender("essayResult");
-        break;
+    dropdown.style.display = "none";
+    dropdown.style.position = "absolute";
+    dropdown.style.right = "0";
+    dropdown.style.top = "110%";
+    dropdown.style.background = "#fff";
+    dropdown.style.border = "1px solid var(--outline)";
+    dropdown.style.borderRadius = "0px";
+    dropdown.style.padding = "1em";
+    dropdown.style.zIndex = "20";
+    dropdown.style.whiteSpace = "nowrap";
 
-      case "Cards":
-      case "Flashcards":
-        if (typeof activateTab === "function") activateTab("flashcards");
+    // Rename button
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.className = "pill-button notebook-subject-edit";
+    editBtn.dataset.subject = subj;
+    editBtn.textContent = "Rename subject";
 
-        // put raw text back into cardsResult
-        const cardsResultEl = document.getElementById("cardsResult");
-        if (cardsResultEl) {
-          cardsResultEl.textContent = text;
-        }
+    // Delete button
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "pill-button notebook-subject-delete";
+    delBtn.dataset.subject = subj;
+    delBtn.textContent = "Delete subject & notes";
 
-        // rebuild interactive flashcards if helpers exist
-        if (typeof parseFlashcardsFromText === "function") {
-          try {
-            const parsed = parseFlashcardsFromText(text);
-            if (parsed && parsed.length) {
-              if (typeof saveFlashcards === "function") {
-                saveFlashcards(parsed);
-              }
-              if (typeof window !== "undefined") {
-                window.flashcards = parsed;
-                window.currentCardIndex = 0;
-              }
-              if (typeof renderCurrentCard === "function") {
-                renderCurrentCard();
-              }
-            }
-          } catch (e) {
-            console.error("Error rebuilding flashcards from notebook:", e);
-          }
-        }
-        break;
+    dropdown.appendChild(editBtn);
+    dropdown.appendChild(delBtn);
 
-      case "Simplified":
-      case "Hint":
-      default:
-        // fallback: show in Solve/Snap
-        if (typeof activateTab === "function") {
-          if (document.getElementById("solve")) {
-            activateTab("solve");
-          } else {
-            activateTab("snap");
-          }
-        }
-        safeRender("snapResult");
-        break;
-    }
-  }
-
-  // click handler for "Open in ...", Copy, item Delete (event delegation)
-  if (notebookListEl) {
-    notebookListEl.addEventListener("click", (e) => {
-      const openBtn = e.target.closest(".notebook-open-btn");
-      if (openBtn) {
-        const id = openBtn.dataset.id;
-        if (!id) return;
-        openNotebookItemById(id);
-        return;
-      }
-
-      const copyBtn = e.target.closest(".notebook-item-copy");
-      if (copyBtn) {
-        const id = copyBtn.dataset.id;
-        if (!id) return;
-        const items = loadNotebook();
-        const item = items.find((i) => i.id === id);
-        if (!item) return;
-        copyTextToClipboard(item.text || "");
-        return;
-      }
-
-      const deleteBtn = e.target.closest(".notebook-item-delete");
-      if (deleteBtn) {
-        const id = deleteBtn.dataset.id;
-        if (!id) return;
-        const items = loadNotebook();
-        const idx = items.findIndex((i) => i.id === id);
-        if (idx === -1) return;
-
-        const ok = confirm("Delete this saved item? You can undo once.");
-        if (!ok) return;
-
-        notebookLastSnapshot = items.slice();
-        items.splice(idx, 1);
-        saveNotebook(items);
-        renderNotebook();
-      }
+    /* ---- PART 4C: Menu button click (START)
+       - toggles dropdown only for THIS subject row
+       - stopPropagation prevents parent click handlers from interfering
+    ---- */
+    menuBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const isShowing = dropdown.style.display === "flex";
+      dropdown.style.display = isShowing ? "none" : "flex";
     });
-  }
+    /* ---- PART 4C (END) ---- */
 
-  // NEW: subject chips (filter / edit / delete) using delegation (menu handled directly)
-  if (notebookSubjectsEl) {
-    notebookSubjectsEl.addEventListener("click", (e) => {
-      const subjectBtn = e.target.closest(".notebook-subject-btn");
-      if (subjectBtn) {
-        const subj = subjectBtn.dataset.subject;
-        if (!subj) return;
-        notebookSubjectFilter =
-          notebookSubjectFilter === subj ? "all" : subj;
-        renderNotebook();
-        return;
-      }
+    // Assemble the row
+    row.appendChild(subjBtn);
+    row.appendChild(menuBtn);
+    row.appendChild(dropdown);
 
-      const editBtn = e.target.closest(".notebook-subject-edit");
-      if (editBtn) {
-        const oldSubj = editBtn.dataset.subject;
-        if (!oldSubj) return;
-
-        const newNameRaw = prompt("Rename subject:", oldSubj);
-        if (newNameRaw === null) return;
-        const newName = newNameRaw.trim();
-        if (!newName || newName === oldSubj) return;
-
-        const ok = confirm(`Rename subject "${oldSubj}" to "${newName}"?`);
-        if (!ok) return;
-
-        const items = loadNotebook();
-        notebookLastSnapshot = items.slice();
-
-        const updated = items.map((it) => {
-          const s = (it.subject || "general").trim();
-          if (s === oldSubj) {
-            return { ...it, subject: newName };
-          }
-          return it;
-        });
-
-        if (notebookSubjectFilter === oldSubj) {
-          notebookSubjectFilter = newName;
-        }
-
-        saveNotebook(updated);
-        renderNotebook();
-        return;
-      }
-
-      const delBtn = e.target.closest(".notebook-subject-delete");
-      if (delBtn) {
-        const subj = delBtn.dataset.subject;
-        if (!subj) return;
-
-        const ok = confirm(
-          `Delete subject "${subj}" and all its saved work? You can undo once.`
-        );
-        if (!ok) return;
-
-        const items = loadNotebook();
-        notebookLastSnapshot = items.slice();
-        const remaining = items.filter(
-          (it) => (it.subject || "general").trim() !== subj
-        );
-
-        if (notebookSubjectFilter === subj) {
-          notebookSubjectFilter = "all";
-        }
-
-        saveNotebook(remaining);
-        renderNotebook();
-      }
-    });
-  }
-
-  // Notebook filters (All, Snap, Math, Study, Essay, Quiz...)
-  notebookFilterButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      notebookFilterButtons.forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      notebookFilter = btn.dataset.filter || "all";
-      renderNotebook();
-    });
+    // Add row into the subjects container
+    notebookSubjectsEl.appendChild(row);
   });
+  /* ---- PART 4B (END) ---- */
+}
+/* ================================== SECTION 4 (END) ===================================== */
 
-  // Add an item to notebook
-  function addNotebookItem(type, text) {
-    if (!text || !text.trim()) return;
-    const items = loadNotebook();
-    notebookLastSnapshot = items.slice(); // allow undo of this insert
-    items.push({
-      id: Date.now() + Math.random().toString(16).slice(2),
-      type, // "Snap", "Math", "Study", etc.
-      text: text.trim(),
-      time: Date.now(),
-      subject: getSaveSubject(),
-      model: getModelChoice(),
-      mode: window.__cheatMode ? "cheat" : "learn",
-      pinned: false,
-    });
-    saveNotebook(items);
-    renderNotebook();
+
+
+/* ===========================================================================================
+   SECTION 5: Render notebook items list (START)
+   - Loads items from storage
+   - Renders subject chips from ALL items
+   - Applies type filter + subject filter
+   - Builds each item card with:
+     - Open button (.notebook-open-btn)
+     - Copy icon (.notebook-item-copy)
+     - Delete button (.notebook-item-delete)
+=========================================================================================== */
+function renderNotebook() {
+  if (!notebookListEl) return;
+
+  /* ---- PART 5A: Load + clear UI (START) ---- */
+  const allItems = loadNotebook();
+  notebookListEl.innerHTML = "";
+  /* ---- PART 5A (END) ---- */
+
+  // Always render subject chips from the full set
+  renderNotebookSubjects(allItems);
+
+  /* ---- PART 5B: Empty state (START) ---- */
+  if (!allItems.length) {
+    notebookListEl.innerHTML =
+      '<p class="desc">Nothing saved yet. Solve something and it will appear here.</p>';
+    return;
   }
+  /* ---- PART 5B (END) ---- */
 
-  // NEW: clear notebook + undo
-  const clearNotebookBtn = document.getElementById("clearNotebookBtn");
-  if (clearNotebookBtn) {
-    clearNotebookBtn.addEventListener("click", () => {
-      const items = loadNotebook();
-      if (!items.length) {
-        alert("Notebook is already empty.");
-        return;
-      }
-      const ok = confirm(
-        "Clear all saved notebook items? You can undo this once."
-      );
-      if (!ok) return;
-      notebookLastSnapshot = items.slice();
-      saveNotebook([]);
+  /* ---- PART 5C: Apply filters (START) ---- */
+  const byType =
+    notebookFilter === "all"
+      ? allItems
+      : allItems.filter((i) => i.type === notebookFilter);
 
-      renderNotebook();
-    });
+  const items =
+    notebookSubjectFilter === "all"
+      ? byType
+      : byType.filter((i) => (i.subject || "general").trim() === notebookSubjectFilter);
+  /* ---- PART 5C (END) ---- */
+
+  /* ---- PART 5D: No results state (START) ---- */
+  if (!items.length) {
+    notebookListEl.innerHTML =
+      '<p class="desc">No items for this filter yet.</p>';
+    return;
   }
+  /* ---- PART 5D (END) ---- */
 
-  const undoNotebookBtn = document.getElementById("undoNotebookBtn");
-  if (undoNotebookBtn) {
-    undoNotebookBtn.addEventListener("click", () => {
-      if (!notebookLastSnapshot) {
-        alert("Nothing to undo yet.");
-        return;
-      }
-      saveNotebook(notebookLastSnapshot);
-      notebookLastSnapshot = null;
-      renderNotebook();
-    });
-  }
+  /* ---- PART 5E: Label mapping for the "Open in ..." button (START) ---- */
+  const labelMap = {
+    Snap: "Solve",
+    Math: "Math Solver",
+    Study: "Study Guide",
+    Essay: "Essay Helper",
+    Cards: "Flashcards",
+    Flashcards: "Flashcards",
+    Simplified: "Simplified answer",
+    Hint: "Hint",
+  };
+  /* ---- PART 5E (END) ---- */
 
-  // Initial render
-  renderNotebook();
+  /* ---- PART 5F: Render newest-first (START) ---- */
+  items
+    .slice()
+    .reverse()
+    .forEach((item) => {
+      // Card wrapper
+      const wrapper = document.createElement("div");
+      wrapper.className = "notebook-item";
 
-  // NEW: wire up copy buttons for textareas (Snap + other visible ones)
-  document.addEventListener("DOMContentLoaded", () => {
-    const snapTa = document.getElementById("snapText");
-    const copySnapBtn = document.getElementById("copySnapTextBtn");
-    if (snapTa && copySnapBtn) {
-      copySnapBtn.addEventListener("click", () => {
-        copyTextToClipboard(snapTa.value || "");
-      });
-    }
+      // Header
+      const header = document.createElement("div");
+      header.className = "notebook-item-header";
 
-    // auto-add copy icon next to other visible textareas (not snapText, not display:none)
-    const textareas = document.querySelectorAll("textarea");
-    textareas.forEach((ta) => {
-      if (ta.id === "snapText") return;
-	      if (ta.id === "extraInstructions") return;   // ⬅️ add this line
+      // Meta line
+      const meta = document.createElement("div");
+      meta.className = "notebook-meta";
 
-      if (ta.style.display === "none") return;
-      if (!ta.parentNode) return;
+      const timeStr = new Date(item.time).toLocaleString();
+      meta.textContent = `${item.type} • ${timeStr} • ${item.subject || "general"} • ${
+        item.model || "smart"
+      } • ${item.mode || "learn"}`;
 
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "icon-copy-btn";
-      btn.setAttribute("aria-label", "Copy text");
-      btn.innerHTML =
+      header.appendChild(meta);
+      wrapper.appendChild(header);
+
+      // Body
+      const body = document.createElement("div");
+      body.textContent = item.text;
+      wrapper.appendChild(body);
+
+      // Footer
+      const footer = document.createElement("div");
+      footer.className = "notebook-item-footer";
+
+      // Open button
+      const openBtn = document.createElement("button");
+      openBtn.className = "pill-button notebook-open-btn";
+      openBtn.type = "button";
+      openBtn.dataset.id = item.id;
+
+      const displayType = labelMap[item.type] || item.type || "tool";
+      openBtn.textContent = "Open in " + displayType;
+
+      // Copy icon button
+      const copyBtn = document.createElement("button");
+      copyBtn.className = "pill-button notebook-item-copy";
+      copyBtn.type = "button";
+      copyBtn.dataset.id = item.id;
+      copyBtn.innerHTML =
         '<span class="material-symbols-outlined">content_copy</span>';
 
-      ta.parentNode.insertBefore(btn, ta.nextSibling);
-      btn.addEventListener("click", () => {
-        copyTextToClipboard(ta.value || "");
+      // Delete button
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "pill-button notebook-item-delete";
+      deleteBtn.type = "button";
+      deleteBtn.dataset.id = item.id;
+      deleteBtn.textContent = "Delete";
+
+      footer.appendChild(openBtn);
+      footer.appendChild(copyBtn);
+      footer.appendChild(deleteBtn);
+
+      wrapper.appendChild(footer);
+      notebookListEl.appendChild(wrapper);
+    });
+  /* ---- PART 5F (END) ---- */
+}
+/* ================================== SECTION 5 (END) ===================================== */
+
+
+
+/* ===========================================================================================
+   SECTION 6: Open a saved notebook item back in its tool (START)
+   - Looks up item by id
+   - Activates the correct tab (if activateTab exists)
+   - Renders text into the correct result element
+   - Rebuilds flashcards if helpers exist
+=========================================================================================== */
+function openNotebookItemById(itemId) {
+  const items = loadNotebook();
+  const item = items.find((i) => i.id === itemId);
+  if (!item) return;
+
+  const text = item.text || "";
+
+  /* ---- PART 6A: Safe render helper (START)
+     - If renderAnswer exists, it uses it
+     - Otherwise it falls back to plain textContent
+  ---- */
+  function safeRender(elementId) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+
+    if (typeof renderAnswer === "function") {
+      renderAnswer(el, text);
+    } else {
+      el.textContent = text;
+    }
+  }
+  /* ---- PART 6A (END) ---- */
+
+  /* ---- PART 6B: Route based on item.type (START) ---- */
+  switch (item.type) {
+    case "Snap":
+      if (typeof activateTab === "function") {
+        if (document.getElementById("solve")) {
+          activateTab("solve");
+        } else {
+          activateTab("snap");
+        }
+      }
+      safeRender("snapResult");
+      break;
+
+    case "Math":
+      if (typeof activateTab === "function") activateTab("math");
+      safeRender("mathResult");
+      break;
+
+    case "Study":
+      if (typeof activateTab === "function") activateTab("study");
+      safeRender("studyResult");
+      break;
+
+    case "Essay":
+      if (typeof activateTab === "function") activateTab("essay");
+      safeRender("essayResult");
+      break;
+
+    case "Cards":
+    case "Flashcards": {
+      if (typeof activateTab === "function") activateTab("flashcards");
+
+      // Put raw text back into cardsResult
+      const cardsResultEl = document.getElementById("cardsResult");
+      if (cardsResultEl) {
+        cardsResultEl.textContent = text;
+      }
+
+      // Rebuild interactive flashcards if helpers exist
+      if (typeof parseFlashcardsFromText === "function") {
+        try {
+          const parsed = parseFlashcardsFromText(text);
+          if (parsed && parsed.length) {
+            if (typeof saveFlashcards === "function") {
+              saveFlashcards(parsed);
+            }
+            if (typeof window !== "undefined") {
+              window.flashcards = parsed;
+              window.currentCardIndex = 0;
+            }
+            if (typeof renderCurrentCard === "function") {
+              renderCurrentCard();
+            }
+          }
+        } catch (e) {
+          console.error("Error rebuilding flashcards from notebook:", e);
+        }
+      }
+      break;
+    }
+
+    case "Simplified":
+    case "Hint":
+    default:
+      // Fallback: show in Solve/Snap
+      if (typeof activateTab === "function") {
+        if (document.getElementById("solve")) {
+          activateTab("solve");
+        } else {
+          activateTab("snap");
+        }
+      }
+      safeRender("snapResult");
+      break;
+  }
+  /* ---- PART 6B (END) ---- */
+}
+/* ================================== SECTION 6 (END) ===================================== */
+
+
+
+/* ===========================================================================================
+   SECTION 7: Notebook item buttons (Open / Copy / Delete) via event delegation (START)
+   - One click handler on #notebookList
+   - Uses closest() to detect which button was clicked
+=========================================================================================== */
+if (notebookListEl) {
+  notebookListEl.addEventListener("click", (e) => {
+    /* ---- PART 7A: Open button (START) ---- */
+    const openBtn = e.target.closest(".notebook-open-btn");
+    if (openBtn) {
+      const id = openBtn.dataset.id;
+      if (!id) return;
+      openNotebookItemById(id);
+      return;
+    }
+    /* ---- PART 7A (END) ---- */
+
+    /* ---- PART 7B: Copy button (START) ---- */
+    const copyBtn = e.target.closest(".notebook-item-copy");
+    if (copyBtn) {
+      const id = copyBtn.dataset.id;
+      if (!id) return;
+
+      const items = loadNotebook();
+      const item = items.find((i) => i.id === id);
+      if (!item) return;
+
+      copyTextToClipboard(item.text || "");
+      return;
+    }
+    /* ---- PART 7B (END) ---- */
+
+    /* ---- PART 7C: Delete button (START) ---- */
+    const deleteBtn = e.target.closest(".notebook-item-delete");
+    if (deleteBtn) {
+      const id = deleteBtn.dataset.id;
+      if (!id) return;
+
+      const items = loadNotebook();
+      const idx = items.findIndex((i) => i.id === id);
+      if (idx === -1) return;
+
+      const ok = confirm("Delete this saved item? You can undo once.");
+      if (!ok) return;
+
+      notebookLastSnapshot = items.slice();
+      items.splice(idx, 1);
+
+      saveNotebook(items);
+      renderNotebook();
+    }
+    /* ---- PART 7C (END) ---- */
+  });
+}
+/* ================================== SECTION 7 (END) ===================================== */
+
+
+
+/* ===========================================================================================
+   SECTION 8: Subject chip actions via delegation (START)
+   Handles:
+   - .notebook-subject-btn (filter)
+   - .notebook-subject-edit (rename)
+   - .notebook-subject-delete (delete subject + notes)
+   NOTE: the menu open/close is handled directly in renderNotebookSubjects()
+=========================================================================================== */
+if (notebookSubjectsEl) {
+  notebookSubjectsEl.addEventListener("click", (e) => {
+    /* ---- PART 8A: Subject filter toggle (START) ---- */
+    const subjectBtn = e.target.closest(".notebook-subject-btn");
+    if (subjectBtn) {
+      const subj = subjectBtn.dataset.subject;
+      if (!subj) return;
+
+      notebookSubjectFilter = notebookSubjectFilter === subj ? "all" : subj;
+      renderNotebook();
+      return;
+    }
+    /* ---- PART 8A (END) ---- */
+
+    /* ---- PART 8B: Rename subject (START) ---- */
+    const editBtn = e.target.closest(".notebook-subject-edit");
+    if (editBtn) {
+      const oldSubj = editBtn.dataset.subject;
+      if (!oldSubj) return;
+
+      const newNameRaw = prompt("Rename subject:", oldSubj);
+      if (newNameRaw === null) return;
+
+      const newName = newNameRaw.trim();
+      if (!newName || newName === oldSubj) return;
+
+      const ok = confirm(`Rename subject "${oldSubj}" to "${newName}"?`);
+      if (!ok) return;
+
+      const items = loadNotebook();
+      notebookLastSnapshot = items.slice();
+
+      const updated = items.map((it) => {
+        const s = (it.subject || "general").trim();
+        if (s === oldSubj) {
+          return { ...it, subject: newName };
+        }
+        return it;
       });
+
+      if (notebookSubjectFilter === oldSubj) {
+        notebookSubjectFilter = newName;
+      }
+
+      saveNotebook(updated);
+      renderNotebook();
+      return;
+    }
+    /* ---- PART 8B (END) ---- */
+
+    /* ---- PART 8C: Delete subject + its notes (START) ---- */
+    const delBtn = e.target.closest(".notebook-subject-delete");
+    if (delBtn) {
+      const subj = delBtn.dataset.subject;
+      if (!subj) return;
+
+      const ok = confirm(
+        `Delete subject "${subj}" and all its saved work? You can undo once.`
+      );
+      if (!ok) return;
+
+      const items = loadNotebook();
+      notebookLastSnapshot = items.slice();
+
+      const remaining = items.filter(
+        (it) => (it.subject || "general").trim() !== subj
+      );
+
+      if (notebookSubjectFilter === subj) {
+        notebookSubjectFilter = "all";
+      }
+
+      saveNotebook(remaining);
+      renderNotebook();
+    }
+    /* ---- PART 8C (END) ---- */
+  });
+}
+/* ================================== SECTION 8 (END) ===================================== */
+
+
+
+/* ===========================================================================================
+   SECTION 9: Notebook FILTER buttons (All, Snap, Math, etc.) (START)
+   - .notebook-filter buttons must have data-filter="..."
+   - Adds/removes "active" class (class name unchanged)
+=========================================================================================== */
+notebookFilterButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    notebookFilterButtons.forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+
+    notebookFilter = btn.dataset.filter || "all";
+    renderNotebook();
+  });
+});
+/* ================================== SECTION 9 (END) ===================================== */
+
+
+
+/* ===========================================================================================
+   SECTION 10: Add an item to the notebook (START)
+   - Called by other tools when they generate an answer
+   - Keeps a snapshot for undo
+=========================================================================================== */
+function addNotebookItem(type, text) {
+  if (!text || !text.trim()) return;
+
+  const items = loadNotebook();
+  notebookLastSnapshot = items.slice(); // allow undo of this insert
+
+  items.push({
+    id: Date.now() + Math.random().toString(16).slice(2),
+    type, // "Snap", "Math", "Study", etc.
+    text: text.trim(),
+    time: Date.now(),
+    subject: getSaveSubject(),
+    model: getModelChoice(),
+    mode: window.__cheatMode ? "cheat" : "learn",
+    pinned: false,
+  });
+
+  saveNotebook(items);
+  renderNotebook();
+}
+/* ================================== SECTION 10 (END) ==================================== */
+
+
+
+/* ===========================================================================================
+   SECTION 11: Clear + Undo buttons (START)
+   - #clearNotebookBtn clears everything (with confirm)
+   - #undoNotebookBtn restores the last snapshot (one-level undo)
+=========================================================================================== */
+const clearNotebookBtn = document.getElementById("clearNotebookBtn");
+if (clearNotebookBtn) {
+  clearNotebookBtn.addEventListener("click", () => {
+    const items = loadNotebook();
+
+    if (!items.length) {
+      alert("Notebook is already empty.");
+      return;
+    }
+
+    const ok = confirm("Clear all saved notebook items? You can undo this once.");
+    if (!ok) return;
+
+    notebookLastSnapshot = items.slice();
+    saveNotebook([]);
+    renderNotebook();
+  });
+}
+
+const undoNotebookBtn = document.getElementById("undoNotebookBtn");
+if (undoNotebookBtn) {
+  undoNotebookBtn.addEventListener("click", () => {
+    if (!notebookLastSnapshot) {
+      alert("Nothing to undo yet.");
+      return;
+    }
+
+    saveNotebook(notebookLastSnapshot);
+    notebookLastSnapshot = null;
+    renderNotebook();
+  });
+}
+/* ================================== SECTION 11 (END) ==================================== */
+
+
+
+/* ===========================================================================================
+   SECTION 12: Initial render (START)
+=========================================================================================== */
+renderNotebook();
+/* ================================== SECTION 12 (END) ==================================== */
+
+
+
+/* ===========================================================================================
+   SECTION 13: Copy buttons for textareas (START)
+   - Wires #copySnapTextBtn to copy #snapText
+   - Auto-inserts copy buttons next to other visible <textarea> elements
+   IMPORTANT:
+   - Keeps your exclusions: snapText and extraInstructions
+=========================================================================================== */
+
+/* --- PART 13A: Run when DOM is ready (START)
+   This version is safer than only DOMContentLoaded:
+   - If the script loads after DOMContentLoaded already fired, it still runs.
+*/
+function runWhenReady(fn) {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", fn);
+  } else {
+    fn();
+  }
+}
+/* --- PART 13A (END) --- */
+
+runWhenReady(() => {
+  /* ---- PART 13B: Snap textarea copy button (START) ---- */
+  const snapTa = document.getElementById("snapText");
+  const copySnapBtn = document.getElementById("copySnapTextBtn");
+
+  if (snapTa && copySnapBtn) {
+    copySnapBtn.addEventListener("click", () => {
+      copyTextToClipboard(snapTa.value || "");
+    });
+  }
+  /* ---- PART 13B (END) ---- */
+
+
+  /* ---- PART 13C: Auto-add copy buttons to other textareas (START) ---- */
+  const textareas = document.querySelectorAll("textarea");
+
+  textareas.forEach((ta) => {
+    // Exclusions (kept exactly)
+    if (ta.id === "snapText") return;
+    if (ta.id === "extraInstructions") return;
+
+    // Skip hidden textareas
+    if (ta.style.display === "none") return;
+
+    // Must have a parent to insert a button
+    if (!ta.parentNode) return;
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "icon-copy-btn";
+    btn.setAttribute("aria-label", "Copy text");
+    btn.innerHTML =
+      '<span class="material-symbols-outlined">content_copy</span>';
+
+    ta.parentNode.insertBefore(btn, ta.nextSibling);
+
+    btn.addEventListener("click", () => {
+      copyTextToClipboard(ta.value || "");
     });
   });
+  /* ---- PART 13C (END) ---- */
+});
+/* ================================== SECTION 13 (END) ==================================== */
 </script>
 
 
 
 
-<!-- BLOCK 3: Answer sanitizing, AI backend call, and all task helpers -->
+
+<!-- BLOCK 3: Answer sanitizing, AI backend call, and all task helpers ----------------------
+--------------------------------------------------------------------------------------=----
+===========================================================================================
+===========================================================================================
+------------------------------------------------------------------------------------------->
+
 <script>
+/* ===========================================================================================
+   SECTION 0: Answer sanitizing (START)
+   Goal:
+   - Take raw AI text and remove markdown/latex-ish junk
+   - Normalize the output into clean readable text
+=========================================================================================== */
 function sanitizeAnswerText(raw) {
   if (!raw) return "";
+
   let text = String(raw);
 
+  /* ---- PART 0A: Remove common markdown formatting (START) ---- */
+  // Remove markdown headings (#, ##, ###...) entire lines
   text = text.replace(/^\s*#{1,6}\s+.*$/gm, "");
+
+  // Remove horizontal rules like --- or *** lines
   text = text.replace(/^\s*[-*_]{3,}\s*$/gm, "");
+
+  // Remove triple-dash runs and code fences
   text = text.replace(/---/g, "");
   text = text.replace(/```/g, "");
+  /* ---- PART 0A (END) ---- */
 
+
+  /* ---- PART 0B: Convert common LaTeX-ish patterns into plain text (START) ---- */
+  // \frac{a}{b} -> a/b
   text = text.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "$1/$2");
+
+  // \sqrt{a} -> √(a) then we simplify √(x) -> √x for simple cases
   text = text.replace(/\\sqrt\{([^}]+)\}/g, "√($1)");
   text = text.replace(/√\(([^()]+)\)/g, "√$1");
-  text = text.replace(/\\boxed\{([^}]+)\}/g, "$1");
 
+  // \boxed{...} -> ...
+  text = text.replace(/\\boxed\{([^}]+)\}/g, "$1");
+  /* ---- PART 0B (END) ---- */
+
+
+  /* ---- PART 0C: Remove LaTeX math wrappers like \( \) and \[ \] and $ $ (START) ---- */
   text = text.replace(/\\\(|\\\)/g, "");
   text = text.replace(/\\\[|\\\]/g, "");
   text = text.replace(/\$\$/g, "");
   text = text.replace(/\$(.*?)\$/g, "$1");
+  /* ---- PART 0C (END) ---- */
 
+
+  /* ---- PART 0D: Replace LaTeX operators with symbols (START) ---- */
   text = text.replace(/\\times/g, "×");
   text = text.replace(/\\cdot/g, "·");
+  /* ---- PART 0D (END) ---- */
 
+
+  /* ---- PART 0E: Remove bullet markers when they aren't numeric lists (START) ---- */
+  // Removes "- something" when "something" doesn't start with a digit
   text = text.replace(/^\s*-\s+(?!\d)/gm, "");
+
+  // Removes "* something" when "something" doesn't start with a digit
   text = text.replace(/^\s*\*\s+(?!\d)/gm, "");
+  /* ---- PART 0E (END) ---- */
 
+
+  /* ---- PART 0F: Remove specific filler lines (START) ---- */
   text = text.replace(/^Lets solve.*$/gmi, "");
+  /* ---- PART 0F (END) ---- */
 
+
+  /* ---- PART 0G: Strip leftover special characters + normalize spacing (START) ---- */
   text = text.replace(/[\\`#*_$>]/g, "");
   text = text.replace(/\r\n/g, "\n");
   text = text.replace(/\n{3,}/g, "\n\n");
-  // If we have a line that ends with "Final answer:" and nothing after it,
-  // fill it with the last number we see in the text.
+  /* ---- PART 0G (END) ---- */
+
+
+  /* ---- PART 0H: Fix "Final answer:" line if it's empty (START)
+     If there is a line exactly like "Final answer:" with nothing after it,
+     we fill it with the last number found anywhere in the text.
+  ---- */
   const finalLineMatch = text.match(/Final answer:\s*$/m);
   if (finalLineMatch) {
     const numbers = text.match(/-?\d+(\.\d+)?/g);
@@ -3606,15 +4077,27 @@ function sanitizeAnswerText(raw) {
       text = text.replace(/Final answer:\s*$/m, "Final answer: " + lastNum);
     }
   }
+  /* ---- PART 0H (END) ---- */
 
   return text.trim();
 }
+/* ================================== SECTION 0 (END) ===================================== */
 
-// Inject styles for tool outputs + headings + copy button
+
+
+/* ===========================================================================================
+   SECTION 1: Inject styles for tool outputs (START)
+   Goal:
+   - Add a <style> tag once
+   - Uses id="tool-output-styles" so it never duplicates
+=========================================================================================== */
 (function ensureToolOutputStyles() {
+  // If we've already injected the styles, do nothing
   if (document.getElementById("tool-output-styles")) return;
+
   const style = document.createElement("style");
   style.id = "tool-output-styles";
+
   style.textContent = `
     .tool-output {
       position: relative;
@@ -3685,27 +4168,49 @@ function sanitizeAnswerText(raw) {
       color: #000;
     }
   `;
+
   document.head.appendChild(style);
 })();
+/* ================================== SECTION 1 (END) ===================================== */
 
+
+
+/* ===========================================================================================
+   SECTION 2: Render tool output with formatting + copy button (START)
+   Goal:
+   - Take plain text
+   - Escape it (avoid HTML injection)
+   - Add small formatting helpers (Final answer, Step lines, headings, Hint label)
+   - Store original plain text in preEl.dataset.plainText for copying
+=========================================================================================== */
 function renderAnswer(preEl, text) {
   if (!preEl) return;
 
+  /* ---- PART 2A: Save plain text for copy (START) ---- */
   const plain = String(text || "");
   preEl.dataset.plainText = plain;
-  preEl.classList.add("tool-output");
+  /* ---- PART 2A (END) ---- */
 
+  /* ---- PART 2B: Ensure base class is applied (START) ---- */
+  preEl.classList.add("tool-output");
+  /* ---- PART 2B (END) ---- */
+
+  /* ---- PART 2C: Escape HTML special characters (START) ----
+     So if the AI returns "<script>" etc., it displays as text, not HTML.
+  */
   const escaped = plain
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+  /* ---- PART 2C (END) ---- */
 
+  /* ---- PART 2D: Turn lines into HTML with extra styling (START) ---- */
   const lines = escaped.split("\n");
 
   const htmlLines = lines.map((line) => {
     const trimmed = line.trim();
 
-    // Final answer: ...
+    // 1) "Final answer: ..."
     const finalMatch = line.match(/^(Final answer:\s*)(.*)$/i);
     if (finalMatch) {
       const label = finalMatch[1];
@@ -3713,25 +4218,31 @@ function renderAnswer(preEl, text) {
       return `<span class="answer-label">${label}</span><span class="answer-value"> ${value}</span>`;
     }
 
-    // Step 1:, Step 2, etc.
+    // 2) "Step 1", "Step 2", etc.
     if (/^Step\s+\d+/i.test(trimmed)) {
       return `<span class="step-line">${line}</span>`;
     }
 
-    // Section headings like "Summary:", "Answer Key:", etc.
+    // 3) Section headings like "Summary:", "Answer Key:", etc.
     if (/^(Summary|Answer Key|Multiple Choice|Short Answer|True\/False)\s*:/i.test(trimmed)) {
       return `<span class="section-heading">${line}</span>`;
     }
 
-    // "Hint:"
+    // 4) "Hint:" label line
     if (/^Hint:\s*$/i.test(trimmed)) {
       return `<span class="hint-label">Hint</span>`;
     }
 
+    // Default: plain line
     return line;
   });
 
   const contentHtml = htmlLines.join("\n");
+  /* ---- PART 2D (END) ---- */
+
+  /* ---- PART 2E: Build the final HTML including copy button (START) ---- */
+  // If this element has an ID, we store it on the copy button so the click handler
+  // can find the right container easily.
   const copyTarget = preEl.id ? ` data-copy-target="${preEl.id}"` : "";
 
   preEl.innerHTML = `
@@ -3742,16 +4253,33 @@ function renderAnswer(preEl, text) {
     </div>
     <div class="tool-output-body">${contentHtml}</div>
   `;
+  /* ---- PART 2E (END) ---- */
 }
+/* ================================== SECTION 2 (END) ===================================== */
 
-// Global click handler for tool-output copy buttons
+
+
+/* ===========================================================================================
+   SECTION 3: Global click handler for tool-output copy buttons (START)
+   Goal:
+   - Catch clicks on ANY ".tool-output-copy" button
+   - Figure out which output container to copy from
+   - Copy the original plain text (dataset.plainText) if possible
+   - Temporarily change button label to "Copied!"
+=========================================================================================== */
 document.addEventListener("click", (e) => {
+  /* ---- PART 3A: Find the clicked copy button (START) ---- */
   const btn = e.target.closest(".tool-output-copy");
   if (!btn) return;
+  /* ---- PART 3A (END) ---- */
 
+  /* ---- PART 3B: Find the text to copy (START) ---- */
   let textToCopy = "";
+
   const targetId = btn.dataset.copyTarget;
+
   if (targetId) {
+    // If button points to a specific element id
     const container = document.getElementById(targetId);
     if (container) {
       textToCopy =
@@ -3760,6 +4288,7 @@ document.addEventListener("click", (e) => {
         "";
     }
   } else {
+    // Otherwise copy from the closest .tool-output container
     const container = btn.closest(".tool-output");
     if (container) {
       textToCopy =
@@ -3770,7 +4299,9 @@ document.addEventListener("click", (e) => {
   }
 
   if (!textToCopy) return;
+  /* ---- PART 3B (END) ---- */
 
+  /* ---- PART 3C: Copy + show quick "Copied!" feedback (START) ---- */
   copyTextToClipboard(textToCopy);
 
   const label = btn.querySelector(".tool-output-copy-label");
@@ -3781,9 +4312,17 @@ document.addEventListener("click", (e) => {
       label.textContent = old;
     }, 1200);
   }
+  /* ---- PART 3C (END) ---- */
 });
+/* ================================== SECTION 3 (END) ===================================== */
 
-// helper to clean flashcard sides (front/back)
+
+
+/* ===========================================================================================
+   SECTION 4: Flashcard-side cleaning helper (START)
+   Goal:
+   - Normalize flashcard fronts/backs so they don't contain extra "Q:" / "A:" / ":" noise
+=========================================================================================== */
 function cleanSide(text) {
   return String(text || "")
     .trim()
@@ -3791,802 +4330,1281 @@ function cleanSide(text) {
     .replace(/^:\s*/, "")         // remove leading ":"
     .replace(/\s*:\s*$/, "");     // remove trailing ":"
 }
+/* ================================== SECTION 4 (END) ===================================== */
 
 
 
-  // ---------- AI ENGINE (BACKEND HOOK POINT) ----------
-  async function callAI({ prompt, task }) {
-    const modelChoice = getModelChoice();
-    const subject = getSubject();
-    const mode = window.__cheatMode ? "cheat" : "learn";
+/* ===========================================================================================
+   SECTION 5: AI ENGINE (BACKEND HOOK POINT) (START)
+   Goal:
+   - Send prompt + task + model to /api/solve
+   - Includes Mode, Subject, Tool in the prompt text
+   - Returns a string response or an error message
+=========================================================================================== */
+async function callAI({ prompt, task }) {
+  /* ---- PART 5A: Gather context values (START) ---- */
+  const modelChoice = getModelChoice();
+  const subject = getSubject();
+  const mode = window.__cheatMode ? "cheat" : "learn";
+  /* ---- PART 5A (END) ---- */
 
-    try {
-      const res = await fetch("/api/solve", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt:
-            `Mode: ${mode}\n` +
-            `Subject: ${subject}\n` +
-            `Tool: ${task}\n\n` +
-            prompt,
-          task,
-          model: modelChoice,
-        }),
-      });
+  /* ---- PART 5B: POST request to your backend (START) ---- */
+  try {
+    const res = await fetch("/api/solve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt:
+          `Mode: ${mode}\n` +
+          `Subject: ${subject}\n` +
+          `Tool: ${task}\n\n` +
+          prompt,
+        task,
+        model: modelChoice,
+      }),
+    });
 
-      if (!res.ok) {
-        throw new Error("Network error (" + res.status + ")");
-      }
-
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-
-      return data.text || "[Empty response]";
-    } catch (err) {
-      console.error(err);
-      return "⚠️ Error talking to AI:\n" + err.message;
+    // If HTTP status is not 200-299
+    if (!res.ok) {
+      throw new Error("Network error (" + res.status + ")");
     }
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    return data.text || "[Empty response]";
+  } catch (err) {
+    console.error(err);
+    return "⚠️ Error talking to AI:\n" + err.message;
   }
+  /* ---- PART 5B (END) ---- */
+}
+/* ================================== SECTION 5 (END) ===================================== */
 
-  // ---------- TASK HELPERS ----------
-  async function runMathSolver(text) {
-    const cheat = window.__cheatMode;
-    const prompt = cheat
-      ? "Solve this math problem and give ONLY the final numeric/algebraic answer. " +
-        "If there are multiple parts, label each answer clearly (a), b), c), etc.).\n\nProblem:\n" +
-        text.trim()
-      : "You are a step-by-step math tutor for a middle/high school student.\n" +
-"Solve the problem clearly. Show each step, and END with a line exactly like:\n" +
-"`Final answer: <number>`\n\n" +
-"Problem:\n" +
-text.trim();
 
-    return callAI({ prompt, task: "math" });
-  }
 
-  async function runStudyGuide(text) {
-    const prompt =
-      "Turn the following notes or textbook text into a study guide for a student.\n" +
-      "Output:\n- Bullet point main ideas\n- Key definitions\n- Short summary at the end.\n\n" +
-      text.trim();
-    return callAI({ prompt, task: "study_guide" });
-  }
+/* ===========================================================================================
+   SECTION 6: TASK HELPERS (START)
+   Goal:
+   - Each helper builds a prompt for a specific tool
+   - Then calls callAI({prompt, task})
+   Notes:
+   - Some prompts switch depending on window.__cheatMode
+=========================================================================================== */
 
-  async function runEssayHelper(text) {
-    const cheat = window.__cheatMode;
-    const prompt = cheat
-      ? "Write a strong, polished essay based on this text or prompt. Just give the finished essay.\n\nInput:\n" +
-        text.trim()
-      : "You are an essay helper for a middle/high school student.\n" +
-        "If the text looks like a draft, improve clarity, grammar, and structure but keep their voice.\n" +
-        "If it is a prompt, generate a well-structured answer.\n\n" +
-        "Input:\n" +
-        text.trim();
-    return callAI({ prompt, task: "essay" });
-  }
+/* ---- PART 6A: Math Solver (START) ---- */
+async function runMathSolver(text) {
+  const cheat = window.__cheatMode;
 
-  async function runFlashcards(text) {
-    const prompt =
-      "Create useful flashcards from this content for a student.\n" +
-      "Output format strictly like:\n" +
-      "Q: ...\nA: ...\n\n" +
-      "Use many short cards.\n\n" +
-      "Content:\n" +
+  const prompt = cheat
+    ? "Solve this math problem and give ONLY the final numeric/algebraic answer. " +
+      "If there are multiple parts, label each answer clearly (a), b), c), etc.).\n\nProblem:\n" +
+      text.trim()
+    : "You are a step-by-step math tutor for a middle/high school student.\n" +
+      "Solve the problem clearly. Show each step, and END with a line exactly like:\n" +
+      "`Final answer: <number>`\n\n" +
+      "Problem:\n" +
       text.trim();
 
-    return callAI({ prompt, task: "flashcards" });
-  }
+  return callAI({ prompt, task: "math" });
+}
+/* ---- PART 6A (END) ---- */
 
-  
 
-  async function runSimplify(text) {
-    const prompt =
-      "Explain the following answer in much simpler language for a middle or high school student. Keep key ideas, but shorten and simplify:\n\n" +
+/* ---- PART 6B: Study Guide (START) ---- */
+async function runStudyGuide(text) {
+  const prompt =
+    "Turn the following notes or textbook text into a study guide for a student.\n" +
+    "Output:\n- Bullet point main ideas\n- Key definitions\n- Short summary at the end.\n\n" +
+    text.trim();
+
+  return callAI({ prompt, task: "study_guide" });
+}
+/* ---- PART 6B (END) ---- */
+
+
+/* ---- PART 6C: Essay Helper (START) ---- */
+async function runEssayHelper(text) {
+  const cheat = window.__cheatMode;
+
+  const prompt = cheat
+    ? "Write a strong, polished essay based on this text or prompt. Just give the finished essay.\n\nInput:\n" +
+      text.trim()
+    : "You are an essay helper for a middle/high school student.\n" +
+      "If the text looks like a draft, improve clarity, grammar, and structure but keep their voice.\n" +
+      "If it is a prompt, generate a well-structured answer.\n\n" +
+      "Input:\n" +
       text.trim();
-    return callAI({ prompt, task: "simplify" });
-  }
 
-  async function runHint(question, existingAnswer) {
-    const prompt =
-      "Give a helpful hint (not the full solution) for this problem for a student.\n" +
-      "Keep it short and focused.\n\nProblem:\n" +
-      question.trim() +
-      "\n\nExisting answer (if any):\n" +
-      (existingAnswer || "");
-    return callAI({ prompt, task: "hint" });
-  }
+  return callAI({ prompt, task: "essay" });
+}
+/* ---- PART 6C (END) ---- */
 
-  async function runSnapSolve(text) {
-    const cheat = window.__cheatMode;
-    const prompt = cheat
-      ? "A student scanned this homework text. Give the direct final answers as clearly as possible. " +
-        "If there are multiple questions, number each answer so it matches. Minimal explanation.\n\n" +
-        text.trim()
-      : "A student scanned this homework text. Solve or explain it step-by-step in a clear way.\n\n" +
-        text.trim();
-    return callAI({ prompt, task: "snap" });
-  }
+
+/* ---- PART 6D: Flashcards (START) ---- */
+async function runFlashcards(text) {
+  const prompt =
+    "Create useful flashcards from this content for a student.\n" +
+    "Output format strictly like:\n" +
+    "Q: ...\nA: ...\n\n" +
+    "Use many short cards.\n\n" +
+    "Content:\n" +
+    text.trim();
+
+  return callAI({ prompt, task: "flashcards" });
+}
+/* ---- PART 6D (END) ---- */
+
+
+/* ---- PART 6E: Simplify (START) ---- */
+async function runSimplify(text) {
+  const prompt =
+    "Explain the following answer in much simpler language for a middle or high school student. Keep key ideas, but shorten and simplify:\n\n" +
+    text.trim();
+
+  return callAI({ prompt, task: "simplify" });
+}
+/* ---- PART 6E (END) ---- */
+
+
+/* ---- PART 6F: Hint (START) ---- */
+async function runHint(question, existingAnswer) {
+  const prompt =
+    "Give a helpful hint (not the full solution) for this problem for a student.\n" +
+    "Keep it short and focused.\n\nProblem:\n" +
+    question.trim() +
+    "\n\nExisting answer (if any):\n" +
+    (existingAnswer || "");
+
+  return callAI({ prompt, task: "hint" });
+}
+/* ---- PART 6F (END) ---- */
+
+
+/* ---- PART 6G: Snap Solve (START) ---- */
+async function runSnapSolve(text) {
+  const cheat = window.__cheatMode;
+
+  const prompt = cheat
+    ? "A student scanned this homework text. Give the direct final answers as clearly as possible. " +
+      "If there are multiple questions, number each answer so it matches. Minimal explanation.\n\n" +
+      text.trim()
+    : "A student scanned this homework text. Solve or explain it step-by-step in a clear way.\n\n" +
+      text.trim();
+
+  return callAI({ prompt, task: "snap" });
+}
+/* ---- PART 6G (END) ---- */
+
+/* ================================== SECTION 6 (END) ===================================== */
 </script>
 
 
 
 
 
-<!-- BLOCK 4: Image resize helper and OCR call to backend -->
+
+<!-- BLOCK 4: Image resize helper and OCR call to backend -----------------------------------
+--------------------------------------------------------------------------------------=----
+===========================================================================================
+===========================================================================================
+------------------------------------------------------------------------------------------->
+
 <script>
-  // Store last OCR image so we can refresh without re-upload
-  let lastOcrImageDataUrl = null;
+/* ===========================================================================================
+   SECTION 0: Remember the last OCR image (START)
+   Goal:
+   - Store the most recent OCR image as a Data URL string
+   - Allows "refresh OCR" without re-uploading the file
+=========================================================================================== */
+let lastOcrImageDataUrl = null;
+/* ================================== SECTION 0 (END) ===================================== */
 
-  // Helper: resize image before sending to backend (faster on phones)
-  function resizeImageToDataUrl(file, maxWidth = 1200, quality = 0.8) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const scale = Math.min(1, maxWidth / img.width);
-          const w = img.width * scale;
-          const h = img.height * scale;
 
-          const canvas = document.createElement("canvas");
-          canvas.width = w;
-          canvas.height = h;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, w, h);
 
-          try {
-            const dataUrl = canvas.toDataURL("image/jpeg", quality);
-            resolve(dataUrl);
-          } catch (err) {
-            reject(err);
-          }
-        };
-        img.onerror = reject;
-        img.src = e.target.result;
+/* ===========================================================================================
+   SECTION 1: Resize image before sending to backend (START)
+   Why:
+   - Phones often upload HUGE images
+   - Resizing makes upload faster + OCR faster
+   Input:
+   - file: a File object (from <input type="file">)
+   - maxWidth: maximum width allowed (default 1200px)
+   - quality: JPEG quality 0..1 (default 0.8)
+   Output:
+   - Promise that resolves to a JPEG data URL: "data:image/jpeg;base64,..."
+=========================================================================================== */
+function resizeImageToDataUrl(file, maxWidth = 1200, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    /* ---- PART 1A: Read the file into memory (FileReader) (START) ---- */
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      /* ---- PART 1B: Load that file data into an Image object (START) ---- */
+      const img = new Image();
+
+      img.onload = () => {
+        /* ---- PART 1C: Compute resized dimensions (START) ---- */
+        // Scale down only if the image is wider than maxWidth
+        const scale = Math.min(1, maxWidth / img.width);
+
+        const w = img.width * scale;
+        const h = img.height * scale;
+        /* ---- PART 1C (END) ---- */
+
+
+        /* ---- PART 1D: Draw resized image onto a canvas (START) ---- */
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+
+        const ctx = canvas.getContext("2d");
+        // Safety: if canvas context fails for some reason
+        if (!ctx) {
+          reject(new Error("Canvas 2D context not available."));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, w, h);
+        /* ---- PART 1D (END) ---- */
+
+
+        /* ---- PART 1E: Export canvas as JPEG data URL (START) ---- */
+        try {
+          const dataUrl = canvas.toDataURL("image/jpeg", quality);
+          resolve(dataUrl);
+        } catch (err) {
+          reject(err);
+        }
+        /* ---- PART 1E (END) ---- */
       };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
 
-  // ---------- REAL OCR VIA AI BACKEND ----------
-  async function runFakeOCR(file) {
-    let imageData;
+      // If the image fails to load, reject
+      img.onerror = reject;
 
-    if (file) {
-      // New image: resize and remember it
-      imageData = await resizeImageToDataUrl(file, 1200, 0.8);
-      lastOcrImageDataUrl = imageData;
-    } else if (lastOcrImageDataUrl) {
-      // No file passed: reuse last image (refresh)
-      imageData = lastOcrImageDataUrl;
-    } else {
-      return "⚠️ No image available for OCR yet.";
-    }
-
-    const subject = getSubject();
-    const modelChoice = getModelChoice();
-    const mode = window.__cheatMode ? "cheat" : "learn";
-
-    const body = {
-      prompt:
-        `Mode: ${mode}\n` +
-        `Subject: ${subject}\n` +
-        `Tool: ocr\n\n` +
-        "Extract the text from this homework image and return plain text only.",
-      task: "ocr",
-      model: modelChoice,
-      imageData: imageData,
+      // Use the FileReader result as the image source
+      img.src = e.target.result;
+      /* ---- PART 1B (END) ---- */
     };
 
-    try {
-      const res = await fetch("/api/ocr", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+    // If file read fails, reject
+    reader.onerror = reject;
 
-      if (!res.ok) {
-        throw new Error("Network error (" + res.status + ")");
-      }
+    // Start reading file as a base64 data URL
+    reader.readAsDataURL(file);
+    /* ---- PART 1A (END) ---- */
+  });
+}
+/* ================================== SECTION 1 (END) ===================================== */
 
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
 
-      return data.text || "";
-    } catch (err) {
-      console.error("OCR error:", err);
-      return "⚠️ Error during OCR: " + err.message;
-    }
+
+/* ===========================================================================================
+   SECTION 2: OCR call to backend (START)
+   Name note:
+   - Your function is called runFakeOCR, but it is doing REAL OCR via /api/ocr.
+   Behavior:
+   - If "file" is provided: resize it, store it in lastOcrImageDataUrl
+   - If no file: reuse lastOcrImageDataUrl (refresh)
+   - Sends Mode/Subject/Model context (like your other tools)
+   - Returns plain extracted text or a user-friendly error string
+=========================================================================================== */
+async function runFakeOCR(file) {
+  /* ---- PART 2A: Decide which image data to use (START) ---- */
+  let imageData;
+
+  if (file) {
+    // New image uploaded: resize it and remember it
+    imageData = await resizeImageToDataUrl(file, 1200, 0.8);
+    lastOcrImageDataUrl = imageData;
+  } else if (lastOcrImageDataUrl) {
+    // No new file: reuse the last stored image
+    imageData = lastOcrImageDataUrl;
+  } else {
+    // Nothing to OCR yet
+    return "⚠️ No image available for OCR yet.";
   }
+  /* ---- PART 2A (END) ---- */
+
+
+  /* ---- PART 2B: Gather context used by your app (START) ---- */
+  const subject = getSubject();
+  const modelChoice = getModelChoice();
+  const mode = window.__cheatMode ? "cheat" : "learn";
+  /* ---- PART 2B (END) ---- */
+
+
+  /* ---- PART 2C: Build request body for /api/ocr (START) ---- */
+  const body = {
+    prompt:
+      `Mode: ${mode}\n` +
+      `Subject: ${subject}\n` +
+      `Tool: ocr\n\n` +
+      "Extract the text from this homework image and return plain text only.",
+    task: "ocr",
+    model: modelChoice,
+    imageData: imageData,
+  };
+  /* ---- PART 2C (END) ---- */
+
+
+  /* ---- PART 2D: Send request + handle response (START) ---- */
+  try {
+    const res = await fetch("/api/ocr", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      throw new Error("Network error (" + res.status + ")");
+    }
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    return data.text || "";
+  } catch (err) {
+    console.error("OCR error:", err);
+    return "⚠️ Error during OCR: " + err.message;
+  }
+  /* ---- PART 2D (END) ---- */
+}
+/* ================================== SECTION 2 (END) ===================================== */
 </script>
 
 
 
-<!-- BLOCK 5: Tabs / sidenav navigation (with Back + Forward) -->
+<!-- BLOCK 5: Tabs / sidenav navigation (with Back + Forward) -------------------------------
+--------------------------------------------------------------------------------------=----
+===========================================================================================
+===========================================================================================
+------------------------------------------------------------------------------------------->
+
 <script>
-  // ---------- TABS (SIDENAV) ----------
-  const navBtns = document.querySelectorAll(".nav-btn");
-  const tabs = document.querySelectorAll(".tab-content");
-  const LAST_TAB_KEY = "studyai-last-tab";
+/* ===========================================================================================
+   SECTION 0: Grab tab/sidenav elements + state (START)
+   - .nav-btn buttons must have data-target="tabId"
+   - .tab-content sections must have id="tabId"
+   - LAST_TAB_KEY remembers the last opened tab across refresh
+=========================================================================================== */
+const navBtns = document.querySelectorAll(".nav-btn");
+const tabs = document.querySelectorAll(".tab-content");
+const LAST_TAB_KEY = "studyai-last-tab";
 
-  // History stacks
-  let tabHistory = [];        // back stack
-  let forwardHistory = [];    // forward stack
-  let currentTab = null;
-  let isNavigatingBack = false;
-  let isNavigatingForward = false;
+/* ---- PART 0A: History stacks + navigation flags (START) ----
+   - tabHistory: back stack (where you've been)
+   - forwardHistory: forward stack (where you can go forward)
+   - currentTab: the tab currently visible
+   - isNavigatingBack / isNavigatingForward:
+     used so activateTab() knows whether to add to history or not
+*/
+let tabHistory = [];        // back stack
+let forwardHistory = [];    // forward stack
+let currentTab = null;
 
-  const backTabButton = document.getElementById("backTabButton");
-  const forwardTabButton = document.getElementById("forwardTabButton");
+let isNavigatingBack = false;
+let isNavigatingForward = false;
+/* ---- PART 0A (END) ---- */
 
-  function updateBackButtonState() {
-    // Back button state
-    if (backTabButton) {
-      if (tabHistory.length === 0) {
-        backTabButton.disabled = true;
-        backTabButton.classList.add("tab-nav-btn-disabled");
-      } else {
-        backTabButton.disabled = false;
-        backTabButton.classList.remove("tab-nav-btn-disabled");
-      }
-    }
+const backTabButton = document.getElementById("backTabButton");
+const forwardTabButton = document.getElementById("forwardTabButton");
+/* ================================== SECTION 0 (END) ===================================== */
 
-    // Forward button state
-    if (forwardTabButton) {
-      if (forwardHistory.length === 0) {
-        forwardTabButton.disabled = true;
-        forwardTabButton.classList.add("tab-nav-btn-disabled");
-      } else {
-        forwardTabButton.disabled = false;
-        forwardTabButton.classList.remove("tab-nav-btn-disabled");
-      }
+
+
+/* ===========================================================================================
+   SECTION 1: Update Back/Forward button disabled state (START)
+   Goal:
+   - If no back history: disable Back button
+   - If no forward history: disable Forward button
+   - Also toggles the CSS class "tab-nav-btn-disabled"
+=========================================================================================== */
+function updateBackButtonState() {
+  /* ---- PART 1A: Back button (START) ---- */
+  if (backTabButton) {
+    if (tabHistory.length === 0) {
+      backTabButton.disabled = true;
+      backTabButton.classList.add("tab-nav-btn-disabled");
+    } else {
+      backTabButton.disabled = false;
+      backTabButton.classList.remove("tab-nav-btn-disabled");
     }
   }
+  /* ---- PART 1A (END) ---- */
 
-  function activateTab(targetId) {
-    let found = false;
+  /* ---- PART 1B: Forward button (START) ---- */
+  if (forwardTabButton) {
+    if (forwardHistory.length === 0) {
+      forwardTabButton.disabled = true;
+      forwardTabButton.classList.add("tab-nav-btn-disabled");
+    } else {
+      forwardTabButton.disabled = false;
+      forwardTabButton.classList.remove("tab-nav-btn-disabled");
+    }
+  }
+  /* ---- PART 1B (END) ---- */
+}
+/* ================================== SECTION 1 (END) ===================================== */
 
-    navBtns.forEach((b) => {
-      const isTarget = b.dataset.target === targetId;
-      if (isTarget) found = true;
-      b.classList.toggle("active", isTarget);
-    });
 
-    tabs.forEach((t) => {
-      t.classList.toggle("active", t.id === targetId);
-    });
 
-    if (!found && targetId !== "solve") {
-      // fallback – don't add fake entries to history
-      activateTab("solve");
+/* ===========================================================================================
+   SECTION 2: Activate a tab (START)
+   What it does:
+   1) Turns "active" class on the correct nav button
+   2) Turns "active" class on the correct tab content panel
+   3) Updates history stacks (only for "normal" navigation)
+   4) Saves last tab to localStorage
+=========================================================================================== */
+function activateTab(targetId) {
+  let found = false;
+
+  /* ---- PART 2A: Highlight the correct nav button (START) ---- */
+  navBtns.forEach((b) => {
+    const isTarget = b.dataset.target === targetId;
+    if (isTarget) found = true;
+    b.classList.toggle("active", isTarget);
+  });
+  /* ---- PART 2A (END) ---- */
+
+  /* ---- PART 2B: Show the correct tab content (START) ---- */
+  tabs.forEach((t) => {
+    t.classList.toggle("active", t.id === targetId);
+  });
+  /* ---- PART 2B (END) ---- */
+
+  /* ---- PART 2C: Fallback if tab not found (START) ----
+     If targetId doesn't match any .nav-btn data-target, we fallback to "solve".
+     NOTE: this prevents adding fake/unreachable tabs into history.
+  */
+  if (!found && targetId !== "solve") {
+    activateTab("solve");
+    return;
+  }
+  /* ---- PART 2C (END) ---- */
+
+  /* ---- PART 2D: Update history stacks (START) ----
+     We only push to history on normal clicks (NOT during back/forward).
+  */
+  const isNormalNavigation = !isNavigatingBack && !isNavigatingForward;
+
+  if (isNormalNavigation && currentTab && currentTab !== targetId) {
+    // Add current tab to BACK history
+    tabHistory.push(currentTab);
+
+    // New navigation clears the forward history (like a browser)
+    forwardHistory = [];
+
+    // Keep history from growing forever
+    if (tabHistory.length > 25) {
+      tabHistory.shift(); // remove oldest
+    }
+  }
+  /* ---- PART 2D (END) ---- */
+
+  /* ---- PART 2E: Save + refresh UI state (START) ---- */
+  currentTab = targetId;
+  localStorage.setItem(LAST_TAB_KEY, targetId);
+  updateBackButtonState();
+  /* ---- PART 2E (END) ---- */
+}
+/* ================================== SECTION 2 (END) ===================================== */
+
+
+
+/* ===========================================================================================
+   SECTION 3: Sidenav button clicks (START)
+   - When a .nav-btn is clicked:
+     - activateTab() to switch to its target
+     - close the drawer on mobile (if your drawer helpers exist)
+=========================================================================================== */
+navBtns.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    /* ---- PART 3A: Read the target tab id from data-target (START) ---- */
+    const target = btn.dataset.target;
+    activateTab(target);
+    /* ---- PART 3A (END) ---- */
+
+    /* ---- PART 3B: Close drawer on mobile (START) ---- */
+    // Only runs if isDesktop() and closeDrawer() exist in other script blocks.
+    if (
+      typeof isDesktop === "function" &&
+      typeof closeDrawer === "function" &&
+      !isDesktop()
+    ) {
+      closeDrawer();
+    }
+    /* ---- PART 3B (END) ---- */
+  });
+});
+/* ================================== SECTION 3 (END) ===================================== */
+
+
+
+/* ===========================================================================================
+   SECTION 4: Back button behavior (START)
+   What happens when Back is clicked:
+   - Pop a tab off tabHistory
+   - Push currentTab into forwardHistory
+   - Navigate to the popped tab WITHOUT creating a new history entry
+=========================================================================================== */
+if (backTabButton) {
+  backTabButton.addEventListener("click", () => {
+    /* ---- PART 4A: If nothing to go back to, stop (START) ---- */
+    if (!tabHistory.length) return;
+    /* ---- PART 4A (END) ---- */
+
+    /* ---- PART 4B: Get previous tab from back stack (START) ---- */
+    const prev = tabHistory.pop();
+    if (!prev) {
+      updateBackButtonState();
       return;
     }
+    /* ---- PART 4B (END) ---- */
 
-    // Only push to history on "normal" navigation (not back/forward)
-    if (!isNavigatingBack && !isNavigatingForward && currentTab && currentTab !== targetId) {
+    /* ---- PART 4C: Push current tab into forward stack (START) ---- */
+    if (currentTab) {
+      forwardHistory.push(currentTab);
+      if (forwardHistory.length > 25) {
+        forwardHistory.shift();
+      }
+    }
+    /* ---- PART 4C (END) ---- */
+
+    /* ---- PART 4D: Navigate without writing new history (START) ---- */
+    isNavigatingBack = true;
+    activateTab(prev);
+    isNavigatingBack = false;
+    updateBackButtonState();
+    /* ---- PART 4D (END) ---- */
+  });
+}
+/* ================================== SECTION 4 (END) ===================================== */
+
+
+
+/* ===========================================================================================
+   SECTION 5: Forward button behavior (START)
+   What happens when Forward is clicked:
+   - Pop a tab off forwardHistory
+   - Push currentTab into tabHistory
+   - Navigate to popped tab WITHOUT creating a new history entry
+=========================================================================================== */
+if (forwardTabButton) {
+  forwardTabButton.addEventListener("click", () => {
+    /* ---- PART 5A: If nothing to go forward to, stop (START) ---- */
+    if (!forwardHistory.length) return;
+    /* ---- PART 5A (END) ---- */
+
+    /* ---- PART 5B: Get next tab from forward stack (START) ---- */
+    const next = forwardHistory.pop();
+    if (!next) {
+      updateBackButtonState();
+      return;
+    }
+    /* ---- PART 5B (END) ---- */
+
+    /* ---- PART 5C: Push current tab into back stack (START) ---- */
+    if (currentTab) {
       tabHistory.push(currentTab);
-      // new navigation clears forward stack
-      forwardHistory = [];
-
       if (tabHistory.length > 25) {
         tabHistory.shift();
       }
     }
+    /* ---- PART 5C (END) ---- */
 
-    currentTab = targetId;
-    localStorage.setItem(LAST_TAB_KEY, targetId);
+    /* ---- PART 5D: Navigate without writing new history (START) ---- */
+    isNavigatingForward = true;
+    activateTab(next);
+    isNavigatingForward = false;
     updateBackButtonState();
-  }
-
-  // Sidenav buttons
-  navBtns.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const target = btn.dataset.target;
-      activateTab(target);
-      if (typeof isDesktop === "function" && typeof closeDrawer === "function" && !isDesktop()) {
-        closeDrawer();
-      }
-    });
+    /* ---- PART 5D (END) ---- */
   });
+}
+/* ================================== SECTION 5 (END) ===================================== */
 
-  // Back: pop from back stack, push current into forward stack
-  if (backTabButton) {
-    backTabButton.addEventListener("click", () => {
-      if (!tabHistory.length) return;
 
-      const prev = tabHistory.pop();
-      if (!prev) {
-        updateBackButtonState();
-        return;
-      }
 
-      if (currentTab) {
-        forwardHistory.push(currentTab);
-        if (forwardHistory.length > 25) {
-          forwardHistory.shift();
-        }
-      }
-
-      isNavigatingBack = true;
-      activateTab(prev);
-      isNavigatingBack = false;
-      updateBackButtonState();
-    });
-  }
-
-  // Forward: pop from forward stack, push current into back stack
-  if (forwardTabButton) {
-    forwardTabButton.addEventListener("click", () => {
-      if (!forwardHistory.length) return;
-
-      const next = forwardHistory.pop();
-      if (!next) {
-        updateBackButtonState();
-        return;
-      }
-
-      if (currentTab) {
-        tabHistory.push(currentTab);
-        if (tabHistory.length > 25) {
-          tabHistory.shift();
-        }
-      }
-
-      isNavigatingForward = true;
-      activateTab(next);
-      isNavigatingForward = false;
-      updateBackButtonState();
-    });
-  }
-
-  // Initial tab
-  const savedTab = localStorage.getItem(LAST_TAB_KEY) || "solve";
-  currentTab = savedTab;
-  activateTab(savedTab);
+/* ===========================================================================================
+   SECTION 6: Initial tab on page load (START)
+   - Restores from localStorage if possible
+   - Defaults to "solve"
+=========================================================================================== */
+const savedTab = localStorage.getItem(LAST_TAB_KEY) || "solve";
+currentTab = savedTab;
+activateTab(savedTab);
+/* ================================== SECTION 6 (END) ===================================== */
 </script>
 
 
 
 
-<!-- BLOCK 6: UI wiring for Snap, Math, Study, Essay -->
+
+<!-- BLOCK 6: UI wiring for Snap, Math, Study, Essay ----------------------------------------
+--------------------------------------------------------------------------------------=----
+===========================================================================================
+===========================================================================================
+------------------------------------------------------------------------------------------->
+
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    // ---------- UI WIRING ----------
+/* ===========================================================================================
+   SECTION 0: Run this wiring when the page is ready (START)
+   - DOMContentLoaded means the HTML elements exist before we try to grab them
+=========================================================================================== */
+document.addEventListener("DOMContentLoaded", function () {
+/* ================================== SECTION 0 (END) ===================================== */
 
-    // SNAP (now with camera + gallery inputs)
-    const snapInputGallery = document.getElementById("snapInputGallery");
-    const snapInputCamera  = document.getElementById("snapInputCamera");
-    const snapOCRBtn       = document.getElementById("snapOCRBtn");
-    const snapClearBtn     = document.getElementById("snapClearBtn");
-    const snapText         = document.getElementById("snapText");
-    const snapResult       = document.getElementById("snapResult");
-    const snapSolveBtn     = document.getElementById("snapActionSolveBtn");
 
-    const snapCameraBtn = document.getElementById("snapCameraBtn");
-    const snapUploadBtn = document.getElementById("snapUploadBtn");
-    const snapPreview   = document.getElementById("snapPreview");
 
-    const refreshOcrButton = document.getElementById("refreshOcrButton");
+  /* =========================================================================================
+     SECTION 1: SNAP elements (camera/gallery + OCR + solve + preview) (START)
+     - IDs are unchanged
+  ========================================================================================= */
+  const snapInputGallery = document.getElementById("snapInputGallery");
+  const snapInputCamera  = document.getElementById("snapInputCamera");
+  const snapOCRBtn       = document.getElementById("snapOCRBtn");
+  const snapClearBtn     = document.getElementById("snapClearBtn");
+  const snapText         = document.getElementById("snapText");
+  const snapResult       = document.getElementById("snapResult");
+  const snapSolveBtn     = document.getElementById("snapActionSolveBtn");
 
-    // 🔹 subject input for auto-fill
-    const saveSubjectInput = document.getElementById("saveSubjectInput");
+  const snapCameraBtn = document.getElementById("snapCameraBtn");
+  const snapUploadBtn = document.getElementById("snapUploadBtn");
+  const snapPreview   = document.getElementById("snapPreview");
 
-    // 🔹 helper: read "tell the AI what you want" extra instructions
-    function getExtraInstructions() {
-      const el =
-        document.getElementById("extraInstructionsInput") ||
-        document.getElementById("extraInstructions") ||
-        document.getElementById("extraPrompt");
-      if (!el) return "";
-      return (el.value || "").trim();
+  const refreshOcrButton = document.getElementById("refreshOcrButton");
+
+  // Subject input (used for auto-fill)
+  const saveSubjectInput = document.getElementById("saveSubjectInput");
+  /* ================================= SECTION 1 (END) ==================================== */
+
+
+
+  /* =========================================================================================
+     SECTION 2: Extra instructions helper (START)
+     Goal:
+     - Read "tell the AI what you want" from whichever element exists:
+       #extraInstructionsInput OR #extraInstructions OR #extraPrompt
+  ========================================================================================= */
+  function getExtraInstructions() {
+    const el =
+      document.getElementById("extraInstructionsInput") ||
+      document.getElementById("extraInstructions") ||
+      document.getElementById("extraPrompt");
+
+    if (!el) return "";
+    return (el.value || "").trim();
+  }
+  /* ================================= SECTION 2 (END) ==================================== */
+
+
+
+  /* =========================================================================================
+     SECTION 3: Track the last chosen image file (START)
+     Goal:
+     - Remember camera/gallery choice
+     - OCR uses whatever was chosen last
+  ========================================================================================= */
+  let lastSnapFile = null;
+  /* ================================= SECTION 3 (END) ==================================== */
+
+
+
+  /* =========================================================================================
+     SECTION 4: Auto-fill subject based on OCR/text content (START)
+     Goal:
+     - If user hasn't set a custom subject, try to auto-fill from snapText
+     Rules:
+     - Do not overwrite if subject is already set to something not "general"
+     - Prefer extractHeadingFromOcrText() if it exists, otherwise use first non-empty line
+  ========================================================================================= */
+  function maybeFillSubjectFromOcrNow() {
+    if (!snapText || !saveSubjectInput) return;
+
+    // Don't overwrite if user already set something custom
+    const current = (saveSubjectInput.value || "").trim();
+    if (current && current.toLowerCase() !== "general") return;
+
+    const raw = snapText.value || "";
+    if (!raw.trim()) return;
+
+    let heading = "";
+
+    // Use smarter heading extractor if it exists
+    if (typeof extractHeadingFromOcrText === "function") {
+      heading = extractHeadingFromOcrText(raw) || "";
     }
 
-    // keep track of whichever file was chosen last
-    let lastSnapFile = null;
+    // Fallback: first non-empty line
+    if (!heading) {
+      const firstLine = raw
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .find((l) => l.length > 0);
 
-    // 🔹 helper: fill subject from current snapText value
-    function maybeFillSubjectFromOcrNow() {
-      if (!snapText || !saveSubjectInput) return;
-
-      // don't overwrite if user already set something custom
-      const current = (saveSubjectInput.value || "").trim();
-      if (current && current.toLowerCase() !== "general") return;
-
-      const raw = snapText.value || "";
-      if (!raw.trim()) return;
-
-      let heading = "";
-
-      // Use smarter heading extractor if it exists
-      if (typeof extractHeadingFromOcrText === "function") {
-        heading = extractHeadingFromOcrText(raw) || "";
-      }
-
-      // Fallback: first non-empty line
-      if (!heading) {
-        const firstLine = raw
-          .split(/\r?\n/)
-          .map((l) => l.trim())
-          .find((l) => l.length > 0);
-        if (firstLine) {
-          heading = firstLine;
-        }
-      }
-
-      if (!heading) return;
-
-      // Trim to something reasonable
-      if (heading.length > 60) {
-        heading = heading.slice(0, 60).trim() + "…";
-      }
-
-      saveSubjectInput.value = heading;
+      if (firstLine) heading = firstLine;
     }
 
-    // 🔹 ALSO auto-fill when user types/pastes into snapText
-    if (snapText) {
-      snapText.addEventListener("input", () => {
-        maybeFillSubjectFromOcrNow();
-      });
+    if (!heading) return;
+
+    // Trim to something reasonable
+    if (heading.length > 60) {
+      heading = heading.slice(0, 60).trim() + "…";
     }
 
-    // simple loading animation for textareas
-    function startTextareaLoading(ta, baseText) {
-      if (!ta) return;
-      stopTextareaLoading(ta);
-      let dotCount = 0;
-      const maxDots = 3;
-      ta.value = baseText;
+    saveSubjectInput.value = heading;
+  }
+
+  // ALSO auto-fill when user types/pastes into snapText
+  if (snapText) {
+    snapText.addEventListener("input", () => {
+      maybeFillSubjectFromOcrNow();
+    });
+  }
+  /* ================================= SECTION 4 (END) ==================================== */
+
+
+
+  /* =========================================================================================
+     SECTION 5: Loading animations (START)
+     Two types:
+     - Textarea loading (shows “Reading image...” with dots)
+     - Result loading (shows “Thinking...” with dots)
+     Note:
+     - They store interval IDs in dataset.loadingIntervalId so we can stop them cleanly
+  ========================================================================================= */
+
+  /* ---- PART 5A: Textarea loading (START) ---- */
+  function startTextareaLoading(ta, baseText) {
+    if (!ta) return;
+
+    // Ensure we aren't stacking multiple intervals
+    stopTextareaLoading(ta);
+
+    let dotCount = 0;
+    const maxDots = 3;
+
+    ta.value = baseText;
+    if (window.autoResizeTextarea) window.autoResizeTextarea(ta);
+
+    const id = setInterval(() => {
+      dotCount = (dotCount + 1) % (maxDots + 1);
+      const dots = ".".repeat(dotCount);
+      ta.value = baseText + dots;
       if (window.autoResizeTextarea) window.autoResizeTextarea(ta);
-      const id = setInterval(() => {
-        dotCount = (dotCount + 1) % (maxDots + 1);
-        const dots = ".".repeat(dotCount);
-        ta.value = baseText + dots;
-        if (window.autoResizeTextarea) window.autoResizeTextarea(ta);
-      }, 400);
-      ta.dataset.loadingIntervalId = String(id);
-    }
+    }, 400);
 
-    function stopTextareaLoading(ta) {
-      if (!ta) return;
-      const id = ta.dataset.loadingIntervalId;
-      if (id) {
-        clearInterval(Number(id));
-        delete ta.dataset.loadingIntervalId;
+    ta.dataset.loadingIntervalId = String(id);
+  }
+
+  function stopTextareaLoading(ta) {
+    if (!ta) return;
+
+    const id = ta.dataset.loadingIntervalId;
+    if (id) {
+      clearInterval(Number(id));
+      delete ta.dataset.loadingIntervalId;
+    }
+  }
+  /* ---- PART 5A (END) ---- */
+
+
+  /* ---- PART 5B: Result element loading (START) ---- */
+  function startResultLoading(el, baseText) {
+    if (!el) return;
+
+    // For styling consistency (your tool output styles)
+    el.classList.add("tool-output");
+
+    stopResultLoading(el);
+
+    let dotCount = 0;
+    const maxDots = 3;
+
+    el.textContent = baseText;
+
+    const id = setInterval(() => {
+      dotCount = (dotCount + 1) % (maxDots + 1);
+      const dots = ".".repeat(dotCount);
+      el.textContent = baseText + dots;
+    }, 400);
+
+    el.dataset.loadingIntervalId = String(id);
+  }
+
+  function stopResultLoading(el) {
+    if (!el) return;
+
+    const id = el.dataset.loadingIntervalId;
+    if (id) {
+      clearInterval(Number(id));
+      delete el.dataset.loadingIntervalId;
+    }
+  }
+  /* ---- PART 5B (END) ---- */
+
+  /* ================================= SECTION 5 (END) ==================================== */
+
+
+
+  /* =========================================================================================
+     SECTION 6: Handle selecting an image file + preview (START)
+     Goal:
+     - Save the file to lastSnapFile
+     - Show preview image in #snapPreview
+  ========================================================================================= */
+  function handleSnapFile(file) {
+    // If no file, clear preview and stored file
+    if (!file) {
+      lastSnapFile = null;
+
+      if (snapPreview) {
+        snapPreview.src = "";
+        snapPreview.style.display = "none";
       }
+      return;
     }
 
-    // simple loading animation for result elements
-    function startResultLoading(el, baseText) {
-      if (!el) return;
-      el.classList.add("tool-output");   // 🔹 for styling
-      stopResultLoading(el);
-      let dotCount = 0;
-      const maxDots = 3;
-      el.textContent = baseText;
-      const id = setInterval(() => {
-        dotCount = (dotCount + 1) % (maxDots + 1);
-        const dots = ".".repeat(dotCount);
-        el.textContent = baseText + dots;
-      }, 400);
-      el.dataset.loadingIntervalId = String(id);
-    }
+    // Save this as the most recent file
+    lastSnapFile = file;
 
-    function stopResultLoading(el) {
-      if (!el) return;
-      const id = el.dataset.loadingIntervalId;
-      if (id) {
-        clearInterval(Number(id));
-        delete el.dataset.loadingIntervalId;
+    // Read file for preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (snapPreview) {
+        snapPreview.src = e.target.result;
+        snapPreview.style.display = "block";
       }
-    }
+    };
+    reader.readAsDataURL(file);
+  }
+  /* ================================= SECTION 6 (END) ==================================== */
 
-    function handleSnapFile(file) {
-      if (!file) {
-        lastSnapFile = null;
-        if (snapPreview) {
-          snapPreview.src = "";
-          snapPreview.style.display = "none";
-        }
+
+
+  /* =========================================================================================
+     SECTION 7: Open Camera / Open Gallery buttons (START)
+     - These just trigger clicks on hidden file inputs
+  ========================================================================================= */
+
+  /* ---- PART 7A: Open CAMERA input (START) ---- */
+  if (snapCameraBtn && snapInputCamera) {
+    snapCameraBtn.addEventListener("click", () => {
+      snapInputCamera.click();
+    });
+  }
+  /* ---- PART 7A (END) ---- */
+
+  /* ---- PART 7B: Open GALLERY/file picker input (START) ---- */
+  if (snapUploadBtn && snapInputGallery) {
+    snapUploadBtn.addEventListener("click", () => {
+      snapInputGallery.click();
+    });
+  }
+  /* ---- PART 7B (END) ---- */
+
+  /* ================================= SECTION 7 (END) ==================================== */
+
+
+
+  /* =========================================================================================
+     SECTION 8: When the user picks a file (camera or gallery) (START)
+     - We grab the file and call handleSnapFile(file)
+  ========================================================================================= */
+
+  /* ---- PART 8A: Camera "change" event (START) ---- */
+  if (snapInputCamera) {
+    snapInputCamera.addEventListener("change", () => {
+      const file = snapInputCamera.files[0];
+      handleSnapFile(file);
+    });
+  }
+  /* ---- PART 8A (END) ---- */
+
+  /* ---- PART 8B: Gallery "change" event (START) ---- */
+  if (snapInputGallery) {
+    snapInputGallery.addEventListener("change", () => {
+      const file = snapInputGallery.files[0];
+      handleSnapFile(file);
+    });
+  }
+  /* ---- PART 8B (END) ---- */
+
+  /* ================================= SECTION 8 (END) ==================================== */
+
+
+
+  /* =========================================================================================
+     SECTION 9: Run OCR button (START)
+     - Uses lastSnapFile
+     - Shows loading animation in #snapText
+     - Fills #snapText with OCR text
+     - Auto-fills subject
+     - Fires an "input" event in case other listeners exist
+  ========================================================================================= */
+  if (snapOCRBtn) {
+    snapOCRBtn.addEventListener("click", async () => {
+      if (!lastSnapFile) {
+        alert("Choose or take an image first.");
         return;
       }
 
-      lastSnapFile = file;
+      startTextareaLoading(snapText, "Reading image");
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (snapPreview) {
-          snapPreview.src = e.target.result;
-          snapPreview.style.display = "block";
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+      const text = await runFakeOCR(lastSnapFile);
 
-    // Open CAMERA
-    if (snapCameraBtn && snapInputCamera) {
-      snapCameraBtn.addEventListener("click", () => {
-        snapInputCamera.click();
-      });
-    }
+      stopTextareaLoading(snapText);
 
-    // Open GALLERY / FILE PICKER
-    if (snapUploadBtn && snapInputGallery) {
-      snapUploadBtn.addEventListener("click", () => {
-        snapInputGallery.click();
-      });
-    }
-
-    // When user picks from camera
-    if (snapInputCamera) {
-      snapInputCamera.addEventListener("change", () => {
-        const file = snapInputCamera.files[0];
-        handleSnapFile(file);
-      });
-    }
-
-    // When user picks from gallery
-    if (snapInputGallery) {
-      snapInputGallery.addEventListener("change", () => {
-        const file = snapInputGallery.files[0];
-        handleSnapFile(file);
-      });
-    }
-
-    // Run OCR on whichever file we last picked – DOES NOT affect usage counts
-    if (snapOCRBtn) {
-      snapOCRBtn.addEventListener("click", async () => {
-        if (!lastSnapFile) {
-          alert("Choose or take an image first.");
-          return;
-        }
-        startTextareaLoading(snapText, "Reading image");
-        const text = await runFakeOCR(lastSnapFile);
-        stopTextareaLoading(snapText);
+      if (snapText) {
         snapText.value = text;
         if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
 
-        // 🔹 update subject from OCR text
+        // update subject from OCR text
         maybeFillSubjectFromOcrNow();
 
         // still fire input for any other listeners you have
         snapText.dispatchEvent(new Event("input"));
-      });
-    }
+      }
+    });
+  }
+  /* ================================= SECTION 9 (END) ==================================== */
 
-    // Refresh OCR on the last image without clearing it
-    if (refreshOcrButton) {
-      refreshOcrButton.addEventListener("click", async () => {
-        if (!lastSnapFile) {
-          alert("Choose or take an image first.");
-          return;
-        }
-        const originalText = refreshOcrButton.textContent;
-        refreshOcrButton.disabled = true;
-        refreshOcrButton.textContent = "Refreshing...";
-        startTextareaLoading(snapText, "Reading image");
-        const text = await runFakeOCR(null); // reuse last image in runFakeOCR
-        stopTextareaLoading(snapText);
+
+
+  /* =========================================================================================
+     SECTION 10: Refresh OCR button (START)
+     - Re-runs OCR without re-uploading
+     - Calls runFakeOCR(null) to reuse last stored image data URL
+  ========================================================================================= */
+  if (refreshOcrButton) {
+    refreshOcrButton.addEventListener("click", async () => {
+      if (!lastSnapFile) {
+        alert("Choose or take an image first.");
+        return;
+      }
+
+      const originalText = refreshOcrButton.textContent;
+      refreshOcrButton.disabled = true;
+      refreshOcrButton.textContent = "Refreshing...";
+
+      startTextareaLoading(snapText, "Reading image");
+
+      const text = await runFakeOCR(null); // reuse last image in runFakeOCR
+
+      stopTextareaLoading(snapText);
+
+      if (snapText) {
         snapText.value = text;
         if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
 
-        // 🔹 update subject from refreshed OCR
+        // update subject from refreshed OCR
         maybeFillSubjectFromOcrNow();
 
         // still fire input for any other listeners you have
         snapText.dispatchEvent(new Event("input"));
+      }
 
-        refreshOcrButton.textContent = originalText;
-        refreshOcrButton.disabled = false;
-      });
-    }
+      refreshOcrButton.textContent = originalText;
+      refreshOcrButton.disabled = false;
+    });
+  }
+  /* ================================= SECTION 10 (END) =================================== */
 
-    // Clear everything
-    if (snapClearBtn) {
-      snapClearBtn.addEventListener("click", () => {
-        if (snapInputCamera)  snapInputCamera.value = "";
-        if (snapInputGallery) snapInputGallery.value = "";
 
-        // reset image + OCR state
-        lastSnapFile = null;
-        try { lastOcrImageDataUrl = null; } catch (e) {}
 
-        // reset main OCR text box
-        if (snapText) {
-          snapText.value = "";
-          if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
-        }
+  /* =========================================================================================
+     SECTION 11: Clear button (START)
+     Clears:
+     - Camera/gallery inputs
+     - lastSnapFile
+     - lastOcrImageDataUrl (if defined in another block)
+     - snapText, saveSubjectInput, snapResult, snapPreview
+  ========================================================================================= */
+  if (snapClearBtn) {
+    snapClearBtn.addEventListener("click", () => {
+      /* ---- PART 11A: Reset file inputs (START) ---- */
+      if (snapInputCamera)  snapInputCamera.value = "";
+      if (snapInputGallery) snapInputGallery.value = "";
+      /* ---- PART 11A (END) ---- */
 
-        // reset subject input
-        if (saveSubjectInput) {
-          saveSubjectInput.value = "";
-        }
+      /* ---- PART 11B: Reset image/OCR stored state (START) ---- */
+      lastSnapFile = null;
 
-        // clear Snap result output
-        if (snapResult) {
-          snapResult.textContent = "";
-        }
+      // lastOcrImageDataUrl is defined in another block, so use try/catch for safety
+      try { lastOcrImageDataUrl = null; } catch (e) {}
+      /* ---- PART 11B (END) ---- */
 
-        // clear preview image
-        if (snapPreview) {
-          snapPreview.src = "";
-          snapPreview.style.display = "none";
-        }
-      });
-    }
+      /* ---- PART 11C: Clear main OCR text box (START) ---- */
+      if (snapText) {
+        snapText.value = "";
+        if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
+      }
+      /* ---- PART 11C (END) ---- */
 
-    // Solve / Explain (usage counted based on snapText)
-    if (snapSolveBtn) {
-      snapSolveBtn.addEventListener("click", async () => {
-        const text = snapText.value.trim();
-        if (!text) {
-          alert("No text to solve.");
-          return;
-        }
+      /* ---- PART 11D: Clear subject input (START) ---- */
+      if (saveSubjectInput) {
+        saveSubjectInput.value = "";
+      }
+      /* ---- PART 11D (END) ---- */
 
-        const extra = getExtraInstructions();
-        const promptText = extra
-          ? text + "\n\nExtra instructions from student (tone/length/format/etc.):\n" + extra
-          : text;
+      /* ---- PART 11E: Clear Snap result output (START) ---- */
+      if (snapResult) {
+        snapResult.textContent = "";
+      }
+      /* ---- PART 11E (END) ---- */
 
-        // usage gate
-        if (window.__canUseAIOnce) {
-          const allowed = await window.__canUseAIOnce();
-          if (!allowed) return;
-        } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
-          return;
-        }
+      /* ---- PART 11F: Clear preview image (START) ---- */
+      if (snapPreview) {
+        snapPreview.src = "";
+        snapPreview.style.display = "none";
+      }
+      /* ---- PART 11F (END) ---- */
+    });
+  }
+  /* ================================= SECTION 11 (END) =================================== */
 
-        // switch to the Solve tool section
-        if (typeof activateTab === "function") {
-          activateTab("solve");
-        }
 
-        // put the text into the Solve tool's textarea if it exists
-        const solveInput = document.getElementById("solveInput");
-        if (solveInput) {
-          solveInput.value = text; // keep original in UI
-          if (window.autoResizeTextarea) window.autoResizeTextarea(solveInput);
-        }
 
-        startResultLoading(snapResult, "Thinking");
-        const ans = await runSnapSolve(promptText);
-        stopResultLoading(snapResult);
-        const clean = sanitizeAnswerText(ans);
-        renderAnswer(snapResult, clean); // 👈 formatting helper
-        addNotebookItem("Snap", clean);
-      });
-    }
+  /* =========================================================================================
+     SECTION 12: Solve/Explain from Snap (START)
+     Flow:
+     - Read text from #snapText
+     - Add optional extra instructions
+     - Usage gate (__canUseAIOnce / __canUseAIOnceAnon)
+     - Activate "solve" tab
+     - Copy text into #solveInput (if it exists)
+     - Show "Thinking..." loading on #snapResult
+     - Run runSnapSolve()
+     - Sanitize + render formatted output
+     - Save to notebook
+  ========================================================================================= */
+  if (snapSolveBtn) {
+    snapSolveBtn.addEventListener("click", async () => {
+      const text = (snapText && snapText.value ? snapText.value : "").trim();
+      if (!text) {
+        alert("No text to solve.");
+        return;
+      }
 
-    // MATH (usage counted based on snapText)
-    const mathInput    = document.getElementById("mathInput");
-    const mathSolveBtn = document.getElementById("mathSolveBtn");
-    const mathClearBtn = document.getElementById("mathClearBtn");
-    const mathResult   = document.getElementById("mathResult");
+      const extra = getExtraInstructions();
+      const promptText = extra
+        ? text + "\n\nExtra instructions from student (tone/length/format/etc.):\n" + extra
+        : text;
 
-    if (mathSolveBtn) {
-      mathSolveBtn.addEventListener("click", async () => {
-        const text = snapText.value.trim();
-        if (!text) {
-          alert("Type or paste a math problem into the main text box first.");
-          return;
-        }
+      /* ---- PART 12A: Usage gate (START) ---- */
+      if (window.__canUseAIOnce) {
+        const allowed = await window.__canUseAIOnce();
+        if (!allowed) return;
+      } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+        return;
+      }
+      /* ---- PART 12A (END) ---- */
 
-        const extra = getExtraInstructions();
-        const promptText = extra
-          ? text + "\n\nExtra instructions from student (tone/steps/detail/etc.):\n" + extra
-          : text;
+      /* ---- PART 12B: Switch to Solve tab (START) ---- */
+      if (typeof activateTab === "function") {
+        activateTab("solve");
+      }
+      /* ---- PART 12B (END) ---- */
 
-        // usage gate
-        if (window.__canUseAIOnce) {
-          const allowed = await window.__canUseAIOnce();
-          if (!allowed) return;
-        } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
-          return;
-        }
+      /* ---- PART 12C: Put text into solve input (if present) (START) ---- */
+      const solveInput = document.getElementById("solveInput");
+      if (solveInput) {
+        solveInput.value = text; // keep original in UI
+        if (window.autoResizeTextarea) window.autoResizeTextarea(solveInput);
+      }
+      /* ---- PART 12C (END) ---- */
 
-        startResultLoading(mathResult, "Thinking");
-        const ans = await runMathSolver(promptText);
-        stopResultLoading(mathResult);
-        const clean = sanitizeAnswerText(ans);
-        renderAnswer(mathResult, clean);   // 👈 formatted
-        addNotebookItem("Math", clean);
-      });
-    }
+      /* ---- PART 12D: Run the AI solve call + render (START) ---- */
+      startResultLoading(snapResult, "Thinking");
 
-    if (mathClearBtn) {
-      mathClearBtn.addEventListener("click", () => {
-        mathResult.textContent = "";
-      });
-    }
+      const ans = await runSnapSolve(promptText);
 
-    // STUDY (usage counted based on snapText)
-    const studyInput    = document.getElementById("studyInput");
-    const studyGuideBtn = document.getElementById("studyGuideBtn");
-    const studyClearBtn = document.getElementById("studyClearBtn");
-    const studyResult   = document.getElementById("studyResult");
+      stopResultLoading(snapResult);
 
-    if (studyGuideBtn) {
-      studyGuideBtn.addEventListener("click", async () => {
-        const text = snapText.value.trim();
-        if (!text) {
-          alert("Paste some notes or text into the main text box first.");
-          return;
-        }
+      const clean = sanitizeAnswerText(ans);
+      renderAnswer(snapResult, clean);
+      addNotebookItem("Snap", clean);
+      /* ---- PART 12D (END) ---- */
+    });
+  }
+  /* ================================= SECTION 12 (END) =================================== */
 
-        const extra = getExtraInstructions();
-        const promptText = extra
-          ? text + "\n\nExtra instructions from student (what to focus on, how short/long, etc.):\n" + extra
-          : text;
 
-        // usage gate
-        if (window.__canUseAIOnce) {
-          const allowed = await window.__canUseAIOnce();
-          if (!allowed) return;
-        } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
-          return;
-        }
 
-        startResultLoading(studyResult, "Thinking");
-        const ans = await runStudyGuide(promptText);
-        stopResultLoading(studyResult);
-        const clean = sanitizeAnswerText(ans);
-        renderAnswer(studyResult, clean);   // 👈 formatted
-        addNotebookItem("Study", clean);
-      });
-    }
+  /* =========================================================================================
+     SECTION 13: MATH UI wiring (START)
+     Note:
+     - Your UI IDs exist (#mathInput etc.)
+     - But this handler reads from #snapText (your “main text box”) by design
+  ========================================================================================= */
+  const mathInput    = document.getElementById("mathInput");
+  const mathSolveBtn = document.getElementById("mathSolveBtn");
+  const mathClearBtn = document.getElementById("mathClearBtn");
+  const mathResult   = document.getElementById("mathResult");
 
-    if (studyClearBtn) {
-      studyClearBtn.addEventListener("click", () => {
-        studyResult.textContent = "";
-      });
-    }
+  /* ---- PART 13A: Solve math (START) ---- */
+  if (mathSolveBtn) {
+    mathSolveBtn.addEventListener("click", async () => {
+      const text = (snapText && snapText.value ? snapText.value : "").trim();
+      if (!text) {
+        alert("Type or paste a math problem into the main text box first.");
+        return;
+      }
 
-    // ESSAY (usage counted based on snapText)
-    const essayInput    = document.getElementById("essayInput");
-    const essayBtn      = document.getElementById("essayBtn");
-    const essayClearBtn = document.getElementById("essayClearBtn");
-    const essayResult   = document.getElementById("essayResult");
+      const extra = getExtraInstructions();
+      const promptText = extra
+        ? text + "\n\nExtra instructions from student (tone/steps/detail/etc.):\n" + extra
+        : text;
 
-    if (essayBtn) {
-      essayBtn.addEventListener("click", async () => {
-        const text = snapText.value.trim();
-        if (!text) {
-          alert("Paste your essay or prompt into the main text box first.");
-          return;
-        }
+      // usage gate
+      if (window.__canUseAIOnce) {
+        const allowed = await window.__canUseAIOnce();
+        if (!allowed) return;
+      } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+        return;
+      }
 
-        const extra = getExtraInstructions();
-        const promptText = extra
-          ? text + "\n\nExtra instructions from student (tone, length, structure, citations, etc.):\n" + extra
-          : text;
+      startResultLoading(mathResult, "Thinking");
 
-        // usage gate
-        if (window.__canUseAIOnce) {
-          const allowed = await window.__canUseAIOnce();
-          if (!allowed) return;
-        } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
-          return;
-        }
+      const ans = await runMathSolver(promptText);
 
-        startResultLoading(essayResult, "Thinking");
-        const ans = await runEssayHelper(promptText);
-        stopResultLoading(essayResult);
-        const clean = sanitizeAnswerText(ans);
-        renderAnswer(essayResult, clean);   // 👈 formatted
-        addNotebookItem("Essay", clean);
-      });
-    }
+      stopResultLoading(mathResult);
 
-    if (essayClearBtn) {
-      essayClearBtn.addEventListener("click", () => {
-        essayResult.textContent = "";
-      });
-    }
-  });
+      const clean = sanitizeAnswerText(ans);
+      renderAnswer(mathResult, clean);
+      addNotebookItem("Math", clean);
+    });
+  }
+  /* ---- PART 13A (END) ---- */
+
+  /* ---- PART 13B: Clear math result (START) ---- */
+  if (mathClearBtn) {
+    mathClearBtn.addEventListener("click", () => {
+      if (mathResult) mathResult.textContent = "";
+    });
+  }
+  /* ---- PART 13B (END) ---- */
+
+  /* ================================= SECTION 13 (END) =================================== */
+
+
+
+  /* =========================================================================================
+     SECTION 14: STUDY UI wiring (START)
+     Note:
+     - Reads from #snapText (main text box) by design
+  ========================================================================================= */
+  const studyInput    = document.getElementById("studyInput");
+  const studyGuideBtn = document.getElementById("studyGuideBtn");
+  const studyClearBtn = document.getElementById("studyClearBtn");
+  const studyResult   = document.getElementById("studyResult");
+
+  /* ---- PART 14A: Generate study guide (START) ---- */
+  if (studyGuideBtn) {
+    studyGuideBtn.addEventListener("click", async () => {
+      const text = (snapText && snapText.value ? snapText.value : "").trim();
+      if (!text) {
+        alert("Paste some notes or text into the main text box first.");
+        return;
+      }
+
+      const extra = getExtraInstructions();
+      const promptText = extra
+        ? text + "\n\nExtra instructions from student (what to focus on, how short/long, etc.):\n" + extra
+        : text;
+
+      // usage gate
+      if (window.__canUseAIOnce) {
+        const allowed = await window.__canUseAIOnce();
+        if (!allowed) return;
+      } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+        return;
+      }
+
+      startResultLoading(studyResult, "Thinking");
+
+      const ans = await runStudyGuide(promptText);
+
+      stopResultLoading(studyResult);
+
+      const clean = sanitizeAnswerText(ans);
+      renderAnswer(studyResult, clean);
+      addNotebookItem("Study", clean);
+    });
+  }
+  /* ---- PART 14A (END) ---- */
+
+  /* ---- PART 14B: Clear study result (START) ---- */
+  if (studyClearBtn) {
+    studyClearBtn.addEventListener("click", () => {
+      if (studyResult) studyResult.textContent = "";
+    });
+  }
+  /* ---- PART 14B (END) ---- */
+
+  /* ================================= SECTION 14 (END) =================================== */
+
+
+
+  /* =========================================================================================
+     SECTION 15: ESSAY UI wiring (START)
+     Note:
+     - Reads from #snapText (main text box) by design
+  ========================================================================================= */
+  const essayInput    = document.getElementById("essayInput");
+  const essayBtn      = document.getElementById("essayBtn");
+  const essayClearBtn = document.getElementById("essayClearBtn");
+  const essayResult   = document.getElementById("essayResult");
+
+  /* ---- PART 15A: Generate/improve essay (START) ---- */
+  if (essayBtn) {
+    essayBtn.addEventListener("click", async () => {
+      const text = (snapText && snapText.value ? snapText.value : "").trim();
+      if (!text) {
+        alert("Paste your essay or prompt into the main text box first.");
+        return;
+      }
+
+      const extra = getExtraInstructions();
+      const promptText = extra
+        ? text + "\n\nExtra instructions from student (tone, length, structure, citations, etc.):\n" + extra
+        : text;
+
+      // usage gate
+      if (window.__canUseAIOnce) {
+        const allowed = await window.__canUseAIOnce();
+        if (!allowed) return;
+      } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+        return;
+      }
+
+      startResultLoading(essayResult, "Thinking");
+
+      const ans = await runEssayHelper(promptText);
+
+      stopResultLoading(essayResult);
+
+      const clean = sanitizeAnswerText(ans);
+      renderAnswer(essayResult, clean);
+      addNotebookItem("Essay", clean);
+    });
+  }
+  /* ---- PART 15A (END) ---- */
+
+  /* ---- PART 15B: Clear essay result (START) ---- */
+  if (essayClearBtn) {
+    essayClearBtn.addEventListener("click", () => {
+      if (essayResult) essayResult.textContent = "";
+    });
+  }
+  /* ---- PART 15B (END) ---- */
+
+  /* ================================= SECTION 15 (END) =================================== */
+
+}); // end DOMContentLoaded
 </script>
+
 
 
 
