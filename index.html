@@ -4151,811 +4151,597 @@ text.trim();
 
 
 
-<!-- BLOCK 7: Flashcards generation + interactive viewer -->
+<!-- BLOCK 6: UI wiring for Snap, Math, Study, Essay -->
 <script>
-  // ---------- FLASHCARDS (interactive) ----------
-  const cardsInput = document.getElementById("cardsInput");
-  const cardsBtn = document.getElementById("cardsBtn");
-  const cardsClearBtn = document.getElementById("cardsClearBtn");
-  const cardsResult = document.getElementById("cardsResult");
+  document.addEventListener("DOMContentLoaded", function () {
+    // ---------- UI WIRING ----------
 
-  const cardsViewer = document.getElementById("cardsViewer");
-  const cardsStats = document.getElementById("cardsStats");
-  const cardsFront = document.getElementById("cardsFront");
-  const cardsBack = document.getElementById("cardsBack");
-  const cardsFlipBtn = document.getElementById("cardsFlipBtn");
-  const cardsGotItBtn = document.getElementById("cardsGotItBtn");
-  const cardsNeedWorkBtn = document.getElementById("cardsNeedWorkBtn");
-  const cardsCard = document.getElementById("cardsCard");
+    // SNAP (now with camera + gallery inputs)
+    const snapInputGallery = document.getElementById("snapInputGallery");
+    const snapInputCamera  = document.getElementById("snapInputCamera");
+    const snapOCRBtn       = document.getElementById("snapOCRBtn");
+    const snapClearBtn     = document.getElementById("snapClearBtn");
+    const snapText         = document.getElementById("snapText");
+    const snapResult       = document.getElementById("snapResult");
+    const snapSolveBtn     = document.getElementById("snapActionSolveBtn");
 
-  const cardsStorageKey = "studyai-flashcards";
-  // Also persist flashcard view state (deck + which card)
-  const cardsStateKey = "studyai-flashcards-state";
+    const snapCameraBtn = document.getElementById("snapCameraBtn");
+    const snapUploadBtn = document.getElementById("snapUploadBtn");
+    const snapPreview   = document.getElementById("snapPreview");
 
-  // 🔹 subject input for labeling flashcard sets
-  const saveSubjectInput = document.getElementById("saveSubjectInput");
+    const refreshOcrButton = document.getElementById("refreshOcrButton");
 
-  function loadFlashcardsState() {
-    try {
-      return JSON.parse(localStorage.getItem(cardsStateKey) || "{}");
-    } catch {
-      return {};
-    }
-  }
+    // 🔹 subject input for auto-fill
+    const saveSubjectInput = document.getElementById("saveSubjectInput");
 
-  function saveFlashcardsState() {
-    try {
-      localStorage.setItem(
-        cardsStateKey,
-        JSON.stringify({
-          currentDeck,
-          currentCardIndex
-        })
-      );
-    } catch {
-      // ignore
-    }
-  }
-
-  // Simple flag so you can easily turn the sound on/off
-  const ENABLE_FLASHCARD_SOUND = true;
-  let gotItAudio = null;
-  if (ENABLE_FLASHCARD_SOUND) {
-    // Replace this path with your actual sound file
-    gotItAudio = new Audio("/sounds/flashcard-success.mp3");
-  }
-
-  let flashcards = [];
-  let currentCardIndex = 0;       // index within the *current deck*
-  let showingBack = false;
-
-  // which stack user is viewing: "needs" (default), "got", "all"
-  let currentDeck = "needs";
-  // references to stack buttons
-  let cardsStackAllBtn = null;
-  let cardsStackNeedsBtn = null;
-  let cardsStackGotBtn = null;
-
-  // lock card height so page doesn’t bounce
-  let fixedCardHeight = null;
-
-  // Move flashcards viewer above the source textbox
-  (function moveViewerAboveTextarea() {
-    if (
-      cardsViewer &&
-      cardsInput &&
-      cardsInput.parentNode &&
-      cardsInput.parentNode === cardsViewer.parentNode
-    ) {
-      cardsInput.parentNode.insertBefore(cardsViewer, cardsInput);
-    }
-  })();
-
-  // ---------- Encouragement burst for "Got it" ----------
-
-  // Very short, 1–2 word phrases only – no contextual text
-  const GOTIT_PHRASES = [
-    "Nice!", "Locked in", "Aced it", "So good", "Too easy", "Big win",
-    "On fire", "All set", "Got it", "So clean", "Well done", "Great job",
-    "So ready", "Study win", "Gold star", "Go you", "Test ready", "Nice work",
-    "Brain power", "Level up", "You win", "So sharp", "Top tier", "Dialed in",
-    "Memory win", "Clean hit", "Good job", "So strong", "Sharp mind", "Nice one",
-    "All good", "Rock on", "Pro move", "Clutch", "Too smart", "Peak form",
-    "Max focus", "Laser brain", "Quiz boss", "Exam ace", "Study pro", "Star mode",
-    "Big brain", "Full marks", "Perfect", "Textbook", "On point", "All clear",
-    "Solid", "So solid", "So smooth", "Pure win", "Nice save", "Yes!", "Sweet",
-    "Boom!", "Love it", "Great!", "Done!", "Win!", "Locked!", "Crushed it",
-    "Nailed it", "So pro", "Right on", "So right", "Correct", "Exact",
-    "Bullseye", "No doubt", "Zero miss", "All right", "Brain boost",
-    "High score", "Quiz king", "Clear win", "So crisp", "Nailed that",
-    "Spot on", "Nice pull", "Clutch win", "Sharp shot", "Clean win",
-    "Test boss", "Quiz star", "Full brain", "Got this", "Big yes", "All win",
-    "Brain gold", "Score!", "Top form", "Prime mind"
-  ];
-
-  // Bright colors for the phrase, randomized each click
-  const GOTIT_COLORS = [
-    "#f97316", // orange
-    "#22c55e", // green
-    "#3b82f6", // blue
-    "#ec4899", // pink
-    "#eab308", // yellow
-    "#a855f7", // purple
-    "#06b6d4", // cyan
-    "#fb7185"  // rose
-  ];
-
-  let gotitRecentIndices = [];
-
-  function pickGotItPhrase() {
-    const n = GOTIT_PHRASES.length;
-    if (!n) return "Nice!";
-    const maxTries = 10;
-    let chosen = 0;
-
-    for (let i = 0; i < maxTries; i++) {
-      const idx = Math.floor(Math.random() * n);
-      if (!gotitRecentIndices.includes(idx)) {
-        chosen = idx;
-        break;
-      }
-      chosen = idx;
+    // 🔹 helper: read "tell the AI what you want" extra instructions
+    function getExtraInstructions() {
+      const el =
+        document.getElementById("extraInstructionsInput") ||
+        document.getElementById("extraInstructions") ||
+        document.getElementById("extraPrompt");
+      if (!el) return "";
+      return (el.value || "").trim();
     }
 
-    gotitRecentIndices.push(chosen);
-    if (gotitRecentIndices.length > 10) {
-      gotitRecentIndices.shift();
-    }
-
-    return GOTIT_PHRASES[chosen];
-  }
-
-  function pickGotItColor() {
-    const n = GOTIT_COLORS.length;
-    if (!n) return "#f97316";
-    const idx = Math.floor(Math.random() * n);
-    return GOTIT_COLORS[idx];
-  }
-
-  // Text burst from the Got it button
-  function spawnGotItBurst(anchorEl) {
-    if (!anchorEl) return;
-
-    const rect = anchorEl.getBoundingClientRect();
-    const baseX = rect.left + rect.width / 2;
-    const baseY = rect.top + rect.height / 2;
-
-    const phrase = pickGotItPhrase();
-    const color = pickGotItColor();
-
-    // 🔹 Also color the flashcard border to match this burst color
-    if (cardsCard) {
-      cardsCard.style.borderColor = color;
-    }
-
-    const wordEl = document.createElement("div");
-    wordEl.textContent = phrase;
-
-    wordEl.style.position = "fixed";
-    wordEl.style.left = baseX + "px";
-    wordEl.style.top = baseY + "px";
-    wordEl.style.transform = "translate(-50%, -50%) scale(0.9)";
-    wordEl.style.pointerEvents = "none";
-    wordEl.style.whiteSpace = "nowrap";
-    wordEl.style.zIndex = "9999";
-    wordEl.style.opacity = "0";
-    wordEl.style.fontWeight = "800";
-
-    // Responsive font size
-    let fontSizePx = 16;
-    if (window.innerWidth < 700) {
-      fontSizePx = 14;
-    } else if (window.innerWidth > 1000) {
-      fontSizePx = 18;
-    }
-    wordEl.style.fontSize = fontSizePx + "px";
-
-    // Bright random color each time
-    wordEl.style.color = color;
-    wordEl.style.background = "transparent";
-    wordEl.style.textShadow = "none";
-
-    const riseDuration = 700 + Math.random() * 400;
-    wordEl.style.transition =
-      "transform " +
-      riseDuration +
-      "ms ease-out, opacity " +
-      riseDuration +
-      "ms ease-out";
-
-    wordEl.style.display = "inline-block";
-
-    // Container for tiny letter fragments
-    const fragContainer = document.createElement("div");
-    fragContainer.style.position = "absolute";
-    fragContainer.style.left = "50%";
-    fragContainer.style.top = "50%";
-    fragContainer.style.transform = "translate(-50%, -50%)";
-    fragContainer.style.pointerEvents = "none";
-
-    const letters = phrase.replace(/\s+/g, "").split("");
-
-    const fragCount = Math.min(24, Math.max(12, letters.length || 12));
-
-    for (let i = 0; i < fragCount; i++) {
-      const ch = letters[i % letters.length] || "•";
-      const frag = document.createElement("span");
-      frag.textContent = ch;
-      frag.style.display = "inline-block";
-      frag.style.fontSize = Math.max(10, fontSizePx * 0.75) + "px";
-      frag.style.fontWeight = "700";
-      frag.style.color = color;
-      frag.style.opacity = "1";
-      frag.style.transform = "translate(0px, 0px) scale(1)";
-
-      const dur = 550 + Math.random() * 350;
-      frag.style.transition =
-        "transform " + dur + "ms ease-out, opacity " + dur + "ms ease-out";
-
-      const spread = 70 + Math.random() * 60;
-      const angle = Math.random() * Math.PI * 2;
-      const tx = Math.cos(angle) * spread;
-      const ty = Math.sin(angle) * spread - 20;
-
-      setTimeout(() => {
-        frag.style.transform =
-          "translate(" + tx + "px, " + ty + "px) scale(0.5)";
-        frag.style.opacity = "0";
-      }, 60 + i * 12);
-
-      fragContainer.appendChild(frag);
-    }
-
-    wordEl.appendChild(fragContainer);
-    document.body.appendChild(wordEl);
-
-    // Main phrase rises up a bit and fades
-    requestAnimationFrame(() => {
-      const driftY = -50 - Math.random() * 25;
-      wordEl.style.opacity = "1";
-      wordEl.style.transform =
-        "translate(-50%, calc(-50% + " + driftY + "px)) scale(1.05)";
-    });
-
-    // Fade away after the rise
-    setTimeout(() => {
-      wordEl.style.opacity = "0";
-      wordEl.style.transform =
-        "translate(-50%, calc(-50% - 70px)) scale(0.95)";
-    }, riseDuration);
-
-    // Clean up DOM
-    setTimeout(() => {
-      if (wordEl.parentNode) {
-        wordEl.parentNode.removeChild(wordEl);
-      }
-    }, riseDuration + 600);
-  }
-
-  // Theme-aware styles for the flashcard question + background
-  function updateCardStylesForTheme() {
-    const theme =
-      document.documentElement.getAttribute("data-theme") || "dark";
-
-    if (cardsFront) {
-      cardsFront.classList.toggle("flashcard-question-light", theme === "light");
-      cardsFront.classList.toggle("flashcard-question-dark", theme !== "light");
-    }
-
-    if (cardsCard) {
-      cardsCard.classList.toggle("flashcard-card-light", theme === "light");
-      cardsCard.classList.toggle("flashcard-card-dark", theme !== "light");
-    }
-  }
-
-  // Watch for theme changes
-  (function watchThemeForFlashcards() {
-    updateCardStylesForTheme();
-    if (typeof MutationObserver === "function") {
-      const obs = new MutationObserver(updateCardStylesForTheme);
-      obs.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ["data-theme"]
-      });
-    }
-  })();
-
-  function loadFlashcardsStorage() {
-    try {
-      return JSON.parse(localStorage.getItem(cardsStorageKey) || "[]" );
-    } catch {
-      return [];
-    }
-  }
-
-  function saveFlashcards(cards) {
-    localStorage.setItem(cardsStorageKey, JSON.stringify(cards));
-  }
-
-  function parseFlashcardsFromText(raw) {
-    const text = typeof raw === "string" ? raw : String(raw ?? "");
-    const lines = text.split(/\r?\n/);
-    const temp = [];
-    let current = null;
-
-    for (let line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-
-      const qMatch = trimmed.match(/^Q[\s.:,-]*?(.*)$/i);
-      const aMatch = trimmed.match(/^A[\s.:,-]*?(.*)$/i);
-
-      if (qMatch) {
-        if (current && current.front && current.back) {
-          temp.push(current);
-        }
-        current = {
-          front: qMatch[1].trim(),
-          back: "",
+    // 🔹 Generic per-tool history manager (stacked outputs with delete + localStorage)
+    function createToolHistoryManager(storageKey, containerEl, toolLabel) {
+      if (!containerEl || !storageKey) {
+        return {
+          add: function () {},
+          clearAll: function () {},
         };
-      } else if (aMatch && current) {
-        const piece = aMatch[1].trim();
-        current.back = current.back ? current.back + "\n" + piece : piece;
-      } else if (current) {
-        if (!current.back) {
-          current.front += "\n" + trimmed;
-        } else {
-          current.back += "\n" + trimmed;
+      }
+
+      const LS_KEY = "passinggrade-" + storageKey + "-history";
+
+      function loadList() {
+        try {
+          const raw = localStorage.getItem(LS_KEY);
+          if (!raw) return [];
+          const parsed = JSON.parse(raw);
+          if (!Array.isArray(parsed)) return [];
+          return parsed;
+        } catch (e) {
+          console.warn("History load error for", storageKey, e);
+          return [];
         }
       }
+
+      function saveList(list) {
+        try {
+          localStorage.setItem(LS_KEY, JSON.stringify(list || []));
+        } catch (e) {
+          console.warn("History save error for", storageKey, e);
+        }
+      }
+
+      function renderList() {
+        const items = loadList();
+        containerEl.innerHTML = "";
+        if (!items.length) return;
+
+        items.forEach((item) => {
+          const wrapper = document.createElement("div");
+          wrapper.className = "tool-output-item";
+          wrapper.style.border = "1px solid rgba(148,163,184,0.4)";
+          wrapper.style.borderRadius = "0.5rem";
+          wrapper.style.padding = "0.5rem 0.75rem";
+          wrapper.style.marginBottom = "0.5rem";
+
+          const header = document.createElement("div");
+          header.style.display = "flex";
+          header.style.justifyContent = "space-between";
+          header.style.alignItems = "center";
+          header.style.marginBottom = "0.25rem";
+          header.style.gap = "0.5rem";
+
+          const title = document.createElement("div");
+          title.style.fontSize = "0.75rem";
+          title.style.opacity = "0.8";
+          const created = item.createdAt ? new Date(item.createdAt) : null;
+          title.textContent =
+            toolLabel +
+            (created && !isNaN(created)
+              ? " • " + created.toLocaleString()
+              : "");
+
+          const delBtn = document.createElement("button");
+          delBtn.type = "button";
+          delBtn.textContent = "Delete";
+          delBtn.style.fontSize = "0.7rem";
+          delBtn.style.padding = "0.1rem 0.4rem";
+          delBtn.style.borderRadius = "999px";
+          delBtn.style.border = "1px solid rgba(148,163,184,0.7)";
+          delBtn.style.background = "transparent";
+          delBtn.style.cursor = "pointer";
+          delBtn.addEventListener("click", () => {
+            const current = loadList();
+            const filtered = current.filter((x) => x.id !== item.id);
+            saveList(filtered);
+            renderList();
+          });
+
+          header.appendChild(title);
+          header.appendChild(delBtn);
+
+          const body = document.createElement("div");
+          body.className = "tool-output-body";
+
+          wrapper.appendChild(header);
+          wrapper.appendChild(body);
+          containerEl.appendChild(wrapper);
+
+          const contentStr =
+            typeof item.content === "string"
+              ? item.content
+              : String(item.content ?? "");
+
+          if (typeof renderAnswer === "function") {
+            renderAnswer(body, contentStr);
+          } else {
+            body.textContent = contentStr;
+          }
+        });
+      }
+
+      function add(content) {
+        if (content == null || content === "") return;
+        const asString =
+          typeof content === "string" ? content : String(content ?? "");
+        const current = loadList();
+        const newItem = {
+          id:
+            Date.now().toString(36) +
+            "-" +
+            Math.random().toString(16).slice(2),
+          createdAt: new Date().toISOString(),
+          content: asString,
+        };
+        const next = [newItem, ...current];
+        saveList(next);
+        renderList();
+      }
+
+      function clearAll() {
+        saveList([]);
+        renderList();
+      }
+
+      // initial render from storage
+      renderList();
+
+      return {
+        add: add,
+        clearAll: clearAll,
+      };
     }
 
-    if (current && current.front && current.back) {
-      temp.push(current);
+    // keep track of whichever file was chosen last
+    let lastSnapFile = null;
+
+    // 🔹 helper: fill subject from current snapText value
+    function maybeFillSubjectFromOcrNow() {
+      if (!snapText || !saveSubjectInput) return;
+
+      // don't overwrite if user already set something custom
+      const current = (saveSubjectInput.value || "").trim();
+      if (current && current.toLowerCase() !== "general") return;
+
+      const raw = snapText.value || "";
+      if (!raw.trim()) return;
+
+      let heading = "";
+
+      // Use smarter heading extractor if it exists
+      if (typeof extractHeadingFromOcrText === "function") {
+        heading = extractHeadingFromOcrText(raw) || "";
+      }
+
+      // Fallback: first non-empty line
+      if (!heading) {
+        const firstLine = raw
+          .split(/\r?\n/)
+          .map((l) => l.trim())
+          .find((l) => l.length > 0);
+        if (firstLine) {
+          heading = firstLine;
+        }
+      }
+
+      if (!heading) return;
+
+      // Trim to something reasonable
+      if (heading.length > 60) {
+        heading = heading.slice(0, 60).trim() + "…";
+      }
+
+      saveSubjectInput.value = heading;
     }
 
-    const now = Date.now();
-    return temp.map((c, i) => ({
-      id: now + "-" + i,
-      front: c.front,
-      back: c.back,
-      status: "new",
-      seen: 0,
-      correct: 0,
-      lastSeen: now,
-    }));
-  }
-
-  // Shared loader for any raw flashcard text (AI output or notebook)
-  function loadFlashcardsFromText(rawText, opts = {}) {
-    const text = typeof rawText === "string" ? rawText : String(rawText ?? "");
-    const parsed = parseFlashcardsFromText(text);
-    if (!parsed.length) {
-      alert("I couldn't detect any Q/A pairs in that text.");
-      return;
-    }
-
-    const desiredDeck = opts.deck || "needs";
-
-    flashcards = parsed;
-    currentDeck = desiredDeck;
-    currentCardIndex = 0;
-    showingBack = false;
-    fixedCardHeight = null;
-
-    saveFlashcards(flashcards);
-    saveFlashcardsState();
-    initDeckStacksUI();
-    updateStacksUI();
-    renderCurrentCard();
-
-    if (opts.scroll !== false && cardsViewer && typeof cardsViewer.scrollIntoView === "function") {
-      cardsViewer.style.display = "block";
-      cardsViewer.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }
-
-  // Expose globally so notebook code can always open flashcards like:
-  // window.loadFlashcardsFromText(notebookText, { deck: "all" });
-  window.loadFlashcardsFromText = loadFlashcardsFromText;
-
-  // build decks based on status and currentDeck
-  function getDeckIndices() {
-    if (!flashcards.length) return [];
-    if (currentDeck === "all") {
-      return flashcards.map((c, idx) => idx);
-    }
-    if (currentDeck === "got") {
-      return flashcards.reduce((arr, c, idx) => {
-        if (c.status === "got") arr.push(idx);
-        return arr;
-      }, []);
-    }
-    // "needs": everything that still needs work (not got)
-    return flashcards.reduce((arr, c, idx) => {
-      if (c.status !== "got") arr.push(idx);
-      return arr;
-    }, []);
-  }
-
-  // create the small stack square buttons under the viewer
-  function initDeckStacksUI() {
-    if (!cardsViewer || !cardsViewer.parentNode) return;
-
-    const container = cardsViewer.parentNode;
-    const existing = document.getElementById("cardsStacksWrapper");
-    if (existing) return;
-
-    const wrapper = document.createElement("div");
-    wrapper.id = "cardsStacksWrapper";
-    wrapper.style.display = "flex";
-    wrapper.style.gap = "8px";
-    wrapper.style.marginTop = "8px";
-
-    function makeStackButton(label, deckKey) {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.dataset.deck = deckKey;
-      btn.style.minWidth = "68px";
-      btn.style.minHeight = "44px";
-      btn.style.borderRadius = "6px";
-      btn.style.border = "1px solid rgba(148, 163, 184, 0.9)";
-      btn.style.background = "var(--card-bg)";
-      btn.style.fontSize = "11px";
-      btn.style.display = "flex";
-      btn.style.flexDirection = "column";
-      btn.style.alignItems = "center";
-      btn.style.justifyContent = "center";
-      btn.style.padding = "4px 6px";
-      btn.style.cursor = "pointer";
-      btn.style.gap = "2px";
-
-      const labelSpan = document.createElement("span");
-      labelSpan.textContent = label;
-      labelSpan.style.fontWeight = "600";
-
-      const countSpan = document.createElement("span");
-      countSpan.className = "cards-stack-count";
-      countSpan.textContent = "0";
-      countSpan.style.opacity = "0.75";
-
-      btn.appendChild(labelSpan);
-      btn.appendChild(countSpan);
-
-      btn.addEventListener("click", () => {
-        currentDeck = deckKey;
-        currentCardIndex = 0;
-        saveFlashcardsState();
-        renderCurrentCard();
-        updateStacksUI();
+    // 🔹 ALSO auto-fill when user types/pastes into snapText
+    if (snapText) {
+      snapText.addEventListener("input", () => {
+        maybeFillSubjectFromOcrNow();
       });
-
-      return btn;
     }
 
-    cardsStackGotBtn = makeStackButton("Got it", "got");
-    cardsStackNeedsBtn = makeStackButton("Needs work", "needs");
-    cardsStackAllBtn = makeStackButton("All", "all");
-
-    wrapper.appendChild(cardsStackGotBtn);
-    wrapper.appendChild(cardsStackNeedsBtn);
-    wrapper.appendChild(cardsStackAllBtn);
-
-    // Insert right after cardsViewer
-    if (cardsViewer.nextSibling) {
-      container.insertBefore(wrapper, cardsViewer.nextSibling);
-    } else {
-      container.appendChild(wrapper);
-    }
-  }
-
-  // update counts and active stack styling
-  function updateStacksUI() {
-    if (!flashcards || !flashcards.length) {
-      if (cardsStackGotBtn) {
-        const c = cardsStackGotBtn.querySelector(".cards-stack-count");
-        if (c) c.textContent = "0";
-      }
-      if (cardsStackNeedsBtn) {
-        const c = cardsStackNeedsBtn.querySelector(".cards-stack-count");
-        if (c) c.textContent = "0";
-      }
-      if (cardsStackAllBtn) {
-        const c = cardsStackAllBtn.querySelector(".cards-stack-count");
-        if (c) c.textContent = "0";
-      }
-      return;
+    // simple loading animation for textareas
+    function startTextareaLoading(ta, baseText) {
+      if (!ta) return;
+      stopTextareaLoading(ta);
+      let dotCount = 0;
+      const maxDots = 3;
+      ta.value = baseText;
+      if (window.autoResizeTextarea) window.autoResizeTextarea(ta);
+      const id = setInterval(() => {
+        dotCount = (dotCount + 1) % (maxDots + 1);
+        const dots = ".".repeat(dotCount);
+        ta.value = baseText + dots;
+        if (window.autoResizeTextarea) window.autoResizeTextarea(ta);
+      }, 400);
+      ta.dataset.loadingIntervalId = String(id);
     }
 
-    const total = flashcards.length;
-    const got = flashcards.filter((c) => c.status === "got").length;
-    const needs = flashcards.filter((c) => c.status !== "got").length;
-
-    if (cardsStackGotBtn) {
-      const c = cardsStackGotBtn.querySelector(".cards-stack-count");
-      if (c) c.textContent = String(got);
-    }
-    if (cardsStackNeedsBtn) {
-      const c = cardsStackNeedsBtn.querySelector(".cards-stack-count");
-      if (c) c.textContent = String(needs);
-    }
-    if (cardsStackAllBtn) {
-      const c = cardsStackAllBtn.querySelector(".cards-stack-count");
-      if (c) c.textContent = String(total);
-    }
-
-    // simple active state
-    [cardsStackGotBtn, cardsStackNeedsBtn, cardsStackAllBtn].forEach((btn) => {
-      if (!btn) return;
-      if (btn.dataset.deck === currentDeck) {
-        btn.style.boxShadow = "0 0 0 2px rgba(59,130,246,0.7)";
-      } else {
-        btn.style.boxShadow = "none";
-      }
-    });
-  }
-
-  function updateCardsStats() {
-    if (!flashcards.length) {
-      cardsStats.textContent = "No cards yet. Create some above.";
-      return;
-    }
-
-    const deck = getDeckIndices();
-    if (!deck.length) {
-      cardsStats.textContent = "No cards in this stack. Try another stack above.";
-      return;
-    }
-
-    const totalDeck = deck.length;
-    const got = flashcards.filter((c) => c.status === "got").length;
-    const need = flashcards.filter((c) => c.status !== "got").length;
-    const indexLabel = currentCardIndex + 1;
-
-    cardsStats.textContent =
-      `Card ${indexLabel} of ${totalDeck}` +
-      ` • Got it ${got}` +
-      ` • Need work ${need}`;
-  }
-
-  // lock card height once so the page doesn't jump
-  function lockCardHeightOnce() {
-    if (!cardsCard || fixedCardHeight !== null) return;
-    requestAnimationFrame(() => {
-      const h = cardsCard.offsetHeight;
-      if (h && h > 0) {
-        fixedCardHeight = h;
-        cardsCard.style.minHeight = h + "px";
-      }
-    });
-  }
-
-  function cleanSide(raw) {
-    if (raw == null) return "";
-    return String(raw).replace(/\s+$/g, "").replace(/^\s+/g, "");
-  }
-
-  function renderCurrentCard() {
-    if (!cardsViewer) return;
-
-    if (!flashcards.length) {
-      cardsViewer.style.display = "none";
-      if (cardsStats) {
-        cardsStats.textContent = "No cards yet. Create some above.";
-      }
-      return;
-    }
-
-    const deck = getDeckIndices();
-    if (!deck.length) {
-      cardsViewer.style.display = "none";
-      if (cardsStats) {
-        cardsStats.textContent = "No cards in this stack. Try another stack above.";
-      }
-      return;
-    }
-
-    if (currentCardIndex < 0 || currentCardIndex >= deck.length) {
-      currentCardIndex = 0;
-    }
-
-    const card = flashcards[deck[currentCardIndex]];
-    cardsViewer.style.display = "block";
-    showingBack = false;
-
-    cardsFront.style.display = "block";
-    cardsBack.style.display = "none";
-
-    const rawFront = card.front || "[No question]";
-    const rawBack  = card.back  || "[No answer]";
-
-    const frontText = cleanSide(rawFront) || "[No question]";
-    const backText  = cleanSide(rawBack)  || "[No answer]";
-
-    cardsFront.textContent = frontText;
-    cardsBack.textContent  = backText;
-
-    updateCardStylesForTheme();
-    updateCardsStats();
-    lockCardHeightOnce();
-  }
-
-  // Restore from storage on load
-  (function initFlashcardsFromStorage() {
-    const stored = loadFlashcardsStorage();
-    const state = loadFlashcardsState();
-    if (stored && stored.length) {
-      flashcards = stored;
-      currentDeck = state.currentDeck || "needs";
-      currentCardIndex =
-        typeof state.currentCardIndex === "number" ? state.currentCardIndex : 0;
-      initDeckStacksUI();
-      updateStacksUI();
-      renderCurrentCard();
-      if (cardsViewer && typeof cardsViewer.scrollIntoView === "function") {
-        cardsViewer.style.display = "block";
-        cardsViewer.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    } else {
-      initDeckStacksUI();
-      updateStacksUI();
-    }
-  })();
-
-  // usage counted based on snapText
-  cardsBtn.addEventListener("click", async () => {
-    const text = snapText.value.trim();
-    if (!text) {
-      alert("Paste content into the main text box first.");
-      return;
-    }
-
-    // usage gate
-    if (window.__canUseAIOnce) {
-      const allowed = await window.__canUseAIOnce();
-      if (!allowed) return;
-    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
-      return;
-    }
-
-    cardsResult.textContent = "Thinking...";
-
-    try {
-      if (typeof runFlashcards !== "function") {
-        throw new Error(
-          "runFlashcards() is not defined. Check your TASK HELPERS section."
-        );
-      }
-
-      const ans = await runFlashcards(text);
-      const answerText = typeof ans === "string" ? ans : String(ans ?? "");
-
-      // 🔹 clear existing and add subject heading (from OCR subject input)
-      const subjectLabel =
-        (saveSubjectInput && saveSubjectInput.value
-          ? saveSubjectInput.value.trim()
-          : "") || "";
-
-      cardsResult.innerHTML = "";
-
-      if (subjectLabel) {
-        const subjectEl = document.createElement("div");
-        subjectEl.textContent = subjectLabel;
-        subjectEl.style.fontWeight = "700";
-        subjectEl.style.fontSize = "0.95rem";
-        subjectEl.style.marginBottom = "0.25rem";
-        cardsResult.appendChild(subjectEl);
-
-        const bodyEl = document.createElement("div");
-        cardsResult.appendChild(bodyEl);
-        // styled output with copy button
-        renderAnswer(bodyEl, answerText);
-      } else {
-        // fallback to original behavior if no subject
-        renderAnswer(cardsResult, answerText);
-      }
-
-      // Use shared loader so behavior matches notebook reopen
-      loadFlashcardsFromText(answerText, { deck: "needs", scroll: true });
-
-      // Still add raw text to notebook for later
-      addNotebookItem("Cards", answerText);
-    } catch (err) {
-      console.error("Flashcards error:", err);
-      cardsResult.textContent = "⚠️ Flashcards error: " + err.message;
-    }
-  });
-
-  // Change label from Clear -> Reset
-  if (cardsClearBtn) {
-    cardsClearBtn.textContent = "Reset";
-  }
-
-  // Reset: bring ALL cards (Got it + Needs) back as fresh
-  cardsClearBtn.addEventListener("click", () => {
-    if (!flashcards.length) return;
-
-    const ok = confirm(
-      "Reset this set?\n\nThis will RESET progress on all cards so they all come back into the active deck. Your notebook will NOT be cleared."
-    );
-    if (!ok) return;
-
-    const now = Date.now();
-    flashcards = flashcards.map((c) => ({
-      ...c,
-      status: "new",
-      seen: 0,
-      correct: 0,
-      lastSeen: now
-    }));
-
-    currentDeck = "needs";
-    currentCardIndex = 0;
-    showingBack = false;
-    fixedCardHeight = null;
-
-    saveFlashcards(flashcards);
-    saveFlashcardsState();
-    updateStacksUI();
-    renderCurrentCard();
-    if (cardsViewer) cardsViewer.style.display = "block";
-  });
-
-  cardsFlipBtn.addEventListener("click", () => {
-    if (!flashcards.length) return;
-    showingBack = !showingBack;
-    cardsFront.style.display = showingBack ? "none" : "block";
-    cardsBack.style.display = showingBack ? "block" : "none";
-  });
-
-  function goToNextCard() {
-    const deck = getDeckIndices();
-    if (!deck.length) {
-      renderCurrentCard();
-      return;
-    }
-    currentCardIndex = (currentCardIndex + 1) % deck.length;
-    saveFlashcardsState();
-    renderCurrentCard();
-  }
-
-  cardsGotItBtn.addEventListener("click", () => {
-    if (!flashcards.length) return;
-    const deck = getDeckIndices();
-    if (!deck.length) {
-      renderCurrentCard();
-      return;
-    }
-    const cardIndex = deck[currentCardIndex];
-    const card = flashcards[cardIndex];
-
-    card.status = "got";
-    card.seen = (card.seen || 0) + 1;
-    card.correct = (card.correct || 0) + 1;
-    card.lastSeen = Date.now();
-    saveFlashcards(flashcards);
-    saveFlashcardsState();
-
-    // optional positive sound on Got It
-    if (ENABLE_FLASHCARD_SOUND && gotItAudio) {
-      try {
-        gotItAudio.currentTime = 0;
-        gotItAudio.play();
-      } catch (e) {
-        // ignore play errors
+    function stopTextareaLoading(ta) {
+      if (!ta) return;
+      const id = ta.dataset.loadingIntervalId;
+      if (id) {
+        clearInterval(Number(id));
+        delete ta.dataset.loadingIntervalId;
       }
     }
 
-    // Single colorful phrase burst from the Got it button
-    spawnGotItBurst(cardsGotItBtn);
-
-    updateStacksUI();
-    goToNextCard(); // removed from current deck view
-  });
-
-  cardsNeedWorkBtn.addEventListener("click", () => {
-    if (!flashcards.length) return;
-    const deck = getDeckIndices();
-    if (!deck.length) {
-      renderCurrentCard();
-      return;
-    }
-    const cardIndex = deck[currentCardIndex];
-    const card = flashcards[cardIndex];
-
-    card.status = "need_work";
-    card.seen = (card.seen || 0) + 1;
-    card.lastSeen = Date.now();
-    saveFlashcards(flashcards);
-    saveFlashcardsState();
-    updateStacksUI();
-
-    // 🔹 Reset border back to theme default for "Need work"
-    if (cardsCard) {
-      cardsCard.style.borderColor = "";
+    // simple loading animation for result elements
+    function startResultLoading(el, baseText) {
+      if (!el) return;
+      el.classList.add("tool-output");   // 🔹 for styling
+      stopResultLoading(el);
+      let dotCount = 0;
+      const maxDots = 3;
+      el.textContent = baseText;
+      const id = setInterval(() => {
+        dotCount = (dotCount + 1) % (maxDots + 1);
+        const dots = ".".repeat(dotCount);
+        el.textContent = baseText + dots;
+      }, 400);
+      el.dataset.loadingIntervalId = String(id);
     }
 
-    goToNextCard();
+    function stopResultLoading(el) {
+      if (!el) return;
+      const id = el.dataset.loadingIntervalId;
+      if (id) {
+        clearInterval(Number(id));
+        delete el.dataset.loadingIntervalId;
+      }
+    }
+
+    function handleSnapFile(file) {
+      if (!file) {
+        lastSnapFile = null;
+        if (snapPreview) {
+          snapPreview.src = "";
+          snapPreview.style.display = "none";
+        }
+        return;
+      }
+
+      lastSnapFile = file;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (snapPreview) {
+          snapPreview.src = e.target.result;
+          snapPreview.style.display = "block";
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Open CAMERA
+    if (snapCameraBtn && snapInputCamera) {
+      snapCameraBtn.addEventListener("click", () => {
+        snapInputCamera.click();
+      });
+    }
+
+    // Open GALLERY / FILE PICKER
+    if (snapUploadBtn && snapInputGallery) {
+      snapUploadBtn.addEventListener("click", () => {
+        snapInputGallery.click();
+      });
+    }
+
+    // When user picks from camera
+    if (snapInputCamera) {
+      snapInputCamera.addEventListener("change", () => {
+        const file = snapInputCamera.files[0];
+        handleSnapFile(file);
+      });
+    }
+
+    // When user picks from gallery
+    if (snapInputGallery) {
+      snapInputGallery.addEventListener("change", () => {
+        const file = snapInputGallery.files[0];
+        handleSnapFile(file);
+      });
+    }
+
+    // 🔹 history managers for stacked outputs
+    const snapHistory  = createToolHistoryManager("snap",  snapResult,  "Snap & Solve");
+    // MATH (usage counted based on snapText)
+    const mathInput    = document.getElementById("mathInput");
+    const mathSolveBtn = document.getElementById("mathSolveBtn");
+    const mathClearBtn = document.getElementById("mathClearBtn");
+    const mathResult   = document.getElementById("mathResult");
+    const mathHistory  = createToolHistoryManager("math",  mathResult,  "Math");
+
+    // STUDY (usage counted based on snapText)
+    const studyInput    = document.getElementById("studyInput");
+    const studyGuideBtn = document.getElementById("studyGuideBtn");
+    const studyClearBtn = document.getElementById("studyClearBtn");
+    const studyResult   = document.getElementById("studyResult");
+    const studyHistory  = createToolHistoryManager("study", studyResult, "Study guide");
+
+    // ESSAY (usage counted based on snapText)
+    const essayInput    = document.getElementById("essayInput");
+    const essayBtn      = document.getElementById("essayBtn");
+    const essayClearBtn = document.getElementById("essayClearBtn");
+    const essayResult   = document.getElementById("essayResult");
+    const essayHistory  = createToolHistoryManager("essay", essayResult, "Essay");
+
+    // Run OCR on whichever file we last picked – DOES NOT affect usage counts
+    if (snapOCRBtn) {
+      snapOCRBtn.addEventListener("click", async () => {
+        if (!lastSnapFile) {
+          alert("Choose or take an image first.");
+          return;
+        }
+        startTextareaLoading(snapText, "Reading image");
+        const text = await runFakeOCR(lastSnapFile);
+        stopTextareaLoading(snapText);
+        snapText.value = text;
+        if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
+
+        // 🔹 update subject from OCR text
+        maybeFillSubjectFromOcrNow();
+
+        // still fire input for any other listeners you have
+        snapText.dispatchEvent(new Event("input"));
+      });
+    }
+
+    // Refresh OCR on the last image without clearing it
+    if (refreshOcrButton) {
+      refreshOcrButton.addEventListener("click", async () => {
+        if (!lastSnapFile) {
+          alert("Choose or take an image first.");
+          return;
+        }
+        const originalText = refreshOcrButton.textContent;
+        refreshOcrButton.disabled = true;
+        refreshOcrButton.textContent = "Refreshing...";
+        startTextareaLoading(snapText, "Reading image");
+        const text = await runFakeOCR(null); // reuse last image in runFakeOCR
+        stopTextareaLoading(snapText);
+        snapText.value = text;
+        if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
+
+        // 🔹 update subject from refreshed OCR
+        maybeFillSubjectFromOcrNow();
+
+        // still fire input for any other listeners you have
+        snapText.dispatchEvent(new Event("input"));
+
+        refreshOcrButton.textContent = originalText;
+        refreshOcrButton.disabled = false;
+      });
+    }
+
+    // Clear everything
+    if (snapClearBtn) {
+      snapClearBtn.addEventListener("click", () => {
+        if (snapInputCamera)  snapInputCamera.value = "";
+        if (snapInputGallery) snapInputGallery.value = "";
+
+        // reset image + OCR state
+        lastSnapFile = null;
+        try { lastOcrImageDataUrl = null; } catch (e) {}
+
+        // reset main OCR text box
+        if (snapText) {
+          snapText.value = "";
+          if (window.autoResizeTextarea) window.autoResizeTextarea(snapText);
+        }
+
+        // reset subject input
+        if (saveSubjectInput) {
+          saveSubjectInput.value = "";
+        }
+
+        // clear Snap result output (all stacked items)
+        if (snapHistory && snapHistory.clearAll) {
+          snapHistory.clearAll();
+        } else if (snapResult) {
+          snapResult.textContent = "";
+        }
+
+        // clear preview image
+        if (snapPreview) {
+          snapPreview.src = "";
+          snapPreview.style.display = "none";
+        }
+      });
+    }
+
+    // Solve / Explain (usage counted based on snapText)
+    if (snapSolveBtn) {
+      snapSolveBtn.addEventListener("click", async () => {
+        const text = snapText.value.trim();
+        if (!text) {
+          alert("No text to solve.");
+          return;
+        }
+
+        const extra = getExtraInstructions();
+        const promptText = extra
+          ? text + "\n\nExtra instructions from student (tone/length/format/etc.):\n" + extra
+          : text;
+
+        // usage gate
+        if (window.__canUseAIOnce) {
+          const allowed = await window.__canUseAIOnce();
+          if (!allowed) return;
+        } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+          return;
+        }
+
+        // switch to the Solve tool section
+        if (typeof activateTab === "function") {
+          activateTab("solve");
+        }
+
+        // put the text into the Solve tool's textarea if it exists
+        const solveInput = document.getElementById("solveInput");
+        if (solveInput) {
+          solveInput.value = text; // keep original in UI
+          if (window.autoResizeTextarea) window.autoResizeTextarea(solveInput);
+        }
+
+        startResultLoading(snapResult, "Thinking");
+        const ans = await runSnapSolve(promptText);
+        stopResultLoading(snapResult);
+        const clean = sanitizeAnswerText(ans);
+        // stacked + saved
+        snapHistory.add(clean);
+        addNotebookItem("Snap", clean);
+      });
+    }
+
+    if (mathSolveBtn) {
+      mathSolveBtn.addEventListener("click", async () => {
+        const text = snapText.value.trim();
+        if (!text) {
+          alert("Type or paste a math problem into the main text box first.");
+          return;
+        }
+
+        const extra = getExtraInstructions();
+        const promptText = extra
+          ? text + "\n\nExtra instructions from student (tone/steps/detail/etc.):\n" + extra
+          : text;
+
+        // usage gate
+        if (window.__canUseAIOnce) {
+          const allowed = await window.__canUseAIOnce();
+          if (!allowed) return;
+        } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+          return;
+        }
+
+        startResultLoading(mathResult, "Thinking");
+        const ans = await runMathSolver(promptText);
+        stopResultLoading(mathResult);
+        const clean = sanitizeAnswerText(ans);
+        // stacked + saved
+        mathHistory.add(clean);
+        addNotebookItem("Math", clean);
+      });
+    }
+
+    if (mathClearBtn) {
+      mathClearBtn.addEventListener("click", () => {
+        if (mathHistory && mathHistory.clearAll) {
+          mathHistory.clearAll();
+        } else if (mathResult) {
+          mathResult.textContent = "";
+        }
+      });
+    }
+
+    if (studyGuideBtn) {
+      studyGuideBtn.addEventListener("click", async () => {
+        const text = snapText.value.trim();
+        if (!text) {
+          alert("Paste some notes or text into the main text box first.");
+          return;
+        }
+
+        const extra = getExtraInstructions();
+        const promptText = extra
+          ? text + "\n\nExtra instructions from student (what to focus on, how short/long, etc.):\n" + extra
+          : text;
+
+        // usage gate
+        if (window.__canUseAIOnce) {
+          const allowed = await window.__canUseAIOnce();
+          if (!allowed) return;
+        } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+          return;
+        }
+
+        startResultLoading(studyResult, "Thinking");
+        const ans = await runStudyGuide(promptText);
+        stopResultLoading(studyResult);
+        const clean = sanitizeAnswerText(ans);
+        // stacked + saved
+        studyHistory.add(clean);
+        addNotebookItem("Study", clean);
+      });
+    }
+
+    if (studyClearBtn) {
+      studyClearBtn.addEventListener("click", () => {
+        if (studyHistory && studyHistory.clearAll) {
+          studyHistory.clearAll();
+        } else if (studyResult) {
+          studyResult.textContent = "";
+        }
+      });
+    }
+
+    if (essayBtn) {
+      essayBtn.addEventListener("click", async () => {
+        const text = snapText.value.trim();
+        if (!text) {
+          alert("Paste your essay or prompt into the main text box first.");
+          return;
+        }
+
+        const extra = getExtraInstructions();
+        const promptText = extra
+          ? text + "\n\nExtra instructions from student (tone, length, structure, citations, etc.):\n" + extra
+          : text;
+
+        // usage gate
+        if (window.__canUseAIOnce) {
+          const allowed = await window.__canUseAIOnce();
+          if (!allowed) return;
+        } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
+          return;
+        }
+
+        startResultLoading(essayResult, "Thinking");
+        const ans = await runEssayHelper(promptText);
+        stopResultLoading(essayResult);
+        const clean = sanitizeAnswerText(ans);
+        // stacked + saved
+        essayHistory.add(clean);
+        addNotebookItem("Essay", clean);
+      });
+    }
+
+    if (essayClearBtn) {
+      essayClearBtn.addEventListener("click", () => {
+        if (essayHistory && essayHistory.clearAll) {
+          essayHistory.clearAll();
+        } else if (essayResult) {
+          essayResult.textContent = "";
+        }
+      });
+    }
   });
 </script>
 
