@@ -5887,12 +5887,12 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     const studyResult = document.getElementById("studyResult");
     if (!studyResult) return;
 
-    // Inject CSS once so you can tweak media queries easily
+    // Inject CSS (toolbar + mobile media query)
     if (!document.getElementById("studyHighlightStyles")) {
       const style = document.createElement("style");
       style.id = "studyHighlightStyles";
       style.textContent = `
-        /* Sticky toolbar: inside same container as #studyResult, top:55, padded */
+        /* Sticky toolbar INSIDE the Study div's parent, at the top */
         #studyHighlightToolbar {
           position: sticky;
           top: 55px;
@@ -5902,17 +5902,12 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           padding-left: 16px;
           padding-right: 16px;
           display: flex;
-          flex-wrap: wrap;
           align-items: center;
-          justify-content: flex-end; /* right align text + buttons */
+          justify-content: flex-end; /* right side */
           gap: 8px;
+          flex-wrap: wrap;
           background: var(--card-bg, rgba(15,23,42,0.95));
           backdrop-filter: blur(10px);
-        }
-
-        #studyHighlightToolbar-label {
-          font-size: 12px;
-          opacity: 0.8;
         }
 
         #studyHighlightToolbar .study-color-btn {
@@ -5935,17 +5930,20 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           flex-shrink: 0;
         }
 
-        /* Always visible now */
         #studyHighlightApplyBtn {
-          margin-top: 6px;
-          align-self: flex-end;
           font-size: 11px;
           padding: 4px 10px;
           border-radius: 999px;
           border: 1px solid rgba(148,163,184,0.9);
           background: var(--card-bg, rgba(15,23,42,0.85));
           display: inline-flex;
+          align-items: center;
           cursor: pointer;
+          white-space: nowrap;
+        }
+
+        #studyHighlightApplyBtn-label {
+          margin-right: 6px;
         }
 
         #studyHighlightApplyBtn-dot {
@@ -5953,12 +5951,11 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           width: 8px;
           height: 8px;
           border-radius: 999px;
-          margin-left: 6px;
         }
 
         #studyHighlightContainer {
           margin-top: 8px;
-          display: none; /* hidden until we have at least one highlight */
+          display: none; /* hidden until there are items */
           flex-direction: column;
           gap: 8px;
         }
@@ -5966,7 +5963,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
         #studyHighlightContainer .study-highlight-group {
           border-radius: 8px;
           padding: 6px 8px;
-          display: none; /* per-color visibility */
+          display: none; /* toggled per color */
           gap: 8px;
           align-items: stretch;
           border: 1px solid rgba(148,163,184,0.5);
@@ -5982,23 +5979,23 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           gap: 2px;
         }
 
-        /* MOBILE tweaks: hide "Highlight", keep one row, narrower buttons */
+        /* MOBILE: hide the word "Highlight" and make buttons narrow on one row */
         @media (max-width: 640px) {
           #studyHighlightToolbar {
             padding-top: 12px;
             padding-bottom: 12px;
             gap: 4px;
-            flex-wrap: nowrap;   /* force single row */
-            overflow-x: auto;    /* allow sideways scroll if needed */
+            flex-wrap: nowrap;   /* keep one row */
+            overflow-x: auto;    /* scroll horizontally if needed */
           }
 
-          #studyHighlightToolbar-label {
-            display: none;       /* hide the word "Highlight" */
+          #studyHighlightApplyBtn-label {
+            display: none;       /* word "Highlight" disappears */
           }
 
           #studyHighlightToolbar .study-color-btn {
             font-size: 10px;
-            padding: 3px 6px;    /* narrower so they fit on one row */
+            padding: 3px 6px;    /* narrower buttons */
           }
         }
       `;
@@ -6091,7 +6088,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       spans.forEach(applyHighlightStylesToSpan);
     }
 
-    // Watch theme changes (light/dark)
+    // Watch theme changes
     (function watchThemeForStudyHighlights() {
       if (typeof MutationObserver !== "function") return;
       const obs = new MutationObserver((mutations) => {
@@ -6118,7 +6115,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       return false;
     }
 
-    // Grouped highlight list refresh
+    // Grouped highlight list
     function refreshStudyHighlightsUI() {
       const container = document.getElementById(studyHighlightContainerId);
       if (!container) return;
@@ -6136,11 +6133,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
         const items = studyHighlightsByColor[cfg.key] || [];
         totalItems += items.length;
 
-        if (items.length === 0) {
-          group.style.display = "none";
-        } else {
-          group.style.display = "flex";
-        }
+        group.style.display = items.length === 0 ? "none" : "flex";
 
         items.forEach((text) => {
           const li = document.createElement("li");
@@ -6149,9 +6142,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
         });
       });
 
-      const containerEl = document.getElementById(studyHighlightContainerId);
-      if (!containerEl) return;
-      containerEl.style.display = totalItems === 0 ? "none" : "flex";
+      container.style.display = totalItems === 0 ? "none" : "flex";
     }
 
     function addStudyHighlight(colorKey, text) {
@@ -6164,7 +6155,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       refreshStudyHighlightsUI();
     }
 
-    // Apply highlight using the *current* selection (works better on mobile)
+    // Use the *current* selection (better for touch)
     function applySelectionHighlightFromCurrentSelection() {
       const sel = window.getSelection();
       if (!sel || sel.rangeCount === 0) return;
@@ -6181,7 +6172,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       applyHighlightStylesToSpan(span);
 
       try {
-        const extracted = range.extractContents(); // may span multiple nodes
+        const extracted = range.extractContents();
         span.appendChild(extracted);
         range.insertNode(span);
       } catch (e) {
@@ -6190,32 +6181,24 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
       addStudyHighlight(currentStudyColorKey, selectedText);
 
-      // Clear browser selection
       if (sel.removeAllRanges) {
         sel.removeAllRanges();
       }
     }
 
-    // Build toolbar / button / container
+    // Build UI (toolbar with colors + button, then grouped container)
     function ensureStudyHighlightUI() {
-      if (!studyResult || !studyResult.parentNode) return;
-
       const parent = studyResult.parentNode;
+      if (!parent) return;
 
       let toolbar   = document.getElementById(studyHighlightToolbarId);
       let container = document.getElementById(studyHighlightContainerId);
-      let applyBtn  = document.getElementById(studyHighlightApplyBtnId);
 
-      // Toolbar
       if (!toolbar) {
         toolbar = document.createElement("div");
         toolbar.id = studyHighlightToolbarId;
 
-        const label = document.createElement("span");
-        label.id = "studyHighlightToolbar-label";
-        label.textContent = "Highlight:";
-        toolbar.appendChild(label);
-
+        // Color buttons
         STUDY_HIGHLIGHT_COLORS.forEach((cfg) => {
           const btn = document.createElement("button");
           btn.type = "button";
@@ -6226,14 +6209,11 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           const dot = document.createElement("span");
           dot.className = "study-color-dot";
           dot.style.backgroundColor = cfg.lightBg.replace(/, ?0\.\d+\)/, ", 1)");
-
           btn.appendChild(dot);
 
           btn.addEventListener("click", () => {
             currentStudyColorKey = cfg.key;
-            Array.from(
-              toolbar.querySelectorAll("button[data-color-key]")
-            ).forEach((b) => {
+            Array.from(toolbar.querySelectorAll("button[data-color-key]")).forEach((b) => {
               if (b.dataset.colorKey === currentStudyColorKey) {
                 b.style.boxShadow = "0 0 0 2px rgba(59,130,246,0.8)";
               } else {
@@ -6243,15 +6223,11 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 
             const dotEl = document.getElementById(studyHighlightApplyBtnId + "-dot");
             if (dotEl) {
-              const cfgNow =
-                getColorConfig(currentStudyColorKey) || STUDY_HIGHLIGHT_COLORS[0];
-              dotEl.style.backgroundColor = cfgNow.lightBg.replace(
-                /, ?0\.\d+\)/,
-                ", 1)"
-              );
+              const cfgNow = getColorConfig(currentStudyColorKey) || STUDY_HIGHLIGHT_COLORS[0];
+              dotEl.style.backgroundColor = cfgNow.lightBg.replace(/, ?0\.\d+\)/, ", 1)");
             }
 
-            // Optional: if there's already a selection, let color button also apply highlight
+            // Optional: apply immediately if there's a selection
             applySelectionHighlightFromCurrentSelection();
           });
 
@@ -6268,43 +6244,42 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           }
         }, 0);
 
-        // Put toolbar at top of the same container div as #studyResult
-        parent.insertBefore(toolbar, parent.firstChild);
-      }
-
-      // "Highlight selection" button (for touch + desktop)
-      if (!applyBtn) {
-        applyBtn = document.createElement("button");
+        // Highlight selection button INSIDE toolbar
+        const applyBtn = document.createElement("button");
         applyBtn.id = studyHighlightApplyBtnId;
         applyBtn.type = "button";
-        applyBtn.textContent = "Highlight selection";
+
+        const labelSpan = document.createElement("span");
+        labelSpan.id = "studyHighlightApplyBtn-label";
+        labelSpan.textContent = "Highlight";
+        applyBtn.appendChild(labelSpan);
 
         const dot = document.createElement("span");
-        dot.id = studyHighlightApplyBtnId + "-dot";
-        const cfg = getColorConfig(currentStudyColorKey) || STUDY_HIGHLIGHT_COLORS[0];
-        dot.style.backgroundColor = cfg.lightBg.replace(/, ?0\.\d+\)/, ", 1)");
+        dot.id = "studyHighlightApplyBtn-dot";
+        const cfg0 = getColorConfig(currentStudyColorKey) || STUDY_HIGHLIGHT_COLORS[0];
+        dot.style.backgroundColor = cfg0.lightBg.replace(/, ?0\.\d+\)/, ", 1)");
         applyBtn.appendChild(dot);
 
         function onApplyActivate(e) {
-          e.preventDefault(); // keep selection on mobile
+          e.preventDefault();
           applySelectionHighlightFromCurrentSelection();
         }
 
-        // Use mousedown/touchstart so we read selection before the tap clears it
         applyBtn.addEventListener("mousedown", onApplyActivate);
         applyBtn.addEventListener("touchstart", onApplyActivate);
 
-        // Put button right under toolbar
-        parent.insertBefore(applyBtn, toolbar.nextSibling);
+        toolbar.appendChild(applyBtn);
+
+        // Put toolbar at very top of the same container as #studyResult
+        parent.insertBefore(toolbar, parent.firstChild);
       }
 
-      // Container for grouped highlights
       if (!container) {
         container = document.createElement("div");
         container.id = studyHighlightContainerId;
 
-        // Put grouped highlights under the button
-        parent.insertBefore(container, applyBtn.nextSibling);
+        // Grouped snippets under the toolbar (and above studyResult or below, your choice)
+        parent.insertBefore(container, studyResult);
 
         STUDY_HIGHLIGHT_COLORS.forEach((cfg) => {
           const group = document.createElement("div");
@@ -6334,11 +6309,9 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       }
     }
 
-    // Kick everything off
     ensureStudyHighlightUI();
   }
 
-  // Safe init: wait for DOM if needed
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initStudyHighlight);
   } else {
