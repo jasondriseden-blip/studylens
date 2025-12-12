@@ -7147,39 +7147,6 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       wireMobileToggles();
     });
 
-    /* Same neon palette as flashcards GOT IT burst */
-    var PG_PILL_COLORS = [
-      "#f97316", // orange
-      "#22c55e", // green
-      "#3b82f6", // blue
-      "#ec4899", // pink
-      "#eab308", // yellow
-      "#a855f7", // purple
-      "#06b6d4", // cyan
-      "#fb7185"  // rose
-    ];
-
-    function pickPillColor() {
-      var n = PG_PILL_COLORS.length;
-      if (!n) return "";
-      var idx = Math.floor(Math.random() * n);
-      return PG_PILL_COLORS[idx];
-    }
-
-    function applyRandomPillColor() {
-      var nodes = document.querySelectorAll(".pg-loop-pill-value");
-      if (!nodes.length) return;
-      var color = pickPillColor();
-      if (!color) return;
-      nodes.forEach(function (node) {
-        // smooth fade between colors
-        if (!node.style.transition) {
-          node.style.transition = "color 800ms ease";
-        }
-        node.style.color = color;
-      });
-    }
-
     /* ---------- 1. Generic looping behavior for [data-sticky-loop] containers ---------- */
 
     function setupStickyLoop() {
@@ -7284,10 +7251,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
             sessions + " session" + (sessions === 1 ? "" : "s");
         }
 
-        // First neon color
-        applyRandomPillColor();
-        // Then subtly change every few seconds
-        setInterval(applyRandomPillColor, 6000);
+        // No more JS color changes; color comes from CSS only.
       } catch (e) {
         // Fail silently; this is just for engagement
         console.warn("PassingGrade progress metrics error", e);
@@ -7328,8 +7292,9 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     function wireMobileToggles() {
       var loopMenuButton = document.getElementById("pg-loop-menu-toggle");
       var loopToolsButton = document.getElementById("pg-loop-tools-toggle");
+      var navCloseButton = document.getElementById("pg-nav-close"); // close in nav
 
-      if (!loopMenuButton && !loopToolsButton) return;
+      if (!loopMenuButton && !loopToolsButton && !navCloseButton) return;
 
       // Find existing Menu / Tools controls by text (keeps your current behavior)
       var allButtons = Array.prototype.slice.call(
@@ -7357,6 +7322,31 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           toolsOriginal.click();
         });
       }
+
+      // NAV CLOSE BUTTON INSIDE MENU
+      if (navCloseButton) {
+        navCloseButton.addEventListener("click", function () {
+          // 1) Try to toggle whatever opens/closes the nav
+          if (loopMenuButton) {
+            loopMenuButton.click();
+          } else if (menuOriginal) {
+            menuOriginal.click();
+          }
+
+          // 2) Also fire Escape, which many drawers/sheets use to close
+          try {
+            var escEvt = new KeyboardEvent("keydown", {
+              key: "Escape",
+              keyCode: 27,
+              which: 27,
+              bubbles: true
+            });
+            document.dispatchEvent(escEvt);
+          } catch (e) {
+            // ignore if KeyboardEvent fails in some older browser
+          }
+        });
+      }
     }
 
     function findByText(nodes, text) {
@@ -7369,6 +7359,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     }
   })();
 </script>
+
 
 
 
