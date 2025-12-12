@@ -1850,144 +1850,7 @@ padding: 8px;
     gap: 0.25rem;
   }
 }
-/* Base toolbar layout */
-#studyHighlightToolbar.study-highlight-toolbar {
-  position: sticky;
-  top: 55px;              /* your requested offset */
-  z-index: 20;
-  padding-top: 20px;      /* your requested padding */
-  padding-bottom: 20px;
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 6px;
-  align-items: center;
-  justify-content: flex-end;  /* move text + buttons to the right */
-}
 
-/* Label */
-.study-highlight-label {
-  font-size: 12px;
-  opacity: 0.8;
-  margin-right: 4px;
-}
-
-/* Color buttons */
-.study-highlight-color-btn {
-  border-radius: 999px;
-  font-size: 11px;
-  padding: 4px 8px;
-  border: 1px solid rgba(148, 163, 184, 0.8);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-  background: transparent;
-  white-space: nowrap;
-}
-
-.study-highlight-color-btn-active {
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.8);
-}
-
-/* Color dot on each button */
-.study-highlight-color-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-}
-
-/* Apply button */
-.study-highlight-apply-btn {
-  margin-top: 6px;
-  align-self: flex-end;
-  font-size: 11px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.9);
-  background: var(--card-bg, rgba(15, 23, 42, 0.85));
-  display: inline-flex;
-  align-items: center;
-  cursor: pointer;
-}
-
-.study-highlight-apply-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  margin-left: 6px;
-}
-
-/* Grouped highlights container */
-.study-highlight-container {
-  margin-top: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.study-highlight-group {
-  border-radius: 8px;
-  padding: 6px 8px;
-  display: flex;
-  gap: 8px;
-  align-items: stretch;
-  border: 1px solid rgba(148, 163, 184, 0.5);
-}
-
-.study-highlight-strip {
-  width: 4px;
-  border-radius: 999px;
-  align-self: stretch;
-}
-
-.study-highlight-group-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.study-highlight-list {
-  list-style: none;
-  padding-left: 0;
-  margin: 0;
-  font-size: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-/* MOBILE MEDIA QUERY */
-@media (max-width: 640px) {
-  #studyHighlightToolbar.study-highlight-toolbar {
-    padding-top: 10px;
-    padding-bottom: 10px;
-    gap: 4px;
-    justify-content: flex-end;
-  }
-
-  /* hide the word "Highlight color:" on mobile */
-  .study-highlight-label {
-    display: none;
-  }
-
-  /* keep buttons on one row & make them narrower */
-  .study-highlight-color-btn {
-    padding: 3px 6px;
-    font-size: 10px;
-  }
-
-  .study-highlight-color-dot {
-    width: 8px;
-    height: 8px;
-  }
-
-  /* If needed, you can also slightly shrink the apply button text */
-  .study-highlight-apply-btn {
-    font-size: 10px;
-    padding: 3px 8px;
-  }
-}
 
 
 </style>
@@ -5897,8 +5760,8 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           position: sticky;
           top: 55px;
           z-index: 40;
-          padding-top: 20px;
-          padding-bottom: 20px;
+          padding-top: 10px;
+          padding-bottom: 10px;
           padding-left: 16px;
           padding-right: 16px;
           display: flex;
@@ -5953,24 +5816,28 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           border-radius: 999px;
         }
 
-        /* MOBILE: hide the word "Highlight" and make buttons narrow on one row */
+        /* MOBILE: keep "Highlight", hide color words, make buttons/dots bigger, single row */
         @media (max-width: 640px) {
           #studyHighlightToolbar {
             padding-top: 12px;
             padding-bottom: 12px;
-            gap: 4px;
+            gap: 6px;
             flex-wrap: nowrap;   /* keep one row */
             overflow-x: auto;    /* scroll horizontally if needed */
           }
 
-          #studyHighlightApplyBtn-label {
-            display: none;       /* word "Highlight" disappears */
+          /* Hide the color text labels, keep dot only */
+          #studyHighlightToolbar .study-color-btn {
+            font-size: 0;        /* hides the text like "Pink" visually */
+            padding: 6px 10px;   /* slightly bigger tap target on mobile */
           }
 
-          #studyHighlightToolbar .study-color-btn {
-            font-size: 10px;
-            padding: 3px 6px;    /* narrower buttons */
+          #studyHighlightToolbar .study-color-dot {
+            width: 14px;
+            height: 14px;        /* bigger dots on mobile */
           }
+
+          /* Keep the word "Highlight" visible on mobile – no override here */
         }
       `;
       document.head.appendChild(style);
@@ -6211,6 +6078,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
   }
 })();
 </script>
+
 
 
 
