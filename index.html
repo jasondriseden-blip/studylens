@@ -4825,6 +4825,9 @@ text.trim();
         wordEl.parentNode.removeChild(wordEl);
       }
     }, riseDuration + 600);
+
+    // NEW: return the color used so we can sync the card border
+    return color;
   }
 
   // Theme-aware styles for the flashcard question + background
@@ -4906,6 +4909,7 @@ text.trim();
 
     const now = Date.now();
     return temp.map((c, i) => ({
+
       id: now + "-" + i,
       front: c.front,
       back: c.back,
@@ -5310,7 +5314,10 @@ text.trim();
     }
 
     // Single colorful phrase burst from the Got it button
-    spawnGotItBurst(cardsGotItBtn);
+    const borderColor = spawnGotItBurst(cardsGotItBtn);
+    if (borderColor && cardsCard) {
+      cardsCard.style.borderColor = borderColor;
+    }
 
     updateStacksUI();
     goToNextCard(); // removed from current deck view
