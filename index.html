@@ -7119,6 +7119,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 </script>
 
 
+<!-- BLOCK PG METRICS: Sticky loop, progress pills, mobile toggles -->
 <script>
   (function () {
     function onReady(fn) {
@@ -7134,6 +7135,39 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       setupProgressMetrics();
       wireMobileToggles();
     });
+
+    /* Same neon palette as flashcards GOT IT burst */
+    var PG_PILL_COLORS = [
+      "#f97316", // orange
+      "#22c55e", // green
+      "#3b82f6", // blue
+      "#ec4899", // pink
+      "#eab308", // yellow
+      "#a855f7", // purple
+      "#06b6d4", // cyan
+      "#fb7185"  // rose
+    ];
+
+    function pickPillColor() {
+      var n = PG_PILL_COLORS.length;
+      if (!n) return "";
+      var idx = Math.floor(Math.random() * n);
+      return PG_PILL_COLORS[idx];
+    }
+
+    function applyRandomPillColor() {
+      var nodes = document.querySelectorAll(".pg-loop-pill-value");
+      if (!nodes.length) return;
+      var color = pickPillColor();
+      if (!color) return;
+      nodes.forEach(function (node) {
+        // smooth fade between colors
+        if (!node.style.transition) {
+          node.style.transition = "color 800ms ease";
+        }
+        node.style.color = color;
+      });
+    }
 
     /* ---------- 1. Generic looping behavior for [data-sticky-loop] containers ---------- */
 
@@ -7238,6 +7272,11 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
           sessionsNode.textContent =
             sessions + " session" + (sessions === 1 ? "" : "s");
         }
+
+        // First neon color
+        applyRandomPillColor();
+        // Then subtly change every few seconds
+        setInterval(applyRandomPillColor, 6000);
       } catch (e) {
         // Fail silently; this is just for engagement
         console.warn("PassingGrade progress metrics error", e);
@@ -7319,6 +7358,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     }
   })();
 </script>
+
 
 
 
