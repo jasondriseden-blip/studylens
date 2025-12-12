@@ -4224,7 +4224,10 @@ text.trim();
         items.forEach((item) => {
           const wrapper = document.createElement("div");
           wrapper.className = "tool-output-item";
-          wrapper.style.border = "1px solid rgba(148,163,184,0.4)";
+          wrapper.style.border = "1px solid var(--border-color)";
+wrapper.style.background = "var(--card-bg)";
+wrapper.style.color = "var(--text-color)";
+
           wrapper.style.borderRadius = "0.5rem";
           wrapper.style.padding = "0.5rem 0.75rem";
           wrapper.style.marginBottom = "0.5rem";
@@ -4237,8 +4240,10 @@ text.trim();
           header.style.gap = "0.5rem";
 
           const title = document.createElement("div");
-          title.style.fontSize = "0.75rem";
-          title.style.opacity = "0.8";
+          title.style.fontSize = "1rem";
+		  title.style.opacity = "1";
+title.style.color = "var(--muted-text)";
+
           const created = item.createdAt ? new Date(item.createdAt) : null;
           title.textContent =
             toolLabel +
