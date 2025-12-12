@@ -9210,342 +9210,575 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
+<!-- BLOCK: OCR button behavior (close dropdown + scroll to Snap textbox) --------------------
+--------------------------------------------------------------------------------------=----
+===========================================================================================
+===========================================================================================
+------------------------------------------------------------------------------------------->
+
 <script>
-  // When "Run OCR" is clicked:
-  // 1) close the Image actions dropdown
-  // 2) scroll to the Snap text box
-  document.addEventListener("DOMContentLoaded", () => {
-    const snapOCRBtn       = document.getElementById("snapOCRBtn");
-    const snapText         = document.getElementById("snapText");
-    const snapActionsMenu  = document.getElementById("snapActionsMenu");
+/* ===========================================================================================
+   SECTION 0: Run after DOM loads (START)
+=========================================================================================== */
+document.addEventListener("DOMContentLoaded", () => {
 
-    if (!snapOCRBtn || !snapText) return;
+  /* =========================================================================================
+     SECTION 1: Grab elements (START)
+     - snapOCRBtn: button that triggers OCR
+     - snapText: the textarea we want to scroll to
+     - snapActionsMenu: the dropdown menu we want to close (optional)
+  ========================================================================================= */
+  const snapOCRBtn      = document.getElementById("snapOCRBtn");
+  const snapText        = document.getElementById("snapText");
+  const snapActionsMenu = document.getElementById("snapActionsMenu");
 
-    snapOCRBtn.addEventListener("click", () => {
-      // Close the dropdown
-      if (snapActionsMenu) {
-        snapActionsMenu.style.display = "none";
-      }
+  // If OCR button or textbox is missing, exit safely
+  if (!snapOCRBtn || !snapText) return;
+  /* ================================= SECTION 1 (END) ==================================== */
 
-      // Smooth-scroll to the Snap textbox
-      setTimeout(() => {
-        snapText.scrollIntoView({
-          behavior: "smooth",
-          block: "center"
-        });
-      }, 50);
-    });
+
+
+  /* =========================================================================================
+     SECTION 2: Click handler (START)
+     What it does:
+     1) Close the image actions dropdown (if it exists)
+     2) Smooth-scroll to the Snap textbox
+  ========================================================================================= */
+  snapOCRBtn.addEventListener("click", () => {
+
+    /* ---- PART 2A: Close dropdown (START) ---- */
+    if (snapActionsMenu) {
+      snapActionsMenu.style.display = "none";
+    }
+    /* ---- PART 2A (END) ---- */
+
+
+    /* ---- PART 2B: Smooth scroll to Snap textbox (START) ----
+       Why the small timeout:
+       - Lets the menu close first so layout is stable before scrolling
+    */
+    setTimeout(() => {
+      snapText.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+    }, 50);
+    /* ---- PART 2B (END) ---- */
+
   });
+  /* ================================= SECTION 2 (END) ==================================== */
+
+});
+/* ================================== SECTION 0 (END) ===================================== */
 </script>
 
 
 
 
+
+<!-- BLOCK: Output format controls (Plain / MLA / APA / Chicago / IEEE) -----------------------
+--------------------------------------------------------------------------------------=----
+===========================================================================================
+===========================================================================================
+------------------------------------------------------------------------------------------->
+
 <script>
-  // Simple formatter templates for college styles
-  const OUTPUT_FORMATTERS = {
-    plain: function (text) {
-      return text;
-    },
+/* ===========================================================================================
+   SECTION 0: Format templates (START)
+   - OUTPUT_FORMATTERS is a "map" (dictionary) of formatter functions
+   - Each formatter takes plain text and returns formatted text
+=========================================================================================== */
+const OUTPUT_FORMATTERS = {
 
-    mla: function (text) {
-      return [
-        "Your Name",
-        "Professor Lastname",
-        "Course Name",
-        "Day Month Year",
-        "",
-        "(Double-spaced, Times New Roman 12, 1\" margins when you paste into Word/Docs.)",
-        "",
-        text
-      ].join("\n");
-    },
+  /* ---- PART 0A: Plain (no change) (START) ---- */
+  plain: function (text) {
+    return String(text || "");
+  },
+  /* ---- PART 0A (END) ---- */
 
-    apa: function (text) {
-      return [
-        "Title of Paper",
-        "",
-        "Your Name",
-        "Department, University Name",
-        "Course Name and Number",
-        "Instructor Name",
-        "Due Date",
-        "",
-        "(APA 7 student paper – double-spaced, 1\" margins, page number in header.)",
-        "",
-        text
-      ].join("\n");
-    },
 
-    chicago: function (text) {
-      return [
-        "Title of Paper",
-        "",
-        "Your Name",
-        "",
-        "(Chicago / Turabian – set 1\" margins, double-space, and add notes/bibliography in your doc.)",
-        "",
-        text
-      ].join("\n");
-    },
+  /* ---- PART 0B: MLA template (START) ---- */
+  mla: function (text) {
+    return [
+      "Your Name",
+      "Professor Lastname",
+      "Course Name",
+      "Day Month Year",
+      "",
+      "(Double-spaced, Times New Roman 12, 1\" margins when you paste into Word/Docs.)",
+      "",
+      String(text || "")
+    ].join("\n");
+  },
+  /* ---- PART 0B (END) ---- */
 
-    ieee: function (text) {
-      return [
-        "Paper Title",
-        "",
-        "Author Name, Department, University",
-        "",
-        "(IEEE – usually two-column layout, numbered references; adjust in your editor.)",
-        "",
-        text
-      ].join("\n");
-    }
-  };
 
-  function setupOutputFormatControls() {
-    const applyButtons = document.querySelectorAll(".output-format-apply");
+  /* ---- PART 0C: APA template (START) ---- */
+  apa: function (text) {
+    return [
+      "Title of Paper",
+      "",
+      "Your Name",
+      "Department, University Name",
+      "Course Name and Number",
+      "Instructor Name",
+      "Due Date",
+      "",
+      "(APA 7 student paper – double-spaced, 1\" margins, page number in header.)",
+      "",
+      String(text || "")
+    ].join("\n");
+  },
+  /* ---- PART 0C (END) ---- */
 
-    applyButtons.forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        const targetId = btn.getAttribute("data-target");
-        if (!targetId) return;
 
-        const pre = document.getElementById(targetId);
-        if (!pre) return;
+  /* ---- PART 0D: Chicago template (START) ---- */
+  chicago: function (text) {
+    return [
+      "Title of Paper",
+      "",
+      "Your Name",
+      "",
+      "(Chicago / Turabian – set 1\" margins, double-space, and add notes/bibliography in your doc.)",
+      "",
+      String(text || "")
+    ].join("\n");
+  },
+  /* ---- PART 0D (END) ---- */
 
-        const select = document.querySelector(
-          '.output-format-select[data-target="' + targetId + '"]'
-        );
-        if (!select) return;
 
-        const formatKey  = select.value || "plain";
-        const formatter  = OUTPUT_FORMATTERS[formatKey] || OUTPUT_FORMATTERS.plain;
-        const currentTxt = pre.textContent || "";
-
-        // (Re)capture original text whenever we finally have some content
-        if (
-          (!pre.dataset.originalText || !pre.dataset.originalText.trim()) &&
-          currentTxt.trim()
-        ) {
-          pre.dataset.originalText = currentTxt;
-        }
-
-        const base =
-          (pre.dataset.originalText && pre.dataset.originalText.trim())
-            ? pre.dataset.originalText
-            : currentTxt;
-
-        // Apply chosen format to the base text (not to already formatted text)
-        pre.textContent = formatter(base);
-      });
-    });
+  /* ---- PART 0E: IEEE template (START) ---- */
+  ieee: function (text) {
+    return [
+      "Paper Title",
+      "",
+      "Author Name, Department, University",
+      "",
+      "(IEEE – usually two-column layout, numbered references; adjust in your editor.)",
+      "",
+      String(text || "")
+    ].join("\n");
   }
+  /* ---- PART 0E (END) ---- */
 
-  // Run once when the page is ready
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", setupOutputFormatControls);
-  } else {
-    setupOutputFormatControls();
-  }
-</script>
+};
+/* ================================= SECTION 0 (END) ===================================== */
 
 
-<!-- BLOCK PG METRICS: Sticky loop, progress pills, mobile toggles -->
-<script>
-  (function () {
-    function onReady(fn) {
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", fn);
+
+/* ===========================================================================================
+   SECTION 1: setupOutputFormatControls() (START)
+   What this does:
+   - Finds every button with class ".output-format-apply"
+   - When clicked:
+       1) Finds target output element by id from data-target
+       2) Finds matching select ".output-format-select" with same data-target
+       3) Formats the output text using the chosen format
+   IMPORTANT NOTE (compatibility with your app):
+   - Some of your outputs use renderAnswer(), which replaces the element’s innerHTML.
+   - Because of that, .textContent may include extra UI text like "Copy".
+   - So we prefer to use dataset.plainText when available (your renderAnswer sets it).
+=========================================================================================== */
+function setupOutputFormatControls() {
+
+  /* ---- PART 1A: Find all apply buttons (START) ---- */
+  const applyButtons = document.querySelectorAll(".output-format-apply");
+  /* ---- PART 1A (END) ---- */
+
+
+  /* ---- PART 1B: Wire click handler for each button (START) ---- */
+  applyButtons.forEach(function (btn) {
+
+    btn.addEventListener("click", function () {
+
+      /* =============================================================================
+         STEP 1: Find which output element we’re formatting (by id)
+      ============================================================================= */
+      const targetId = btn.getAttribute("data-target");
+      if (!targetId) return;
+
+      const outputEl = document.getElementById(targetId);
+      if (!outputEl) return;
+
+      /* =============================================================================
+         STEP 2: Find the select dropdown that chooses the format
+         - It must have: class="output-format-select"
+         - And: data-target="same targetId"
+      ============================================================================= */
+      const select = document.querySelector(
+        '.output-format-select[data-target="' + targetId + '"]'
+      );
+      if (!select) return;
+
+      /* =============================================================================
+         STEP 3: Decide which formatter to use
+      ============================================================================= */
+      const formatKey = select.value || "plain";
+      const formatter =
+        OUTPUT_FORMATTERS[formatKey] || OUTPUT_FORMATTERS.plain;
+
+      /* =============================================================================
+         STEP 4: Get the *clean* current text
+         - Prefer dataset.plainText (set by renderAnswer)
+         - Fall back to textContent
+      ============================================================================= */
+      const currentTxt =
+        (outputEl.dataset && outputEl.dataset.plainText) ||
+        outputEl.textContent ||
+        "";
+
+      /* =============================================================================
+         STEP 5: Capture the original text once (so multiple formatting clicks don’t stack)
+         - Store it in: outputEl.dataset.originalText
+      ============================================================================= */
+      if (
+        (!outputEl.dataset.originalText || !outputEl.dataset.originalText.trim()) &&
+        String(currentTxt).trim()
+      ) {
+        outputEl.dataset.originalText = String(currentTxt);
+      }
+
+      /* =============================================================================
+         STEP 6: Choose base text
+         - Use originalText if we have it (best)
+         - Otherwise use current text
+      ============================================================================= */
+      const base =
+        (outputEl.dataset.originalText && outputEl.dataset.originalText.trim())
+          ? outputEl.dataset.originalText
+          : String(currentTxt);
+
+      /* =============================================================================
+         STEP 7: Apply formatting
+         IMPORTANT:
+         - If this output element is normally styled by renderAnswer(),
+           we should re-render with renderAnswer so the Copy button stays.
+         - If renderAnswer isn't available, we just set textContent.
+      ============================================================================= */
+      const formatted = formatter(base);
+
+      if (typeof renderAnswer === "function") {
+        // Keep the styled container + copy button
+        renderAnswer(outputEl, formatted);
       } else {
-        fn();
+        // Plain fallback
+        outputEl.textContent = formatted;
       }
-    }
 
-    onReady(function () {
-      setupStickyLoop();
-      setupProgressMetrics();
-      wireMobileToggles();
     });
 
-    /* ---------- 1. Generic looping behavior for [data-sticky-loop] containers ---------- */
+  });
+  /* ---- PART 1B (END) ---- */
 
-    function setupStickyLoop() {
-      var containers = document.querySelectorAll("[data-sticky-loop]");
-      containers.forEach(function (container) {
-        var rotator = container.querySelector("#pg-loop-metrics-rotator");
-        if (!rotator) return;
+}
+/* ================================= SECTION 1 (END) ===================================== */
 
-        var items = Array.from(rotator.querySelectorAll(".pg-loop-item"));
-        if (items.length <= 1) return;
 
-        var intervalMs = parseInt(
-          container.getAttribute("data-loop-interval") || "6000",
-          10
-        );
-        var index = 0;
 
-        setInterval(function () {
-          items[index].classList.remove("pg-loop-item--active");
-          index = (index + 1) % items.length;
-          items[index].classList.add("pg-loop-item--active");
-        }, intervalMs);
-      });
+/* ===========================================================================================
+   SECTION 2: Run on load (START)
+   - If DOM is still loading, wait for DOMContentLoaded
+   - Otherwise run immediately
+=========================================================================================== */
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", setupOutputFormatControls);
+} else {
+  setupOutputFormatControls();
+}
+/* ================================= SECTION 2 (END) ===================================== */
+</script>
+
+
+
+<!-- BLOCK PG METRICS: Sticky loop, progress pills, mobile toggles ---------------------------
+--------------------------------------------------------------------------------------=----
+===========================================================================================
+===========================================================================================
+------------------------------------------------------------------------------------------->
+
+<script>
+/* ===========================================================================================
+   SECTION 0: Self-contained wrapper (START)
+   - Keeps variables private
+=========================================================================================== */
+(function () {
+
+  /* =========================================================================================
+     SECTION 1: onReady helper (START)
+     - Runs your init code after DOM is ready
+  ========================================================================================= */
+  function onReady(fn) {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", fn);
+    } else {
+      fn();
     }
+  }
+  /* ================================= SECTION 1 (END) ==================================== */
 
-    /* ---------- 2. Streaks + weekly recap + session count ---------- */
 
-    function setupProgressMetrics() {
-      try {
-        var now = new Date();
-        var todayKey = now.toISOString().slice(0, 10); // YYYY-MM-DD
 
-        var lastVisit = localStorage.getItem("pg_last_visit");
-        var streakStr = localStorage.getItem("pg_streak") || "0";
-        var streak = parseInt(streakStr, 10) || 0;
+  /* =========================================================================================
+     SECTION 2: Initialize all PG metrics features (START)
+     - Sticky loop rotator
+     - Progress metrics (streak + weekly active + sessions)
+     - Mobile toggle wiring
+  ========================================================================================= */
+  onReady(function () {
+    setupStickyLoop();
+    setupProgressMetrics();
+    wireMobileToggles();
+  });
+  /* ================================= SECTION 2 (END) ==================================== */
 
-        if (!lastVisit) {
-          streak = 1;
-        } else if (lastVisit !== todayKey) {
-          var lastDate = new Date(lastVisit + "T00:00:00");
-          var diff =
-            (Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) -
-              Date.UTC(
-                lastDate.getFullYear(),
-                lastDate.getMonth(),
-                lastDate.getDate()
-              )) /
-            (1000 * 60 * 60 * 24);
 
-          if (diff === 1) {
-            streak += 1;
-          } else if (diff > 1) {
-            streak = 1; // streak broken
-          }
-        }
 
-        localStorage.setItem("pg_last_visit", todayKey);
-        localStorage.setItem("pg_streak", String(streak));
+  /* =========================================================================================
+     SECTION 3: Sticky loop rotator (START)
+     - Looks for containers with [data-sticky-loop]
+     - Inside each container it looks for #pg-loop-metrics-rotator
+     - Rotates children with class ".pg-loop-item"
+     IMPORTANT FIX:
+     - Prevents multiple intervals if this script runs more than once
+       (stores interval id on the container)
+  ========================================================================================= */
+  function setupStickyLoop() {
+    var containers = document.querySelectorAll("[data-sticky-loop]");
 
-        // Weekly active days (Mon–Sun)
-        var activeDaysRaw = localStorage.getItem("pg_active_days");
-        var activeDays = activeDaysRaw ? JSON.parse(activeDaysRaw) : {};
-        activeDays[todayKey] = true;
-        localStorage.setItem("pg_active_days", JSON.stringify(activeDays));
+    containers.forEach(function (container) {
+      var rotator = container.querySelector("#pg-loop-metrics-rotator");
+      if (!rotator) return;
 
-        var weeklyCount = countActiveDaysThisWeek(activeDays, now);
+      var items = Array.from(rotator.querySelectorAll(".pg-loop-item"));
+      if (items.length <= 1) return;
 
-        // Simple “session count”: increment when page is loaded
-        var sessionsRaw = localStorage.getItem("pg_sessions_this_week") || "0";
-        var sessions = parseInt(sessionsRaw, 10) || 0;
-        var weekKey = getWeekKey(now);
-        var lastWeekKey = localStorage.getItem("pg_sessions_week_key");
+      // If we already started an interval for this container, don't start another one
+      if (container.dataset && container.dataset.pgLoopIntervalId) return;
 
-        if (lastWeekKey !== weekKey) {
-          // new week -> reset
-          sessions = 0;
-        }
-        sessions += 1;
-
-        localStorage.setItem("pg_sessions_this_week", String(sessions));
-        localStorage.setItem("pg_sessions_week_key", weekKey);
-
-        // Write into the pills
-        var streakNode = document.querySelector("[data-pg-streak-value]");
-        if (streakNode) {
-          streakNode.textContent =
-            streak + " day" + (streak === 1 ? "" : "s") + " in a row";
-        }
-
-        var weeklyNode = document.querySelector("[data-pg-weekly-summary]");
-        if (weeklyNode) {
-          weeklyNode.textContent =
-            weeklyCount +
-            " active day" +
-            (weeklyCount === 1 ? "" : "s") +
-            " this week";
-        }
-
-        var sessionsNode = document.querySelector("[data-pg-session-count]");
-        if (sessionsNode) {
-          sessionsNode.textContent =
-            sessions + " session" + (sessions === 1 ? "" : "s");
-        }
-
-        // No more JS color changes; color comes from CSS only.
-      } catch (e) {
-        // Fail silently; this is just for engagement
-        console.warn("PassingGrade progress metrics error", e);
-      }
-    }
-
-    function getWeekKey(date) {
-      var d = new Date(
-        Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+      var intervalMs = parseInt(
+        container.getAttribute("data-loop-interval") || "6000",
+        10
       );
-      var dayNum = d.getUTCDay() || 7;
-      d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-      var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-      var weekNo = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
-      return d.getUTCFullYear() + "-W" + weekNo;
-    }
+      if (!intervalMs || intervalMs < 500) intervalMs = 6000; // safety
 
-    function countActiveDaysThisWeek(activeDaysObj, now) {
-      var count = 0;
-      var today = new Date(
-        Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
-      );
-      var dayNum = today.getUTCDay() || 7; // 1-7 (Mon-Sun)
-      var monday = new Date(today);
-      monday.setUTCDate(today.getUTCDate() - (dayNum - 1)); // go back to Monday
+      var index = 0;
 
-      for (var i = 0; i < 7; i++) {
-        var d = new Date(monday);
-        d.setUTCDate(monday.getUTCDate() + i);
-        var key = d.toISOString().slice(0, 10);
-        if (activeDaysObj[key]) count++;
-      }
-      return count;
-    }
-
-    /* ---------- 3. Wire Menu & Tools toggles into the sticky loop (mobile) ---------- */
-
-    function wireMobileToggles() {
-      var loopMenuButton = document.getElementById("pg-loop-menu-toggle");
-      var loopToolsButton = document.getElementById("pg-loop-tools-toggle");
-      var navCloseButton = document.getElementById("pg-nav-close"); // close in nav
-
-      if (!loopMenuButton && !loopToolsButton && !navCloseButton) return;
-
-      // Find existing Menu / Tools controls by text (keeps your current behavior)
-      var allButtons = Array.prototype.slice.call(
-        document.querySelectorAll("button, [role='button']")
-      );
-
-      var menuOriginal = findByText(allButtons, "Menu");
-      var toolsOriginal = findByText(allButtons, "Tools");
-
-      // Mark originals as "mobile-hide" without changing desktop behavior
-      [menuOriginal, toolsOriginal].forEach(function (el) {
-        if (el && !el.classList.contains("pg-mobile-hide-original-toggle")) {
-          el.classList.add("pg-mobile-hide-original-toggle");
-        }
+      // Make sure exactly one is active at start (optional safety)
+      items.forEach(function (it, i) {
+        it.classList.toggle("pg-loop-item--active", i === index);
       });
 
-      if (loopMenuButton && menuOriginal) {
+      var intervalId = setInterval(function () {
+        items[index].classList.remove("pg-loop-item--active");
+        index = (index + 1) % items.length;
+        items[index].classList.add("pg-loop-item--active");
+      }, intervalMs);
+
+      // Store interval id so we don’t create duplicates
+      container.dataset.pgLoopIntervalId = String(intervalId);
+    });
+  }
+  /* ================================= SECTION 3 (END) ==================================== */
+
+
+
+  /* =========================================================================================
+     SECTION 4: Progress metrics (START)
+     - Streak tracking: pg_last_visit + pg_streak
+     - Weekly active days: pg_active_days (object of dates -> true)
+     - Sessions this week: pg_sessions_this_week + pg_sessions_week_key
+     - Writes results into:
+         [data-pg-streak-value]
+         [data-pg-weekly-summary]
+         [data-pg-session-count]
+  ========================================================================================= */
+  function setupProgressMetrics() {
+    try {
+      var now = new Date();
+      var todayKey = now.toISOString().slice(0, 10); // YYYY-MM-DD
+
+      /* ---- PART 4A: Streak logic (START) ---- */
+      var lastVisit = localStorage.getItem("pg_last_visit");
+      var streakStr = localStorage.getItem("pg_streak") || "0";
+      var streak = parseInt(streakStr, 10) || 0;
+
+      if (!lastVisit) {
+        streak = 1;
+      } else if (lastVisit !== todayKey) {
+        var lastDate = new Date(lastVisit + "T00:00:00");
+
+        // difference in days, in UTC (so it works across timezones)
+        var diff =
+          (Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) -
+            Date.UTC(
+              lastDate.getFullYear(),
+              lastDate.getMonth(),
+              lastDate.getDate()
+            )) /
+          (1000 * 60 * 60 * 24);
+
+        if (diff === 1) {
+          streak += 1;
+        } else if (diff > 1) {
+          streak = 1; // streak broken
+        }
+      }
+
+      localStorage.setItem("pg_last_visit", todayKey);
+      localStorage.setItem("pg_streak", String(streak));
+      /* ---- PART 4A (END) ---- */
+
+
+      /* ---- PART 4B: Weekly active days (START) ---- */
+      var activeDaysRaw = localStorage.getItem("pg_active_days");
+      var activeDays = activeDaysRaw ? JSON.parse(activeDaysRaw) : {};
+      activeDays[todayKey] = true;
+      localStorage.setItem("pg_active_days", JSON.stringify(activeDays));
+
+      var weeklyCount = countActiveDaysThisWeek(activeDays, now);
+      /* ---- PART 4B (END) ---- */
+
+
+      /* ---- PART 4C: Sessions this week (START) ---- */
+      var sessionsRaw = localStorage.getItem("pg_sessions_this_week") || "0";
+      var sessions = parseInt(sessionsRaw, 10) || 0;
+
+      var weekKey = getWeekKey(now);
+      var lastWeekKey = localStorage.getItem("pg_sessions_week_key");
+
+      if (lastWeekKey !== weekKey) {
+        sessions = 0; // new week -> reset
+      }
+      sessions += 1;
+
+      localStorage.setItem("pg_sessions_this_week", String(sessions));
+      localStorage.setItem("pg_sessions_week_key", weekKey);
+      /* ---- PART 4C (END) ---- */
+
+
+      /* ---- PART 4D: Write into the UI pills (START) ---- */
+      var streakNode = document.querySelector("[data-pg-streak-value]");
+      if (streakNode) {
+        streakNode.textContent =
+          streak + " day" + (streak === 1 ? "" : "s") + " in a row";
+      }
+
+      var weeklyNode = document.querySelector("[data-pg-weekly-summary]");
+      if (weeklyNode) {
+        weeklyNode.textContent =
+          weeklyCount +
+          " active day" +
+          (weeklyCount === 1 ? "" : "s") +
+          " this week";
+      }
+
+      var sessionsNode = document.querySelector("[data-pg-session-count]");
+      if (sessionsNode) {
+        sessionsNode.textContent =
+          sessions + " session" + (sessions === 1 ? "" : "s");
+      }
+      /* ---- PART 4D (END) ---- */
+
+    } catch (e) {
+      // Fail silently; this is just for engagement
+      console.warn("PassingGrade progress metrics error", e);
+    }
+  }
+  /* ================================= SECTION 4 (END) ==================================== */
+
+
+
+  /* =========================================================================================
+     SECTION 5: Week helpers (START)
+     - getWeekKey(): returns ISO-ish week key like "2025-W50"
+     - countActiveDaysThisWeek(): counts Mon–Sun in activeDaysObj
+  ========================================================================================= */
+  function getWeekKey(date) {
+    var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    var dayNum = d.getUTCDay() || 7; // 1-7 (Mon-Sun)
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    var weekNo = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+    return d.getUTCFullYear() + "-W" + weekNo;
+  }
+
+  function countActiveDaysThisWeek(activeDaysObj, now) {
+    var count = 0;
+    var today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+    var dayNum = today.getUTCDay() || 7; // 1-7 (Mon-Sun)
+
+    var monday = new Date(today);
+    monday.setUTCDate(today.getUTCDate() - (dayNum - 1)); // back to Monday
+
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(monday);
+      d.setUTCDate(monday.getUTCDate() + i);
+      var key = d.toISOString().slice(0, 10);
+      if (activeDaysObj[key]) count++;
+    }
+    return count;
+  }
+  /* ================================= SECTION 5 (END) ==================================== */
+
+
+
+  /* =========================================================================================
+     SECTION 6: Mobile toggles wiring (START)
+     - Wires sticky-loop buttons to trigger the original Menu/Tools buttons
+     - Also wires a nav close button to close the menu + send Escape
+     IMPORTANT FIX:
+     - Adds "already wired" guards so repeated calls don’t add duplicate listeners
+  ========================================================================================= */
+  function wireMobileToggles() {
+    var loopMenuButton = document.getElementById("pg-loop-menu-toggle");
+    var loopToolsButton = document.getElementById("pg-loop-tools-toggle");
+    var navCloseButton = document.getElementById("pg-nav-close");
+
+    if (!loopMenuButton && !loopToolsButton && !navCloseButton) return;
+
+    // Find existing Menu / Tools controls by text (keeps your current behavior)
+    var allButtons = Array.prototype.slice.call(
+      document.querySelectorAll("button, [role='button']")
+    );
+
+    var menuOriginal = findByText(allButtons, "Menu");
+    var toolsOriginal = findByText(allButtons, "Tools");
+
+    // Hide originals on mobile only via CSS hook class (no behavior change)
+    [menuOriginal, toolsOriginal].forEach(function (el) {
+      if (el && !el.classList.contains("pg-mobile-hide-original-toggle")) {
+        el.classList.add("pg-mobile-hide-original-toggle");
+      }
+    });
+
+    /* ---- PART 6A: Loop Menu -> click original Menu (START) ---- */
+    if (loopMenuButton && menuOriginal) {
+      if (!loopMenuButton.dataset.pgWired) {
+        loopMenuButton.dataset.pgWired = "1";
         loopMenuButton.addEventListener("click", function () {
           menuOriginal.click();
         });
       }
+    }
+    /* ---- PART 6A (END) ---- */
 
-      if (loopToolsButton && toolsOriginal) {
+    /* ---- PART 6B: Loop Tools -> click original Tools (START) ---- */
+    if (loopToolsButton && toolsOriginal) {
+      if (!loopToolsButton.dataset.pgWired) {
+        loopToolsButton.dataset.pgWired = "1";
         loopToolsButton.addEventListener("click", function () {
           toolsOriginal.click();
         });
       }
+    }
+    /* ---- PART 6B (END) ---- */
 
-      // NAV CLOSE BUTTON INSIDE MENU
-      if (navCloseButton) {
+    /* ---- PART 6C: Nav close button behavior (START) ---- */
+    if (navCloseButton) {
+      if (!navCloseButton.dataset.pgWired) {
+        navCloseButton.dataset.pgWired = "1";
         navCloseButton.addEventListener("click", function () {
+
           // 1) Try to toggle whatever opens/closes the nav
           if (loopMenuButton) {
             loopMenuButton.click();
@@ -9553,7 +9786,7 @@ document.addEventListener("DOMContentLoaded", () => {
             menuOriginal.click();
           }
 
-          // 2) Also fire Escape, which many drawers/sheets use to close
+          // 2) Also fire Escape (some drawers/sheets listen for this)
           try {
             var escEvt = new KeyboardEvent("keydown", {
               key: "Escape",
@@ -9563,66 +9796,127 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             document.dispatchEvent(escEvt);
           } catch (e) {
-            // ignore if KeyboardEvent fails in some older browser
+            // ignore if KeyboardEvent fails
           }
         });
       }
     }
+    /* ---- PART 6C (END) ---- */
+  }
+  /* ================================= SECTION 6 (END) ==================================== */
 
-    function findByText(nodes, text) {
-      text = text.toLowerCase();
-      for (var i = 0; i < nodes.length; i++) {
-        var t = (nodes[i].textContent || "").toLowerCase();
-        if (t.indexOf(text) !== -1) return nodes[i];
-      }
-      return null;
+
+
+  /* =========================================================================================
+     SECTION 7: findByText helper (START)
+     - Finds the first node whose textContent contains the requested word
+     IMPORTANT NOTE:
+     - This keeps your original behavior, but it can match more than you expect
+       (example: "Menu" might match "Menu Settings").
+=========================================================================================== */
+  function findByText(nodes, text) {
+    text = String(text || "").toLowerCase();
+    for (var i = 0; i < nodes.length; i++) {
+      var t = (nodes[i].textContent || "").toLowerCase();
+      if (t.indexOf(text) !== -1) return nodes[i];
     }
-  })();
+    return null;
+  }
+  /* ================================= SECTION 7 (END) ==================================== */
+
+})(); // end IIFE
+/* ================================== SECTION 0 (END) ===================================== */
 </script>
 
 
 
 
+
+<!-- BLOCK: Sticky loop "stuck" state watcher (adds/removes .pg-is-stuck) --------------------
+--------------------------------------------------------------------------------------=----
+===========================================================================================
+===========================================================================================
+------------------------------------------------------------------------------------------->
 
 <script>
-  (function () {
-    function onReady(fn) {
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", fn);
-      } else {
-        fn();
-      }
+/* ===========================================================================================
+   SECTION 0: Self-contained wrapper (START)
+   - Keeps variables private
+=========================================================================================== */
+(function () {
+
+  /* =========================================================================================
+     SECTION 1: onReady helper (START)
+     - Runs once the DOM is ready
+  ========================================================================================= */
+  function onReady(fn) {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", fn);
+    } else {
+      fn();
     }
+  }
+  /* ================================= SECTION 1 (END) ==================================== */
 
-    onReady(function () {
-      var header = document.querySelector("header");
-      var sticky = document.getElementById("pg-sticky-loop-shell");
-      if (!header || !sticky) return;
 
-      var observer = new IntersectionObserver(
-        function (entries) {
-          entries.forEach(function (entry) {
-            if (entry.isIntersecting) {
-              // header visible -> not stuck
-              sticky.classList.remove("pg-is-stuck");
-            } else {
-              // header scrolled off -> sticky bar is stuck
-              sticky.classList.add("pg-is-stuck");
-            }
-          });
-        },
-        {
-          threshold: 0
-        }
-      );
 
-      observer.observe(header);
-    });
-  })();
+  /* =========================================================================================
+     SECTION 2: Initialize observer on ready (START)
+  ========================================================================================= */
+  onReady(function () {
+
+    /* ---- PART 2A: Find elements (START) ---- */
+    var header = document.querySelector("header");
+    var sticky = document.getElementById("pg-sticky-loop-shell");
+    if (!header || !sticky) return;
+    /* ---- PART 2A (END) ---- */
+
+
+    /* ---- PART 2B: Prevent double-wiring (START) ----
+       - If this script is included twice, we don't want multiple observers.
+       - We'll mark the sticky element as "wired".
+    */
+    if (sticky.dataset && sticky.dataset.pgStuckObserverWired === "1") return;
+    if (sticky.dataset) sticky.dataset.pgStuckObserverWired = "1";
+    /* ---- PART 2B (END) ---- */
+
+
+    /* ---- PART 2C: Create the IntersectionObserver (START) ----
+       What it does:
+       - Watches the <header>
+       - If header is visible -> sticky bar is NOT stuck
+       - If header is not visible -> sticky bar IS stuck
+    */
+    var observer = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            // header visible -> not stuck
+            sticky.classList.remove("pg-is-stuck");
+          } else {
+            // header scrolled off -> sticky bar is stuck
+            sticky.classList.add("pg-is-stuck");
+          }
+        });
+      },
+      {
+        threshold: 0
+      }
+    );
+    /* ---- PART 2C (END) ---- */
+
+
+    /* ---- PART 2D: Start observing (START) ---- */
+    observer.observe(header);
+    /* ---- PART 2D (END) ---- */
+
+  });
+  /* ================================= SECTION 2 (END) ==================================== */
+
+})(); // end IIFE
+/* ================================== SECTION 0 (END) ===================================== */
 </script>
 
+
 </body>
-
-
-
 </html>
