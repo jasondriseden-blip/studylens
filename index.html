@@ -4723,6 +4723,11 @@ text.trim();
     const phrase = pickGotItPhrase();
     const color = pickGotItColor();
 
+    // 🔹 Also color the flashcard border to match this burst color
+    if (cardsCard) {
+      cardsCard.style.borderColor = color;
+    }
+
     const wordEl = document.createElement("div");
     wordEl.textContent = phrase;
 
@@ -4825,9 +4830,6 @@ text.trim();
         wordEl.parentNode.removeChild(wordEl);
       }
     }, riseDuration + 600);
-
-    // NEW: return the color used so we can sync the card border
-    return color;
   }
 
   // Theme-aware styles for the flashcard question + background
@@ -4909,7 +4911,6 @@ text.trim();
 
     const now = Date.now();
     return temp.map((c, i) => ({
-
       id: now + "-" + i,
       front: c.front,
       back: c.back,
@@ -5124,6 +5125,11 @@ text.trim();
     });
   }
 
+  function cleanSide(raw) {
+    if (raw == null) return "";
+    return String(raw).replace(/\s+$/g, "").replace(/^\s+/g, "");
+  }
+
   function renderCurrentCard() {
     if (!cardsViewer) return;
 
@@ -5314,10 +5320,7 @@ text.trim();
     }
 
     // Single colorful phrase burst from the Got it button
-    const borderColor = spawnGotItBurst(cardsGotItBtn);
-    if (borderColor && cardsCard) {
-      cardsCard.style.borderColor = borderColor;
-    }
+    spawnGotItBurst(cardsGotItBtn);
 
     updateStacksUI();
     goToNextCard(); // removed from current deck view
@@ -5339,6 +5342,12 @@ text.trim();
     saveFlashcards(flashcards);
     saveFlashcardsState();
     updateStacksUI();
+
+    // 🔹 Reset border back to theme default for "Need work"
+    if (cardsCard) {
+      cardsCard.style.borderColor = "";
+    }
+
     goToNextCard();
   });
 </script>
