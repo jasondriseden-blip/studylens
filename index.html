@@ -2762,6 +2762,17 @@ padding: 8px;
       <div class="side-drawer-inner">
         <div class="side-drawer-header">TOOLS</div>
         <nav class="side-nav">
+		
+		<button
+  id="pg-nav-close"
+  type="button"
+  class="pg-nav-close inline-flex items-center gap-2 px-3 py-2 rounded-md"
+>
+  <span>Close</span>
+  <!-- optional icon -->
+  <!-- <span aria-hidden="true">✕</span> -->
+</button>
+
           <!-- NEW: OCR tool -->
           <button class="nav-btn active" data-target="snap" type="button">
             <span class="material-symbols-outlined">scan</span>
@@ -7328,8 +7339,9 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     function wireMobileToggles() {
       var loopMenuButton = document.getElementById("pg-loop-menu-toggle");
       var loopToolsButton = document.getElementById("pg-loop-tools-toggle");
+      var navCloseButton = document.getElementById("pg-nav-close"); // close in nav
 
-      if (!loopMenuButton && !loopToolsButton) return;
+      if (!loopMenuButton && !loopToolsButton && !navCloseButton) return;
 
       // Find existing Menu / Tools controls by text (keeps your current behavior)
       var allButtons = Array.prototype.slice.call(
@@ -7355,6 +7367,31 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       if (loopToolsButton && toolsOriginal) {
         loopToolsButton.addEventListener("click", function () {
           toolsOriginal.click();
+        });
+      }
+
+      // NAV CLOSE BUTTON INSIDE MENU
+      if (navCloseButton) {
+        navCloseButton.addEventListener("click", function () {
+          // 1) Try to toggle whatever opens/closes the nav
+          if (loopMenuButton) {
+            loopMenuButton.click();
+          } else if (menuOriginal) {
+            menuOriginal.click();
+          }
+
+          // 2) Also fire Escape, which many drawers/sheets use to close
+          try {
+            var escEvt = new KeyboardEvent("keydown", {
+              key: "Escape",
+              keyCode: 27,
+              which: 27,
+              bubbles: true
+            });
+            document.dispatchEvent(escEvt);
+          } catch (e) {
+            // ignore if KeyboardEvent fails in some older browser
+          }
         });
       }
     }
