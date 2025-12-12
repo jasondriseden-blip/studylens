@@ -1850,33 +1850,142 @@ padding: 8px;
     gap: 0.25rem;
   }
 }
-/* Mobile styles for Study highlighter toolbar */
+/* Base toolbar layout */
+#studyHighlightToolbar.study-highlight-toolbar {
+  position: sticky;
+  top: 55px;              /* your requested offset */
+  z-index: 20;
+  padding-top: 20px;      /* your requested padding */
+  padding-bottom: 20px;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;  /* move text + buttons to the right */
+}
+
+/* Label */
+.study-highlight-label {
+  font-size: 12px;
+  opacity: 0.8;
+  margin-right: 4px;
+}
+
+/* Color buttons */
+.study-highlight-color-btn {
+  border-radius: 999px;
+  font-size: 11px;
+  padding: 4px 8px;
+  border: 1px solid rgba(148, 163, 184, 0.8);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  background: transparent;
+  white-space: nowrap;
+}
+
+.study-highlight-color-btn-active {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.8);
+}
+
+/* Color dot on each button */
+.study-highlight-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+/* Apply button */
+.study-highlight-apply-btn {
+  margin-top: 6px;
+  align-self: flex-end;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.9);
+  background: var(--card-bg, rgba(15, 23, 42, 0.85));
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.study-highlight-apply-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  margin-left: 6px;
+}
+
+/* Grouped highlights container */
+.study-highlight-container {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.study-highlight-group {
+  border-radius: 8px;
+  padding: 6px 8px;
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+}
+
+.study-highlight-strip {
+  width: 4px;
+  border-radius: 999px;
+  align-self: stretch;
+}
+
+.study-highlight-group-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.study-highlight-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* MOBILE MEDIA QUERY */
 @media (max-width: 640px) {
-  /* Keep everything in ONE row, allow horizontal scroll instead of wrapping */
-  #studyHighlightToolbar {
-    flex-wrap: nowrap !important;
-    overflow-x: auto;
-    justify-content: flex-end; /* still right-aligned */
+  #studyHighlightToolbar.study-highlight-toolbar {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    gap: 4px;
+    justify-content: flex-end;
   }
 
-  /* Hide the word "Highlight color:" on mobile */
-  #studyHighlightToolbar .study-highlight-label {
+  /* hide the word "Highlight color:" on mobile */
+  .study-highlight-label {
     display: none;
   }
 
-  /* Make color buttons narrower so they don't wrap */
-  #studyHighlightToolbar button[data-color-key] {
-    padding: 2px 6px !important;
-    font-size: 10px !important;
-    gap: 2px !important;
-    white-space: nowrap;
-    flex: 0 0 auto; /* don't shrink awkwardly */
+  /* keep buttons on one row & make them narrower */
+  .study-highlight-color-btn {
+    padding: 3px 6px;
+    font-size: 10px;
   }
 
-  /* Optional: slightly smaller dots */
-  #studyHighlightToolbar button[data-color-key] span {
+  .study-highlight-color-dot {
     width: 8px;
     height: 8px;
+  }
+
+  /* If needed, you can also slightly shrink the apply button text */
+  .study-highlight-apply-btn {
+    font-size: 10px;
+    padding: 3px 8px;
   }
 }
 
@@ -5774,51 +5883,15 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
 <!-- BLOCK STUDY: Neon highlighting + grouped snippets for Study tool (desktop + mobile, multi-word) -->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    const studyResult = document.getElementById("studyResult");
-    if (!studyResult) return;
+    let studyResult = document.getElementById("studyResult");
 
-    // 5 NEON HIGHLIGHTER COLORS (easily tweakable)
+    // 5 NEON HIGHLIGHTER COLORS
     const STUDY_HIGHLIGHT_COLORS = [
-      {
-        key: "yellow",
-        label: "Yellow",
-        lightBg: "rgba(250, 204, 21, 0.35)", // neon-ish yellow
-        darkBg: "rgba(234, 179, 8, 0.45)",
-        lightText: "",
-        darkText: ""
-      },
-      {
-        key: "blue",
-        label: "Blue",
-        lightBg: "rgba(56, 189, 248, 0.35)", // bright cyan-blue
-        darkBg: "rgba(56, 189, 248, 0.45)",
-        lightText: "",
-        darkText: ""
-      },
-      {
-        key: "green",
-        label: "Green",
-        lightBg: "rgba(74, 222, 128, 0.35)", // neon green
-        darkBg: "rgba(34, 197, 94, 0.45)",
-        lightText: "",
-        darkText: ""
-      },
-      {
-        key: "pink",
-        label: "Pink",
-        lightBg: "rgba(244, 114, 182, 0.35)", // hot pink
-        darkBg: "rgba(236, 72, 153, 0.45)",
-        lightText: "",
-        darkText: ""
-      },
-      {
-        key: "purple",
-        label: "Purple",
-        lightBg: "rgba(168, 85, 247, 0.35)", // neon purple
-        darkBg: "rgba(129, 56, 231, 0.45)",
-        lightText: "",
-        darkText: ""
-      }
+      { key: "yellow", label: "Yellow", bg: "rgba(250, 204, 21, 0.35)" },
+      { key: "blue",   label: "Blue",   bg: "rgba(56, 189, 248, 0.35)" },
+      { key: "green",  label: "Green",  bg: "rgba(74, 222, 128, 0.35)" },
+      { key: "pink",   label: "Pink",   bg: "rgba(244, 114, 182, 0.35)" },
+      { key: "purple", label: "Purple", bg: "rgba(168, 85, 247, 0.35)" }
     ];
 
     const studyHighlightToolbarId   = "studyHighlightToolbar";
@@ -5831,10 +5904,6 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       studyHighlightsByColor[cfg.key] = [];
     });
 
-    function getTheme() {
-      return document.documentElement.getAttribute("data-theme") || "dark";
-    }
-
     function getColorConfig(key) {
       return STUDY_HIGHLIGHT_COLORS.find((c) => c.key === key);
     }
@@ -5843,247 +5912,10 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       if (!span || !span.dataset) return;
       const cfg = getColorConfig(span.dataset.colorKey);
       if (!cfg) return;
-      const theme = getTheme();
-      const bg = theme === "light" ? cfg.lightBg : cfg.darkBg;
-      const textColor = theme === "light" ? cfg.lightText : cfg.darkText;
 
-      span.style.backgroundColor = bg;
+      span.style.backgroundColor = cfg.bg;
       span.style.borderRadius = "3px";
       span.style.padding = "0 2px";
-
-      if (textColor) {
-        span.style.color = textColor; // override text color if configured
-      } else {
-        span.style.removeProperty("color"); // keep default (e.g. white in dark theme)
-      }
-    }
-
-    function updateAllStudyHighlightSpans() {
-      const spans = document.querySelectorAll(".study-highlight-token");
-      spans.forEach(applyHighlightStylesToSpan);
-    }
-
-    // Watch for theme changes so highlights match dark/light themes
-    (function watchThemeForStudyHighlights() {
-      if (typeof MutationObserver !== "function") return;
-      const obs = new MutationObserver((mutations) => {
-        for (const m of mutations) {
-          if (m.type === "attributes" && m.attributeName === "data-theme") {
-            updateAllStudyHighlightSpans();
-            break;
-          }
-        }
-      });
-      obs.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ["data-theme"]
-      });
-    })();
-
-    // Build toolbar + grouped highlight container under/inside #studyResult
-    function ensureStudyHighlightUI() {
-      if (!studyResult) return;
-
-      let toolbar   = document.getElementById(studyHighlightToolbarId);
-      let container = document.getElementById(studyHighlightContainerId);
-      let applyBtn  = document.getElementById(studyHighlightApplyBtnId);
-
-      // Toolbar with color buttons
-      if (!toolbar) {
-        toolbar = document.createElement("div");
-        toolbar.id = studyHighlightToolbarId;
-        toolbar.style.display = "flex";
-        toolbar.style.flexWrap = "wrap";
-        toolbar.style.gap = "6px";
-        toolbar.style.marginBottom = "8px";
-        toolbar.style.alignItems = "center";
-
-        // RIGHT align
-        toolbar.style.justifyContent = "flex-end";
-
-        // sticky with your offsets
-        toolbar.style.position = "sticky";
-        toolbar.style.top = "55px";
-        toolbar.style.zIndex = "10";
-        toolbar.style.background = "var(--card-bg, rgba(15,23,42,0.95))";
-        toolbar.style.paddingTop = "20px";
-        toolbar.style.paddingBottom = "20px";
-
-        const label = document.createElement("span");
-        label.textContent = "Highlight color:";
-        label.className = "study-highlight-label"; // for mobile hiding
-        label.style.fontSize = "12px";
-        label.style.opacity = "0.8";
-        toolbar.appendChild(label);
-
-        STUDY_HIGHLIGHT_COLORS.forEach((cfg) => {
-          const btn = document.createElement("button");
-          btn.type = "button";
-          btn.textContent = cfg.label;
-          btn.dataset.colorKey = cfg.key;
-          btn.style.borderRadius = "999px";
-          btn.style.fontSize = "11px";
-          btn.style.padding = "4px 8px";
-          btn.style.border = "1px solid rgba(148,163,184,0.8)";
-          btn.style.display = "inline-flex";
-          btn.style.alignItems = "center";
-          btn.style.gap = "4px";
-          btn.style.cursor = "pointer";
-          btn.style.background = "transparent";
-
-          const dot = document.createElement("span");
-          dot.style.width = "10px";
-          dot.style.height = "10px";
-          dot.style.borderRadius = "999px";
-          dot.style.backgroundColor = cfg.lightBg.replace(/, ?0\.\d+\)/, ", 1)"); // full opacity
-
-          btn.appendChild(dot);
-
-          btn.addEventListener("click", () => {
-            currentStudyColorKey = cfg.key;
-            Array.from(toolbar.querySelectorAll("button[data-color-key]")).forEach((b) => {
-              if (b.dataset.colorKey === currentStudyColorKey) {
-                b.style.boxShadow = "0 0 0 2px rgba(59,130,246,0.8)";
-              } else {
-                b.style.boxShadow = "none";
-              }
-            });
-
-            // update apply button dot color if it exists
-            const dotEl = document.getElementById(studyHighlightApplyBtnId + "-dot");
-            if (dotEl) {
-              const cfgNow = getColorConfig(currentStudyColorKey) || STUDY_HIGHLIGHT_COLORS[0];
-              dotEl.style.backgroundColor = cfgNow.lightBg.replace(/, ?0\.\d+\)/, ", 1)");
-            }
-          });
-
-          toolbar.appendChild(btn);
-        });
-
-        // mark first active
-        setTimeout(() => {
-          const firstBtn = toolbar.querySelector(
-            'button[data-color-key="' + currentStudyColorKey + '"]'
-          );
-          if (firstBtn) {
-            firstBtn.style.boxShadow = "0 0 0 2px rgba(59,130,246,0.8)";
-          }
-        }, 0);
-
-        // insert toolbar at the TOP INSIDE the studyResult div
-        if (studyResult.firstChild) {
-          studyResult.insertBefore(toolbar, studyResult.firstChild);
-        } else {
-          studyResult.appendChild(toolbar);
-        }
-      }
-
-      // Container for grouped highlights
-      if (!container) {
-        container = document.createElement("div");
-        container.id = studyHighlightContainerId;
-        container.style.marginTop = "8px";
-        container.style.display = "none"; // hidden until we have at least one highlight
-        container.style.flexDirection = "column";
-        container.style.gap = "8px";
-
-        const toolbarEl = document.getElementById(studyHighlightToolbarId);
-        if (toolbarEl && toolbarEl.nextSibling) {
-          toolbarEl.parentNode.insertBefore(container, toolbarEl.nextSibling);
-        } else if (toolbarEl) {
-          toolbarEl.parentNode.appendChild(container);
-        }
-
-        // build groups (one per color)
-        STUDY_HIGHLIGHT_COLORS.forEach((cfg) => {
-          const group = document.createElement("div");
-          group.className = "study-highlight-group";
-          group.dataset.colorKey = cfg.key;
-          group.style.borderRadius = "8px";
-          group.style.padding = "6px 8px";
-          group.style.display = "none"; // hide until this color has items
-          group.style.gap = "8px";
-          group.style.alignItems = "stretch";
-          group.style.border = "1px solid rgba(148,163,184,0.5)";
-
-          // vertical color strip ONLY
-          const strip = document.createElement("div");
-          strip.style.width = "4px";
-          strip.style.borderRadius = "999px";
-          strip.style.alignSelf = "stretch";
-          const base = cfg.darkBg || cfg.lightBg;
-          strip.style.backgroundColor = base.replace(/, ?0\.\d+\)/, ", 1)");
-
-          const content = document.createElement("div");
-          content.style.flex = "1";
-          content.style.display = "flex";
-          content.style.flexDirection = "column";
-
-          const list = document.createElement("ul");
-          list.className = "study-highlight-list";
-          list.style.listStyle = "none";
-          list.style.paddingLeft = "0";
-          list.style.margin = "0";
-          list.style.fontSize = "12px";
-          list.style.display = "flex";
-          list.style.flexDirection = "column";
-          list.style.gap = "2px";
-
-          content.appendChild(list);
-          group.appendChild(strip);
-          group.appendChild(content);
-          container.appendChild(group);
-        });
-      }
-
-      // "Highlight selection" button (works on touch + desktop)
-      if (!applyBtn) {
-        applyBtn = document.createElement("button");
-        applyBtn.id = studyHighlightApplyBtnId;
-        applyBtn.type = "button";
-        applyBtn.textContent = "Highlight selection";
-        applyBtn.style.marginTop = "6px";
-        applyBtn.style.alignSelf = "flex-start";
-        applyBtn.style.fontSize = "11px";
-        applyBtn.style.padding = "4px 10px";
-        applyBtn.style.borderRadius = "999px";
-        applyBtn.style.border = "1px solid rgba(148,163,184,0.9)";
-        applyBtn.style.background = "var(--card-bg, rgba(15,23,42,0.85))";
-        applyBtn.style.display = "none"; // only visible when there is a selection
-        applyBtn.style.cursor = "pointer";
-
-        const dot = document.createElement("span");
-        dot.id = studyHighlightApplyBtnId + "-dot";
-        dot.style.display = "inline-block";
-        dot.style.width = "8px";
-        dot.style.height = "8px";
-        dot.style.borderRadius = "999px";
-        dot.style.marginLeft = "6px";
-        const cfg = getColorConfig(currentStudyColorKey) || STUDY_HIGHLIGHT_COLORS[0];
-        dot.style.backgroundColor = cfg.lightBg.replace(/, ?0\.\d+\)/, ", 1)");
-        applyBtn.appendChild(dot);
-
-        // Use mousedown/touchstart so we keep the selection on mobile
-        function onApplyActivate(e) {
-          e.preventDefault(); // keep selection from being cleared by the tap
-          applySelectionHighlight();
-        }
-
-        applyBtn.addEventListener("mousedown", onApplyActivate);
-        applyBtn.addEventListener("touchstart", onApplyActivate);
-
-        const toolbarEl = document.getElementById(studyHighlightToolbarId);
-        if (toolbarEl) {
-          if (toolbarEl.nextSibling) {
-            toolbarEl.parentNode.insertBefore(applyBtn, toolbarEl.nextSibling);
-          } else {
-            toolbarEl.parentNode.appendChild(applyBtn);
-          }
-        } else {
-          // Fallback just in case
-          studyResult.appendChild(applyBtn);
-        }
-      }
     }
 
     function refreshStudyHighlightsUI() {
@@ -6133,13 +5965,13 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       refreshStudyHighlightsUI();
     }
 
-    // track last selection inside studyResult so button works even on touch
+    // --- selection tracking ---
     let lastStudySelectionRange = null;
-    let lastStudySelectionText  = "";
+    let lastStudySelectionText = "";
     let suppressSelectionChange = false;
 
     function selectionIsInsideStudy(range) {
-      if (!range) return false;
+      if (!range || !studyResult) return false;
       let node = range.commonAncestorContainer;
       while (node) {
         if (node === studyResult) return true;
@@ -6164,7 +5996,7 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       const sel = window.getSelection();
       if (!sel || sel.rangeCount === 0) {
         lastStudySelectionRange = null;
-        lastStudySelectionText  = "";
+        lastStudySelectionText = "";
         updateApplyButtonVisibility();
         return;
       }
@@ -6172,13 +6004,13 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       const range = sel.getRangeAt(0);
       if (!range || range.collapsed || !selectionIsInsideStudy(range)) {
         lastStudySelectionRange = null;
-        lastStudySelectionText  = "";
+        lastStudySelectionText = "";
         updateApplyButtonVisibility();
         return;
       }
 
-      lastStudySelectionRange = range.cloneRange(); // keep a live copy for extractContents
-      lastStudySelectionText  = range.toString();
+      lastStudySelectionRange = range.cloneRange();
+      lastStudySelectionText = range.toString();
       updateApplyButtonVisibility();
     });
 
@@ -6188,17 +6020,14 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       const selectedText = lastStudySelectionText.trim();
       const range = lastStudySelectionRange;
 
-      const doc = document;
-      const span = doc.createElement("span");
+      const span = document.createElement("span");
       span.className = "study-highlight-token";
       span.dataset.colorKey = currentStudyColorKey;
       applyHighlightStylesToSpan(span);
 
       try {
         suppressSelectionChange = true;
-
-        // wrap the WHOLE fragment, not just simple text nodes
-        const extracted = range.extractContents(); // can span multiple text nodes / elements
+        const extracted = range.extractContents();
         span.appendChild(extracted);
         range.insertNode(span);
       } catch (e) {
@@ -6208,23 +6037,160 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
         suppressSelectionChange = false;
       }
 
-      // add clean text to grouped list
       addStudyHighlight(currentStudyColorKey, selectedText);
 
-      // clear actual selection
       const sel = window.getSelection();
       if (sel && sel.removeAllRanges) {
         sel.removeAllRanges();
       }
 
-      // reset saved selection + hide button
       lastStudySelectionRange = null;
-      lastStudySelectionText  = "";
+      lastStudySelectionText = "";
       updateApplyButtonVisibility();
     }
 
-    // init Study highlight UI
-    ensureStudyHighlightUI();
+    function ensureStudyHighlightUI() {
+      studyResult = document.getElementById("studyResult");
+      if (!studyResult) return;
+
+      let toolbar = document.getElementById(studyHighlightToolbarId);
+      let container = document.getElementById(studyHighlightContainerId);
+      let applyBtn = document.getElementById(studyHighlightApplyBtnId);
+
+      // --- toolbar (inside #studyResult, at the top) ---
+      if (!toolbar) {
+        toolbar = document.createElement("div");
+        toolbar.id = studyHighlightToolbarId;
+        toolbar.className = "study-highlight-toolbar";
+
+        const label = document.createElement("span");
+        label.textContent = "Highlight color:";
+        label.className = "study-highlight-label";
+        toolbar.appendChild(label);
+
+        STUDY_HIGHLIGHT_COLORS.forEach((cfg) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = cfg.label;
+          btn.dataset.colorKey = cfg.key;
+          btn.className = "study-highlight-color-btn";
+
+          const dot = document.createElement("span");
+          dot.className = "study-highlight-color-dot";
+          dot.style.backgroundColor = cfg.bg.replace(/, ?0\.\d+\)/, ", 1)");
+
+          btn.appendChild(dot);
+
+          btn.addEventListener("click", () => {
+            currentStudyColorKey = cfg.key;
+            Array.from(toolbar.querySelectorAll("button[data-color-key]"))
+              .forEach((b) => {
+                if (b.dataset.colorKey === currentStudyColorKey) {
+                  b.classList.add("study-highlight-color-btn-active");
+                } else {
+                  b.classList.remove("study-highlight-color-btn-active");
+                }
+              });
+
+            const dotEl = document.getElementById(studyHighlightApplyBtnId + "-dot");
+            if (dotEl) {
+              dotEl.style.backgroundColor = cfg.bg.replace(/, ?0\.\d+\)/, ", 1)");
+            }
+          });
+
+          toolbar.appendChild(btn);
+        });
+
+        const firstBtn = toolbar.querySelector(
+          'button[data-color-key="' + currentStudyColorKey + '"]'
+        );
+        if (firstBtn) {
+          firstBtn.classList.add("study-highlight-color-btn-active");
+        }
+
+        // insert toolbar as first child of studyResult
+        studyResult.insertBefore(toolbar, studyResult.firstChild);
+      }
+
+      // --- grouped highlight container (still inside #studyResult) ---
+      if (!container) {
+        container = document.createElement("div");
+        container.id = studyHighlightContainerId;
+        container.className = "study-highlight-container";
+        container.style.display = "none";
+
+        STUDY_HIGHLIGHT_COLORS.forEach((cfg) => {
+          const group = document.createElement("div");
+          group.className = "study-highlight-group";
+          group.dataset.colorKey = cfg.key;
+          group.style.display = "none";
+
+          const strip = document.createElement("div");
+          strip.className = "study-highlight-strip";
+          strip.style.backgroundColor = cfg.bg.replace(/, ?0\.\d+\)/, ", 1)");
+
+          const content = document.createElement("div");
+          content.className = "study-highlight-group-content";
+
+          const list = document.createElement("ul");
+          list.className = "study-highlight-list";
+
+          content.appendChild(list);
+          group.appendChild(strip);
+          group.appendChild(content);
+          container.appendChild(group);
+        });
+
+        studyResult.appendChild(container);
+      }
+
+      // --- highlight selection button (for touch + desktop) ---
+      if (!applyBtn) {
+        applyBtn = document.createElement("button");
+        applyBtn.id = studyHighlightApplyBtnId;
+        applyBtn.type = "button";
+        applyBtn.textContent = "Highlight selection";
+        applyBtn.className = "study-highlight-apply-btn";
+        applyBtn.style.display = "none";
+
+        const dot = document.createElement("span");
+        dot.id = studyHighlightApplyBtnId + "-dot";
+        dot.className = "study-highlight-apply-dot";
+        const cfg = getColorConfig(currentStudyColorKey) || STUDY_HIGHLIGHT_COLORS[0];
+        dot.style.backgroundColor = cfg.bg.replace(/, ?0\.\d+\)/, ", 1)");
+        applyBtn.appendChild(dot);
+
+        function onApplyActivate(e) {
+          e.preventDefault();
+          applySelectionHighlight();
+        }
+
+        applyBtn.addEventListener("mousedown", onApplyActivate);
+        applyBtn.addEventListener("touchstart", onApplyActivate);
+
+        // put the button just above the grouped highlights
+        studyResult.insertBefore(applyBtn, container);
+      }
+    }
+
+    // If studyResult isn't in the DOM yet (SPA / async render), watch until it appears
+    function init() {
+      if (!studyResult) {
+        studyResult = document.getElementById("studyResult");
+      }
+      if (studyResult) {
+        ensureStudyHighlightUI();
+        return true;
+      }
+      return false;
+    }
+
+    if (!init()) {
+      const observer = new MutationObserver(() => {
+        if (init()) observer.disconnect();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
   });
 </script>
 
