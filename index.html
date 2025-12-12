@@ -1678,7 +1678,7 @@ border: 1px solid var(--outline);
 background: var(--surface);
   cursor: default;
   user-select: none;
-
+  color:#ff6c00;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1865,7 +1865,7 @@ padding: 8px;
     <div class="title-row">
       <div class="brand-logo-wrap">
         <img
-          src="studylens-dark-highvis.png"
+          src="studylens-light.png"
           class="brand-logo brand-logo-light"
           alt="StudyLens"
         />
@@ -2964,8 +2964,8 @@ function getModelChoice() {
         : "rgba(239,68,68,0.6)";         // red border
 
       modeChip.style.backgroundColor = isLearnOn
-        ? "rgba(80 219 131 / 12%)"         // light green bg
-        : "rgb(254 157 157 / 12%)";        // light red bg
+        ? "rgba(34,197,94,0.12)"         // light green bg
+        : "rgba(239,68,68,0.12)";        // light red bg
 
       modeChip.setAttribute("data-state", isLearnOn ? "on" : "off");
     }
@@ -7147,6 +7147,39 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
       wireMobileToggles();
     });
 
+    /* Same neon palette as flashcards GOT IT burst */
+    var PG_PILL_COLORS = [
+      "#f97316", // orange
+      "#22c55e", // green
+      "#3b82f6", // blue
+      "#ec4899", // pink
+      "#eab308", // yellow
+      "#a855f7", // purple
+      "#06b6d4", // cyan
+      "#fb7185"  // rose
+    ];
+
+    function pickPillColor() {
+      var n = PG_PILL_COLORS.length;
+      if (!n) return "";
+      var idx = Math.floor(Math.random() * n);
+      return PG_PILL_COLORS[idx];
+    }
+
+    function applyRandomPillColor() {
+      var nodes = document.querySelectorAll(".pg-loop-pill-value");
+      if (!nodes.length) return;
+      var color = pickPillColor();
+      if (!color) return;
+      nodes.forEach(function (node) {
+        // smooth fade between colors
+        if (!node.style.transition) {
+          node.style.transition = "color 800ms ease";
+        }
+        node.style.color = color;
+      });
+    }
+
     /* ---------- 1. Generic looping behavior for [data-sticky-loop] containers ---------- */
 
     function setupStickyLoop() {
@@ -7251,7 +7284,10 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
             sessions + " session" + (sessions === 1 ? "" : "s");
         }
 
-        // No more JS color changes; color comes from CSS only.
+        // First neon color
+        applyRandomPillColor();
+        // Then subtly change every few seconds
+        setInterval(applyRandomPillColor, 6000);
       } catch (e) {
         // Fail silently; this is just for engagement
         console.warn("PassingGrade progress metrics error", e);
@@ -7359,7 +7395,6 @@ document.querySelectorAll(".pill-button").forEach((btn) => {
     }
   })();
 </script>
-
 
 
 
