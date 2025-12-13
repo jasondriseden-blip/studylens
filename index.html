@@ -11045,53 +11045,61 @@ if (document.readyState === "loading") {
   }
 
   /* ======================= ADD THIS FUNCTION (START) ======================= */
-  function buildPrintCss() {
-    return `
-      @media print {
-        /* Hide EVERYTHING */
-        body * { visibility: hidden !important; }
+ function buildPrintCss() {
+  return `
+    @media print {
+      /* ✅ Do NOT use visibility:hidden (it keeps layout space and causes extra pages) */
+      body > *:not(#__print_root__) { display: none !important; }
 
-        /* Show only our print root */
-        #__print_root__, #__print_root__ * { visibility: visible !important; }
-
-        /* Place it at top-left */
-        #__print_root__ {
-          position: fixed !important;
-          left: 0 !important;
-          top: 0 !important;
-          width: 100% !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          background: #fff !important;
-        }
-
-        /* Page margins */
-        @page { margin: 14mm; }
-
-        /* Remove your output box border/background in PDF */
-        #__print_root__ .tool-output {
-          border: none !important;
-          background: transparent !important;
-          padding: 0 !important;
-          box-shadow: none !important;
-          margin: 0 !important;
-        }
-
-        /* Don't print the copy button/header */
-        #__print_root__ .tool-output-header { display: none !important; }
-
-        /* Make sure line breaks behave */
-        #__print_root__ .tool-output-body { white-space: pre-wrap !important; }
-
-        /* Prevent “big black box” / forced dark mode printing */
-        html, body { background: #fff !important; color: #000 !important; }
-        * { text-shadow: none !important; }
-
-        /* Try to keep highlight colors when supported */
-        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      /* ✅ Kill any dark-mode filters/invert that create black boxes */
+      html, body {
+        background: #fff !important;
+        color: #000 !important;
+        filter: none !important;
+        -webkit-filter: none !important;
       }
-    `;
-  }
+
+      /* Show only our print root */
+      #__print_root__ {
+        display: block !important;
+        position: static !important;  /* ✅ avoid fixed-print weirdness */
+        width: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        filter: none !important;
+        -webkit-filter: none !important;
+      }
+
+      #__print_root__ * {
+        filter: none !important;
+        -webkit-filter: none !important;
+      }
+
+      /* Page margins */
+      @page { margin: 14mm; }
+
+      /* Remove your output box border/background in PDF */
+      #__print_root__ .tool-output {
+        border: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+      }
+
+      /* Don't print the copy button/header */
+      #__print_root__ .tool-output-header { display: none !important; }
+
+      /* Make sure line breaks behave */
+      #__print_root__ .tool-output-body { white-space: pre-wrap !important; }
+
+      /* Keep highlight colors when user enables "Background graphics" */
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    }
+  `;
+}
+
   /* ======================= ADD THIS FUNCTION (END) ========================= */
 
   function ensurePrintStyle() {
