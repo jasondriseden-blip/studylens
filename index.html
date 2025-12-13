@@ -4042,19 +4042,18 @@ function renderNotebook() {
       meta.className = "notebook-meta";
 
       const timeStr = new Date(item.time).toLocaleString();
-      meta.textContent = `${item.type} • ${timeStr} • ${item.subject || "general"} • ${
-        item.model || "smart"
-      } • ${item.mode || "learn"}`;
+
+      // UPDATED: subject first + removed model ("smart")
+      meta.textContent = `${item.subject || "general"} • ${item.type} • ${timeStr} • ${item.mode || "learn"}`;
 
       header.appendChild(meta);
       wrapper.appendChild(header);
 
       // Body (HIDDEN — keep text in storage, just don’t show it in the notebook list)
-const body = document.createElement("div");
-body.textContent = item.text || "";
-body.style.display = "none";
-wrapper.appendChild(body);
-
+      const body = document.createElement("div");
+      body.textContent = item.text || "";
+      body.style.display = "none";
+      wrapper.appendChild(body);
 
       // Footer
       const footer = document.createElement("div");
@@ -4523,6 +4522,7 @@ runWhenReady(() => {
 });
 /* ================================== SECTION 13 (END) ==================================== */
 </script>
+
 
 
 
