@@ -5104,12 +5104,11 @@ function renderAnswer(preEl, text) {
 
 
 /* ===========================================================================================
-   SECTION 3: Global click handler for tool-output copy buttons (START)
-   Goal:
-   - Catch clicks on ANY ".tool-output-copy" button
-   - Figure out which output container to copy from
-   - Copy the original plain text (dataset.plainText) if possible
-   - Temporarily change button label to "Copied!"
+   SECTION 3: Global click handler for tool-output copy buttons (FIXED)
+   Fix:
+   - Never use container.innerText (it includes the "Copy" button text)
+   - Prefer dataset.plainText
+   - Fallback to .tool-output-body innerText
 =========================================================================================== */
 document.addEventListener("click", (e) => {
   /* ---- PART 3A: Find the clicked copy button (START) ---- */
@@ -5117,31 +5116,30 @@ document.addEventListener("click", (e) => {
   if (!btn) return;
   /* ---- PART 3A (END) ---- */
 
-  /* ---- PART 3B: Find the text to copy (START) ---- */
-  let textToCopy = "";
+  /* ---- PART 3B: Find the text to copy (FIXED) ---- */
+  let container = null;
 
   const targetId = btn.dataset.copyTarget;
-
   if (targetId) {
-    // If button points to a specific element id
-    const container = document.getElementById(targetId);
-    if (container) {
-      textToCopy =
-        (container.dataset && container.dataset.plainText) ||
-        container.innerText ||
-        "";
-    }
+    container = document.getElementById(targetId);
+  }
+  if (!container) {
+    container = btn.closest(".tool-output");
+  }
+  if (!container) return;
+
+  let textToCopy = "";
+
+  // 1) Best: plain text saved by renderAnswer()
+  if (container.dataset && container.dataset.plainText && container.dataset.plainText.trim()) {
+    textToCopy = container.dataset.plainText;
   } else {
-    // Otherwise copy from the closest .tool-output container
-    const container = btn.closest(".tool-output");
-    if (container) {
-      textToCopy =
-        (container.dataset && container.dataset.plainText) ||
-        container.innerText ||
-        "";
-    }
+    // 2) Fallback: ONLY copy the body (never includes the header/copy button)
+    const body = container.querySelector(".tool-output-body");
+    textToCopy = body ? body.innerText : "";
   }
 
+  textToCopy = String(textToCopy || "").trim();
   if (!textToCopy) return;
   /* ---- PART 3B (END) ---- */
 
@@ -5159,6 +5157,7 @@ document.addEventListener("click", (e) => {
   /* ---- PART 3C (END) ---- */
 });
 /* ================================== SECTION 3 (END) ===================================== */
+
 
 
 
