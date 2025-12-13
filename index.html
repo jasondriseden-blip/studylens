@@ -8965,15 +8965,7 @@ window.getCurrentUserPlan = async function () {
 /* ================================= SECTION 8 (END) ===================================== */
 </script>
 <script>
-/* ===========================================================================================
-   NOTEBOOK CLOUD HELPERS (uses existing window.supabaseClient)
-   - createNotebookItem()
-   - listNotebookItems()
-   - updateNotebookItem()
-   - deleteNotebookItem()
-   No UI wiring yet. Safe to add without changing existing auth block.
-=========================================================================================== */
-
+/* NOTEBOOK CLOUD HELPERS (NO subject column) */
 (function () {
   if (!window.supabaseClient) {
     console.error("Notebook helpers: window.supabaseClient not found. Make sure auth block loads first.");
@@ -8988,10 +8980,8 @@ window.getCurrentUserPlan = async function () {
     return { user: data.user, error: null };
   }
 
-  // Create a new notebook item (stores both original + current)
   async function createNotebookItem({
     saved_under = "",
-    subject = "",
     tool = "",
     source_text = "",
     instructions = "",
@@ -9003,7 +8993,6 @@ window.getCurrentUserPlan = async function () {
     const row = {
       user_id: user.id,
       saved_under,
-      subject,
       tool,
       source_text,
       instructions,
@@ -9015,8 +9004,7 @@ window.getCurrentUserPlan = async function () {
     return await db.from("notebook_items").insert(row).select("*").single();
   }
 
-  // List notebook items for the signed-in user (optional filters)
-  async function listNotebookItems({ subject = null, tool = null, limit = 200 } = {}) {
+  async function listNotebookItems({ tool = null, limit = 200 } = {}) {
     const { user, error: userErr } = await requireUser();
     if (userErr) return { data: null, error: userErr };
 
@@ -9027,23 +9015,19 @@ window.getCurrentUserPlan = async function () {
       .order("created_at", { ascending: false })
       .limit(limit);
 
-    if (subject) q = q.eq("subject", subject);
     if (tool) q = q.eq("tool", tool);
 
     return await q;
   }
 
-  // Update an existing notebook item (keeps original; updates current + edited_at)
   async function updateNotebookItem(id, patch = {}) {
     const { user, error: userErr } = await requireUser();
     if (userErr) return { data: null, error: userErr };
-
     if (!id) return { data: null, error: new Error("Missing notebook item id") };
 
     const allowed = {};
     const allowedKeys = [
       "saved_under",
-      "subject",
       "tool",
       "source_text",
       "instructions",
@@ -9054,13 +9038,11 @@ window.getCurrentUserPlan = async function () {
       if (k in patch) allowed[k] = patch[k];
     }
 
-    // If user is editing, mark edited_at
     if ("output_html_current" in allowed) {
       allowed.output_html_current = String(allowed.output_html_current || "");
       allowed.edited_at = new Date().toISOString();
     }
 
-    // RLS will enforce ownership; we also scope by user_id for clarity
     return await db
       .from("notebook_items")
       .update(allowed)
@@ -9070,11 +9052,9 @@ window.getCurrentUserPlan = async function () {
       .single();
   }
 
-  // Delete an item (confirmation should happen in UI before calling this)
   async function deleteNotebookItem(id) {
     const { user, error: userErr } = await requireUser();
     if (userErr) return { data: null, error: userErr };
-
     if (!id) return { data: null, error: new Error("Missing notebook item id") };
 
     return await db
@@ -9084,7 +9064,6 @@ window.getCurrentUserPlan = async function () {
       .eq("user_id", user.id);
   }
 
-  // Expose a tiny API
   window.NotebookAPI = {
     createNotebookItem,
     listNotebookItems,
@@ -9095,6 +9074,7 @@ window.getCurrentUserPlan = async function () {
   console.log("NotebookAPI ready:", Object.keys(window.NotebookAPI));
 })();
 </script>
+
 
 
 <script>
@@ -9261,7 +9241,7 @@ window.getCurrentUserPlan = async function () {
 
         const res = await window.NotebookAPI.createNotebookItem({
           saved_under: getSaveUnderLabel(),
-          subject: getSubjectLabel(),
+
           tool: tool,
           source_text: sourceText,
           instructions: instructions,
