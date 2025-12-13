@@ -10992,15 +10992,11 @@ if (document.readyState === "loading") {
 
 <script>
 /* ===========================================================================================
-   PDF EXPORT (PRINT ONLY OUTPUT) (START)
-   Goal:
-   - Works reliably on mobile + desktop (uses native print dialog)
-   - Prints ONLY the .tool-output-body content (no page sidebar, no url/footer junk)
-   - Keeps formatting + highlights because it prints the existing HTML
-   - Uses the subject/title if available by temporarily changing document.title
-   Requirements:
-   - Your PDF button has: class="output-pdf-download" and data-target="OUTPUT_ID"
-   - Output container has .tool-output-body inside (renderAnswer does this)
+   PDF EXPORT (PRINT ONLY OUTPUT) (MOBILE-SAFE)
+   - Keeps window.print() in the tap/click handler (iOS requirement)
+   - Uses display:none (not visibility) so layout space is removed
+   - Forces a reflow before printing so mobile browsers pick up the new DOM
+   - Cleans up via afterprint + visibilitychange fallback (timeout is unreliable on mobile)
 =========================================================================================== */
 
 (function setupPrintOnlyOutputPdf() {
@@ -11011,7 +11007,6 @@ if (document.readyState === "loading") {
 
   function isVisible(el) {
     if (!el) return false;
-
     const style = window.getComputedStyle(el);
     if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") return false;
 
@@ -11044,63 +11039,57 @@ if (document.readyState === "loading") {
     return safeFilenameBase(subject || fallback || "export");
   }
 
-  /* ======================= ADD THIS FUNCTION (START) ======================= */
- function buildPrintCss() {
-  return `
-    @media print {
-      /* ✅ Do NOT use visibility:hidden (it keeps layout space and causes extra pages) */
-      body > *:not(#__print_root__) { display: none !important; }
+  function buildPrintCss() {
+    return `
+      @media print {
+        /* Print ONLY our root (no layout ghosting) */
+        body > *:not(#__print_root__) { display: none !important; }
 
-      /* ✅ Kill any dark-mode filters/invert that create black boxes */
-      html, body {
-        background: #fff !important;
-        color: #000 !important;
-        filter: none !important;
-        -webkit-filter: none !important;
+        html, body {
+          background: #fff !important;
+          color: #000 !important;
+          filter: none !important;
+          -webkit-filter: none !important;
+          -webkit-text-size-adjust: 100% !important; /* mobile */
+        }
+
+        /* Remove sticky/fixed UI that sometimes leaks into print on mobile */
+        * { box-shadow: none !important; }
+
+        #__print_root__ {
+          display: block !important;
+          position: static !important;
+          width: auto !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #fff !important;
+          filter: none !important;
+          -webkit-filter: none !important;
+        }
+
+        #__print_root__ * {
+          filter: none !important;
+          -webkit-filter: none !important;
+        }
+
+        @page { margin: 14mm; }
+
+        #__print_root__ .tool-output {
+          border: none !important;
+          background: transparent !important;
+          padding: 0 !important;
+          margin: 0 !important;
+        }
+
+        #__print_root__ .tool-output-header { display: none !important; }
+
+        #__print_root__ .tool-output-body { white-space: pre-wrap !important; }
+
+        /* Ask browser to keep colors (user must enable “Background graphics” in some browsers) */
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       }
-
-      /* Show only our print root */
-      #__print_root__ {
-        display: block !important;
-        position: static !important;  /* ✅ avoid fixed-print weirdness */
-        width: auto !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        background: #fff !important;
-        filter: none !important;
-        -webkit-filter: none !important;
-      }
-
-      #__print_root__ * {
-        filter: none !important;
-        -webkit-filter: none !important;
-      }
-
-      /* Page margins */
-      @page { margin: 14mm; }
-
-      /* Remove your output box border/background in PDF */
-      #__print_root__ .tool-output {
-        border: none !important;
-        background: transparent !important;
-        padding: 0 !important;
-        box-shadow: none !important;
-        margin: 0 !important;
-      }
-
-      /* Don't print the copy button/header */
-      #__print_root__ .tool-output-header { display: none !important; }
-
-      /* Make sure line breaks behave */
-      #__print_root__ .tool-output-body { white-space: pre-wrap !important; }
-
-      /* Keep highlight colors when user enables "Background graphics" */
-      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    }
-  `;
-}
-
-  /* ======================= ADD THIS FUNCTION (END) ========================= */
+    `;
+  }
 
   function ensurePrintStyle() {
     let style = document.getElementById("__print_style__");
@@ -11123,24 +11112,46 @@ if (document.readyState === "loading") {
     const root = document.createElement("div");
     root.id = "__print_root__";
 
-    // Wrap it so your existing .tool-output styles apply,
-    // but our print CSS strips borders/background/header.
     const wrap = document.createElement("div");
     wrap.className = "tool-output";
 
     const bodyClone = bodyEl.cloneNode(true);
-    // No editing caret weirdness in print
     bodyClone.removeAttribute("contenteditable");
 
     wrap.appendChild(bodyClone);
     root.appendChild(wrap);
     document.body.appendChild(root);
+
+    // Force layout/reflow so mobile browsers “see” the new DOM before print
+    void root.offsetHeight;
+    void document.body.offsetHeight;
   }
 
-  document.addEventListener("click", (e) => {
-    const btn = e.target.closest(".output-pdf-download");
-    if (!btn) return;
+  function installCleanupHandlers(originalTitle) {
+    let cleaned = false;
 
+    function cleanup() {
+      if (cleaned) return;
+      cleaned = true;
+      document.title = originalTitle;
+      removePrintDom();
+      window.removeEventListener("afterprint", cleanup);
+      document.removeEventListener("visibilitychange", onVisChange, true);
+    }
+
+    function onVisChange() {
+      // Mobile browsers often return to the page and trigger visibilitychange instead of afterprint reliably
+      if (!document.hidden) cleanup();
+    }
+
+    window.addEventListener("afterprint", cleanup, { once: true });
+    document.addEventListener("visibilitychange", onVisChange, true);
+
+    // Last-resort fallback (kept long enough not to race iOS print UI)
+    setTimeout(cleanup, 4000);
+  }
+
+  function handleExport(e, btn) {
     const targetId = btn.dataset.target;
     if (!targetId) return;
 
@@ -11162,82 +11173,32 @@ if (document.readyState === "loading") {
       return;
     }
 
-    // ✅ iOS Safari reliability: open the tab immediately from the click
+    // Keep print inside the user gesture
+    e.preventDefault();
+
+    ensurePrintStyle();
+    makePrintDomFromBody(bodyEl);
+
+    const originalTitle = document.title;
     const newTitle = getTitleForPdf(targetId);
-    const w = window.open("", "_blank");
-    if (!w) {
-      alert("Popup blocked. Allow popups for PDF export.");
-      return;
-    }
+    document.title = newTitle;
 
-    // Pull your existing tool-output CSS so highlights/formatting survive
-    const toolStylesEl = document.getElementById("tool-output-styles");
-    const toolCss = toolStylesEl ? toolStylesEl.textContent : "";
+    installCleanupHandlers(originalTitle);
 
-    // Also include other page styles (optional but helps with highlight classes)
-    const headBits = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
-      .map((n) => n.outerHTML)
-      .join("\n");
-
-    // Build a clean printable page with ONLY the output
-    const printableHtml = `<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<base href="${location.href}">
-<title>${newTitle}</title>
-${headBits}
-<style>
-  ${toolCss}
-
-  html, body {
-    margin: 0 !important;
-    padding: 0 !important;
-    background: #fff !important;
-    color: #000 !important;
-    filter: none !important;
-    -webkit-filter: none !important;
+    // iOS: MUST be called directly from the user event handler
+    window.print();
   }
 
-  /* Remove borders/box */
-  .tool-output {
-    border: none !important;
-    background: transparent !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-    margin: 0 !important;
+  // Support both click and pointerup (some mobile setups feel “snappier” with pointer events)
+  function delegate(evt) {
+    const btn = evt.target.closest(".output-pdf-download");
+    if (!btn) return;
+    handleExport(evt, btn);
   }
 
-  .tool-output-header { display: none !important; }
-  .tool-output-body { white-space: pre-wrap !important; }
-
-  @page { margin: 14mm; }
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-</style>
-</head>
-<body>
-  <div class="tool-output">
-    <div class="tool-output-body">${bodyEl.innerHTML}</div>
-  </div>
-
-  <script>
-    window.onload = () => {
-      setTimeout(() => {
-        window.focus();
-        window.print();
-      }, 250);
-    };
-  <\/script>
-</body>
-</html>`;
-
-    w.document.open();
-    w.document.write(printableHtml);
-    w.document.close();
-  }, true);
+  document.addEventListener("click", delegate, true);
+  document.addEventListener("pointerup", delegate, true);
 })();
-
-/* ================================== PDF EXPORT (PRINT ONLY OUTPUT) (END) =================== */
 </script>
 
 
