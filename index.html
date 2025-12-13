@@ -58,7 +58,7 @@
     /* ===== Design tokens: easy to tweak ===== */
     /* Core colors (Vercel-ish, neutral) */
     --primary: #111827;
-    --primary-variant: #0ea5e9;
+    --primary-variant: #000000;
     --on-primary: #ffffff;
 
     --surface-dark: #020617;
@@ -1850,8 +1850,40 @@ padding: 8px;
   }
 }
 
+ 
 
 
+
+</style>
+<!-- BLOCK: Desktop sticky aside nav (CSS only) ------------------------------------------------
+--------------------------------------------------------------------------------------=----
+===========================================================================================
+===========================================================================================
+------------------------------------------------------------------------------------------->
+
+<style>
+@media (min-width: 700px) {
+  /* set your offset once */
+  :root { --pg-sticky-offset: 85px; } /* <-- change this number */
+
+  #sideDrawer {
+    position: sticky;
+    top: var(--pg-sticky-offset);
+    align-self: flex-start;
+
+    /* IMPORTANT: height must shrink when top grows */
+    height: calc(100vh - var(--pg-sticky-offset));
+  }
+
+  #sideDrawer .side-drawer-inner {
+    height: 100%;
+    overflow-y: auto;
+  }
+
+  #drawerBackdrop {
+    display: none !important;
+  }
+}
 </style>
 
 
@@ -2758,52 +2790,57 @@ padding: 8px;
 
     <!-- RIGHT SIDE DRAWER / SIDEBAR -->
     <aside class="side-drawer" id="sideDrawer">
-      <div class="side-drawer-inner">
-        <div class="side-drawer-header">TOOLS</div>
-        <nav class="side-nav">
-          <!-- NEW: OCR tool -->
-          <button class="nav-btn active" data-target="snap" type="button">
-            <span class="material-symbols-outlined">scan</span>
-            <span class="label">Snap</span>
-          </button>
-<button class="nav-btn" data-target="notes" type="button">
-  <span class="material-symbols-outlined">checklist</span>
-  <span class="label">Extract Notes</span>
-</button>
-          <!-- Existing tools, unchanged except Solve is no longer the default active -->
-          <button class="nav-btn" data-target="solve" type="button">
-            <span class="material-symbols-outlined">photo_camera</span>
-            <span class="label">Solve</span>
-          </button>
+  <div class="side-drawer-inner">
 
-          <button class="nav-btn" data-target="math" type="button">
-            <span class="material-symbols-outlined">calculate</span>
-            <span class="label">Math Solver</span>
-          </button>
+    <div class="side-drawer-header">TOOLS</div>
 
-          <button class="nav-btn" data-target="study" type="button">
-            <span class="material-symbols-outlined">menu_book</span>
-            <span class="label">Study Guide</span>
-          </button>
+    <nav class="side-nav">
+      <!-- NEW: OCR tool -->
+      <button class="nav-btn active" data-target="snap" type="button">
+        <span class="material-symbols-outlined">scan</span>
+        <span class="label">Snap</span>
+      </button>
 
-          <button class="nav-btn" data-target="essay" type="button">
-            <span class="material-symbols-outlined">draw</span>
-            <span class="label">Essay Helper</span>
-          </button>
+      <button class="nav-btn" data-target="notes" type="button">
+        <span class="material-symbols-outlined">checklist</span>
+        <span class="label">Extract Notes</span>
+      </button>
 
-          <button class="nav-btn" data-target="flashcards" type="button">
-            <span class="material-symbols-outlined">style</span>
-            <span class="label">Flashcards</span>
-          </button>
+      <!-- Existing tools, unchanged except Solve is no longer the default active -->
+      <button class="nav-btn" data-target="solve" type="button">
+        <span class="material-symbols-outlined">photo_camera</span>
+        <span class="label">Solve</span>
+      </button>
 
-          <button class="nav-btn" data-target="notebook" type="button">
-            <span class="material-symbols-outlined">book_2</span>
-            <span class="label">Notebook</span>
-          </button>
-        </nav>
+      <button class="nav-btn" data-target="math" type="button">
+        <span class="material-symbols-outlined">calculate</span>
+        <span class="label">Math Solver</span>
+      </button>
 
-      </div>
-    </aside>
+      <button class="nav-btn" data-target="study" type="button">
+        <span class="material-symbols-outlined">menu_book</span>
+        <span class="label">Study Guide</span>
+      </button>
+
+      <button class="nav-btn" data-target="essay" type="button">
+        <span class="material-symbols-outlined">draw</span>
+        <span class="label">Essay Helper</span>
+      </button>
+
+      <button class="nav-btn" data-target="flashcards" type="button">
+        <span class="material-symbols-outlined">style</span>
+        <span class="label">Flashcards</span>
+      </button>
+
+      <button class="nav-btn" data-target="notebook" type="button">
+        <span class="material-symbols-outlined">book_2</span>
+        <span class="label">Notebook</span>
+      </button>
+    </nav>
+
+  </div>
+</aside>
+
   </div>
 </div>
 
@@ -2835,6 +2872,7 @@ padding: 8px;
 ===========================================================================================
 ===========================================================================================
 ------------------------------------------------------------------------------------------->
+
 <script>
 /* =========================================================
    SECTION 0: Grab the elements we will control (START)
@@ -2945,11 +2983,16 @@ function openDrawer() {
   // On desktop it is always visible; do nothing
   if (isDesktop()) return;
 
-  // Safety: if elements missing, do nothing
-  if (!sideDrawer || !drawerBackdrop) return;
+  // ✅ Safety: drawer is required, backdrop is optional
+  if (!sideDrawer) return;
 
+  // Open the drawer
   sideDrawer.classList.add("open");
-  drawerBackdrop.classList.add("show");
+
+  // Show backdrop ONLY if it exists (do NOT block opening if missing)
+  if (drawerBackdrop) {
+    drawerBackdrop.classList.add("show");
+  }
 }
 /* --- PART 2B (END) --- */
 
@@ -2958,10 +3001,16 @@ function openDrawer() {
 function closeDrawer() {
   if (isDesktop()) return;
 
-  if (!sideDrawer || !drawerBackdrop) return;
+  // ✅ Safety: drawer is required, backdrop is optional
+  if (!sideDrawer) return;
 
+  // Close the drawer
   sideDrawer.classList.remove("open");
-  drawerBackdrop.classList.remove("show");
+
+  // Hide backdrop ONLY if it exists
+  if (drawerBackdrop) {
+    drawerBackdrop.classList.remove("show");
+  }
 }
 /* --- PART 2C (END) --- */
 
@@ -3034,6 +3083,59 @@ function getModelChoice() {
 /* ===================== SECTION 3 (END) ===================== */
 </script>
 
+<!-- BLOCK: Close drawer when clicking outside (mobile only) --------------------------------
+--------------------------------------------------------------------------------------=----
+===========================================================================================
+===========================================================================================
+------------------------------------------------------------------------------------------->
+
+<script>
+/* =========================================================
+   SECTION 1: Close drawer on outside click (START)
+   Rules:
+   - Mobile only (width < 800)
+   - Only if #sideDrawer currently has class "open"
+   - Clicking OUTSIDE closes it
+   - Clicking the toggle button does NOT close it (so toggle still works)
+========================================================= */
+
+document.addEventListener(
+  "pointerdown",
+  function (e) {
+    /* --- PART 1A: Re-grab elements safely each time (START) --- */
+    const sideDrawer = document.getElementById("sideDrawer");
+    const drawerToggle = document.getElementById("drawerToggle");
+    const drawerBackdrop = document.getElementById("drawerBackdrop");
+    /* --- PART 1A (END) --- */
+
+    /* --- PART 1B: Only run on mobile + only if drawer is open (START) --- */
+    const isDesktopNow = window.innerWidth >= 800;
+    if (isDesktopNow) return;
+    if (!sideDrawer) return;
+    if (!sideDrawer.classList.contains("open")) return;
+    /* --- PART 1B (END) --- */
+
+    /* --- PART 1C: Ignore clicks inside drawer OR on the toggle (START) --- */
+    const clickedInsideDrawer = sideDrawer.contains(e.target);
+    if (clickedInsideDrawer) return;
+
+    const clickedToggle =
+      drawerToggle && drawerToggle.contains(e.target);
+    if (clickedToggle) return;
+    /* --- PART 1C (END) --- */
+
+    /* --- PART 1D: Outside click -> close drawer (START) --- */
+    sideDrawer.classList.remove("open");
+    if (drawerBackdrop) {
+      drawerBackdrop.classList.remove("show");
+    }
+    /* --- PART 1D (END) --- */
+  },
+  true // capture phase = more reliable for "click outside" behavior
+);
+
+/* ===================== SECTION 1 (END) ===================== */
+</script>
 
 
 <!-- BLOCK 2: Cheat mode toggle (remembers last mode across refresh) -----------------------
@@ -9916,6 +10018,10 @@ if (document.readyState === "loading") {
 })(); // end IIFE
 /* ================================== SECTION 0 (END) ===================================== */
 </script>
+
+
+
+
 
 
 </body>
