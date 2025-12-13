@@ -8964,6 +8964,332 @@ window.getCurrentUserPlan = async function () {
 };
 /* ================================= SECTION 8 (END) ===================================== */
 </script>
+<script>
+/* ===========================================================================================
+   NOTEBOOK CLOUD HELPERS (uses existing window.supabaseClient)
+   - createNotebookItem()
+   - listNotebookItems()
+   - updateNotebookItem()
+   - deleteNotebookItem()
+   No UI wiring yet. Safe to add without changing existing auth block.
+=========================================================================================== */
+
+(function () {
+  if (!window.supabaseClient) {
+    console.error("Notebook helpers: window.supabaseClient not found. Make sure auth block loads first.");
+    return;
+  }
+
+  const db = window.supabaseClient;
+
+  async function requireUser() {
+    const { data, error } = await db.auth.getUser();
+    if (error || !data?.user) return { user: null, error: error || new Error("Not signed in") };
+    return { user: data.user, error: null };
+  }
+
+  // Create a new notebook item (stores both original + current)
+  async function createNotebookItem({
+    saved_under = "",
+    subject = "",
+    tool = "",
+    source_text = "",
+    instructions = "",
+    output_html = ""
+  } = {}) {
+    const { user, error: userErr } = await requireUser();
+    if (userErr) return { data: null, error: userErr };
+
+    const row = {
+      user_id: user.id,
+      saved_under,
+      subject,
+      tool,
+      source_text,
+      instructions,
+      output_html_original: String(output_html || ""),
+      output_html_current: String(output_html || ""),
+      edited_at: null
+    };
+
+    return await db.from("notebook_items").insert(row).select("*").single();
+  }
+
+  // List notebook items for the signed-in user (optional filters)
+  async function listNotebookItems({ subject = null, tool = null, limit = 200 } = {}) {
+    const { user, error: userErr } = await requireUser();
+    if (userErr) return { data: null, error: userErr };
+
+    let q = db
+      .from("notebook_items")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (subject) q = q.eq("subject", subject);
+    if (tool) q = q.eq("tool", tool);
+
+    return await q;
+  }
+
+  // Update an existing notebook item (keeps original; updates current + edited_at)
+  async function updateNotebookItem(id, patch = {}) {
+    const { user, error: userErr } = await requireUser();
+    if (userErr) return { data: null, error: userErr };
+
+    if (!id) return { data: null, error: new Error("Missing notebook item id") };
+
+    const allowed = {};
+    const allowedKeys = [
+      "saved_under",
+      "subject",
+      "tool",
+      "source_text",
+      "instructions",
+      "output_html_current"
+    ];
+
+    for (const k of allowedKeys) {
+      if (k in patch) allowed[k] = patch[k];
+    }
+
+    // If user is editing, mark edited_at
+    if ("output_html_current" in allowed) {
+      allowed.output_html_current = String(allowed.output_html_current || "");
+      allowed.edited_at = new Date().toISOString();
+    }
+
+    // RLS will enforce ownership; we also scope by user_id for clarity
+    return await db
+      .from("notebook_items")
+      .update(allowed)
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .select("*")
+      .single();
+  }
+
+  // Delete an item (confirmation should happen in UI before calling this)
+  async function deleteNotebookItem(id) {
+    const { user, error: userErr } = await requireUser();
+    if (userErr) return { data: null, error: userErr };
+
+    if (!id) return { data: null, error: new Error("Missing notebook item id") };
+
+    return await db
+      .from("notebook_items")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id);
+  }
+
+  // Expose a tiny API
+  window.NotebookAPI = {
+    createNotebookItem,
+    listNotebookItems,
+    updateNotebookItem,
+    deleteNotebookItem
+  };
+
+  console.log("NotebookAPI ready:", Object.keys(window.NotebookAPI));
+})();
+</script>
+
+
+<script>
+/* ===========================================================================================
+   NOTEBOOK AUTOSAVE (tool-finish + edit autosave)
+   - Wraps renderAnswer safely.
+   - Saves ONLY for signed-in users.
+   - Also captures tool/task centrally by wrapping callAI() (✅).
+=========================================================================================== */
+
+(function notebookAutosaveInit() {
+  if (!window.supabaseClient) {
+    console.warn("Notebook autosave: supabase client not found.");
+    return;
+  }
+  if (!window.NotebookAPI) {
+    console.warn("Notebook autosave: NotebookAPI not found. Add the helpers block first.");
+    return;
+  }
+  if (typeof window.renderAnswer !== "function") {
+    console.warn("Notebook autosave: renderAnswer not found.");
+    return;
+  }
+
+  /* ====================== ✅ ADD: capture last task from callAI ====================== */
+  if (typeof window.callAI === "function" && !window.callAI.__pg_wrapped_for_task) {
+    const originalCallAI = window.callAI;
+    window.callAI = async function (args) {
+      try {
+        // store last task so renderAnswer can use it
+        window.__pg_last_task = args && args.task ? String(args.task) : "";
+      } catch (e) {}
+      return originalCallAI.apply(this, arguments);
+    };
+    window.callAI.__pg_wrapped_for_task = true;
+  }
+  /* ====================== ✅ END ADD ================================================= */
+
+  async function isSignedIn() {
+    try {
+      const { data, error } = await window.supabaseClient.auth.getUser();
+      return !(error || !data?.user);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function getSaveUnderLabel() {
+    const el = document.getElementById("saveSubjectInput");
+    return el ? String(el.value || "").trim() : "";
+  }
+
+  function getSubjectLabel() {
+    try {
+      return (typeof window.getSubject === "function") ? String(window.getSubject() || "") : "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function taskToToolLabel(task) {
+    const t = String(task || "").toLowerCase();
+    if (t === "snap") return "Solve";
+    if (t === "math") return "Math Solver";
+    if (t === "study_guide") return "Study Guide";
+    if (t === "essay") return "Essay Helper";
+    if (t === "flashcards") return "Flashcards";
+    if (t === "simplify") return "Simplify";
+    if (t === "hint") return "Hint";
+    return String(task || "");
+  }
+
+  function getSourceTextBestEffort() {
+    const candidates = [
+      document.getElementById("snapInput"),
+      document.getElementById("ocrText"),
+      document.getElementById("promptInput"),
+      document.getElementById("inputText"),
+      document.querySelector("textarea"),
+    ].filter(Boolean);
+
+    for (const el of candidates) {
+      const v = (el.value != null) ? String(el.value || "").trim() : "";
+      if (v) return v;
+    }
+    return "";
+  }
+
+  function getInstructionsBestEffort() {
+    const candidates = [
+      document.getElementById("instructionsInput"),
+      document.getElementById("extraInstructions"),
+      document.getElementById("snapInstructions"),
+      document.querySelector('textarea[name="instructions"]'),
+    ].filter(Boolean);
+
+    for (const el of candidates) {
+      const v = (el.value != null) ? String(el.value || "").trim() : "";
+      if (v) return v;
+    }
+    return "";
+  }
+
+  function attachEditAutosave(bodyEl) {
+    if (!bodyEl || bodyEl.dataset.notebookAutosaveBound === "1") return;
+    bodyEl.dataset.notebookAutosaveBound = "1";
+
+    let timer = null;
+
+    async function flushSave() {
+      const itemId = bodyEl.dataset.notebookItemId || "";
+      if (!itemId) return;
+
+      if (!(await isSignedIn())) return;
+
+      const html = bodyEl.innerHTML || "";
+      const res = await window.NotebookAPI.updateNotebookItem(itemId, {
+        output_html_current: html
+      });
+
+      if (res?.error) {
+        console.error("Notebook edit autosave failed:", res.error);
+      }
+    }
+
+    function schedule() {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { flushSave(); }, 1200);
+    }
+
+    bodyEl.addEventListener("input", schedule, { passive: true });
+    bodyEl.addEventListener("blur", () => { flushSave(); }, true);
+  }
+
+  const originalRenderAnswer = window.renderAnswer;
+
+  window.renderAnswer = function (preEl, text) {
+    originalRenderAnswer(preEl, text);
+
+    try {
+      if (!preEl) return;
+      const bodyEl = preEl.querySelector(".tool-output-body");
+      if (!bodyEl) return;
+
+      attachEditAutosave(bodyEl);
+
+      if (bodyEl.dataset.notebookItemId || bodyEl.dataset.notebookCreateStarted === "1") return;
+      bodyEl.dataset.notebookCreateStarted = "1";
+
+      isSignedIn().then(async (signedIn) => {
+        if (!signedIn) return;
+
+        const outputHtml = bodyEl.innerHTML || "";
+        const sourceText = getSourceTextBestEffort();
+        const instructions = getInstructionsBestEffort();
+
+        /* ✅ CHANGE: fall back to last callAI task if dataset.task is missing */
+        const rawTask =
+          (preEl.dataset && preEl.dataset.task) ? preEl.dataset.task :
+          (window.__pg_last_task || "");
+
+        const tool = rawTask ? taskToToolLabel(rawTask) : "";
+        /* ✅ END CHANGE */
+
+        const res = await window.NotebookAPI.createNotebookItem({
+          saved_under: getSaveUnderLabel(),
+          subject: getSubjectLabel(),
+          tool: tool,
+          source_text: sourceText,
+          instructions: instructions,
+          output_html: outputHtml
+        });
+
+        if (res?.error) {
+          console.error("Notebook autosave create failed:", res.error);
+          return;
+        }
+
+        const item = res?.data;
+        if (item?.id) {
+          bodyEl.dataset.notebookItemId = item.id;
+        }
+      });
+    } catch (err) {
+      console.error("Notebook autosave wrapper error:", err);
+    }
+  };
+
+  console.log("Notebook autosave installed (renderAnswer wrapped + callAI task capture).");
+})();
+</script>
+
+
+
+
 
 <!-- BLOCK BILLING: Upgrade button + Pro badge (plan check + checkout redirect) ---------------
 --------------------------------------------------------------------------------------=----
