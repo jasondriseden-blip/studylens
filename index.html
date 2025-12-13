@@ -4858,9 +4858,6 @@ runWhenReady(() => {
 
 
 
-
-
-
 <!-- BLOCK 3: Answer sanitizing, AI backend call, and all task helpers ----------------------
 --------------------------------------------------------------------------------------=----
 ===========================================================================================
@@ -5112,12 +5109,11 @@ document.addEventListener("click", (e) => {
 
 
 /* ===========================================================================================
-   OUTPUT PDF (only)
-   ✅ ACTUAL FIX:
-   - Handles duplicate IDs by finding ALL elements with that id and picking the VISIBLE one
-   - Prefers element inside .tab-content.active when your app uses tabs
-   - Uses capture=true so it still fires even if other code stops propagation
-   - PDF works whether the output is renderAnswer HTML OR plain text
+   OUTPUT PDF (only) - MOBILE FIX
+   ✅ FIX:
+   - Mobile blocks iframe.print() (especially iPhone Safari / in-app browsers)
+   - Open a real new tab, show a big "Print / Save PDF" button, user taps it
+   - Keeps the exact output HTML (formatting/highlighting) when available
 =========================================================================================== */
 (function setupPdfOnly() {
   function getToolOutputBody(outputEl) {
@@ -5201,44 +5197,60 @@ ${headBits}
 <style>
   ${toolCss}
 
-/* PDF ONLY: remove the box/border/background */
-.tool-output {
-  border: none !important;
-  background: transparent !important;
-  padding: 0 !important;
-  box-shadow: none !important;
-}
+  /* PDF ONLY: remove the box/border/background */
+  .tool-output {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
 
   body { padding: 0; margin: 0; }
   @page { margin: 14mm; }
   .tool-output { margin: 0; }
   .tool-output-body { white-space: pre-wrap; }
+
+  /* Mobile-friendly print button bar */
+  .printbar {
+    position: sticky;
+    top: 0;
+    background: #fff;
+    padding: 12px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: flex-end;
+    z-index: 9999;
+  }
+  .printbtn {
+    font: inherit;
+    border: 1px solid #e5e7eb;
+    background: #f3f4f6;
+    border-radius: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+  }
 </style>
 </head>
 <body>
+  <div class="printbar">
+    <button class="printbtn" onclick="window.print()">Print / Save PDF</button>
+  </div>
   ${contentBlock}
 </body>
 </html>`;
 
-    const iframe = document.createElement("iframe");
-    iframe.style.position = "fixed";
-    iframe.style.right = "0";
-    iframe.style.bottom = "0";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "0";
-    document.body.appendChild(iframe);
+    // ✅ Mobile-safe: open a real new tab/window (must be called inside the click)
+    const w = window.open("", "_blank");
+    if (!w) {
+      alert("Popup blocked. Allow popups, then try again.");
+      return;
+    }
 
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(printableHtml);
-    doc.close();
-
-    iframe.onload = () => {
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-      setTimeout(() => iframe.remove(), 1000);
-    };
+    w.document.open();
+    w.document.write(printableHtml);
+    w.document.close();
   }
 
   document.addEventListener("click", (e) => {
@@ -5438,6 +5450,7 @@ async function runSnapSolve(text) {
 
 /* ================================== SECTION 6 (END) ===================================== */
 </script>
+
 
 
 
