@@ -10517,9 +10517,9 @@ if (document.readyState === "loading") {
       /* ---- PART 4D: Write into the UI pills (START) ---- */
       var streakNode = document.querySelector("[data-pg-streak-value]");
       if (streakNode) {
-        streakNode.textContent =
-          streak + " day" + (streak === 1 ? "" : "s") + " in a row";
-      }
+  streakNode.textContent = streak === 1 ? "Checked in today" : `${streak}-day streak`;
+}
+
 
       var weeklyNode = document.querySelector("[data-pg-weekly-summary]");
       if (weeklyNode) {
