@@ -10356,41 +10356,54 @@ document.addEventListener("DOMContentLoaded", initAutoSubjectFromSnap);
 </script>
 
 
-<!-- BLOCK: Extract Notes tool (Snap -> Notes tab + Notebook save) ---------------------------
---------------------------------------------------------------------------------------=----
-===========================================================================================
-===========================================================================================
-------------------------------------------------------------------------------------------->
-
 <script>
 /* ===========================================================================================
    SECTION 0: AI helper for Extract Notes (START)
-   - This becomes a GLOBAL function so other scripts can call it if needed:
-       window.runExtractNotes(text)
-   - It uses your existing callAI() function (from BLOCK 3)
+   - GLOBAL: window.runExtractNotes(text)
+   - Uses your existing callAI() function (from BLOCK 3)
 =========================================================================================== */
 window.runExtractNotes = async function runExtractNotes(text) {
-  const cheat = !!window.__cheatMode; // false = learn mode, true = cheat mode
+  const cheat = !!window.__cheatMode;
 
-  // Always work with a safe string
   const cleanedText = String(text || "").trim();
   if (!cleanedText) return "";
 
+  // ✅ Best-effort: pull optional user instructions without changing your UI
+  const instrEl =
+    document.getElementById("snapInstructions") ||
+    document.getElementById("extraInstructions") ||
+    document.getElementById("instructionsInput");
+
+  const instructions = instrEl ? String(instrEl.value || "").trim() : "";
+
   /* ---- PART 0A: Build prompts (START) ---- */
   const basePrompt =
-    "You are helping a student turn messy homework/textbook text into short, high-yield notes.\n" +
-    "From the text below, extract ONLY the most important points as a bullet list.\n" +
-    "- Prefer short bullets\n" +
-    "- Focus on key facts, definitions, steps, formulas, dates, and names\n" +
-    "- Do NOT rewrite the whole passage\n" +
-    "- Return plain text only. Use '-' or '•' at the start of each bullet.\n\n" +
-    "Text:\n" +
+    "You are a student note-taker. Extract clean, useful notes from the content.\n" +
+    "Write in plain text with headings + bullet points.\n\n" +
+    "DEFAULT FORMAT (use this unless the USER INSTRUCTIONS override it):\n" +
+    "Key Points:\n" +
+    "- (5–12 bullets)\n\n" +
+    "Definitions / Vocabulary:\n" +
+    "- term — short definition\n\n" +
+    "Important Names / Dates / Formulas (only if present):\n" +
+    "- ...\n\n" +
+    "Quick Summary:\n" +
+    "- (2–4 sentences OR 2–4 bullets)\n\n" +
+    "Rules:\n" +
+    "- Do NOT add facts not in the input.\n" +
+    "- Keep it concise.\n\n" +
+    (instructions
+      ? ("USER INSTRUCTIONS (follow these exactly if they specify structure):\n" + instructions + "\n\n")
+      : "") +
+    "CONTENT:\n" +
     cleanedText;
 
   const cheatPrompt =
-    "From this text, return ONLY the most important bullet-point notes.\n" +
-    "Make 5–20 very short bullets. No intro, no conclusion.\n\n" +
-    "Text:\n" +
+    "Extract only the most important notes from this content.\n" +
+    "Use headings + bullets. Keep it very short.\n" +
+    "Do NOT add facts not in the input.\n\n" +
+    (instructions ? ("USER INSTRUCTIONS:\n" + instructions + "\n\n") : "") +
+    "CONTENT:\n" +
     cleanedText;
 
   const prompt = cheat ? cheatPrompt : basePrompt;
@@ -10398,170 +10411,18 @@ window.runExtractNotes = async function runExtractNotes(text) {
 
   /* ---- PART 0B: Call backend via callAI (START) ---- */
   if (typeof callAI !== "function") {
-    // If BLOCK 3 isn't loaded, fail safely with a helpful message
     return "⚠️ callAI() is not defined. Make sure BLOCK 3 (AI backend call) loads before this block.";
   }
 
   const result = await callAI({
     prompt,
-    task: "extract_notes" // backend task name (you can keep or change server-side)
+    task: "extract_notes"
   });
 
   return typeof result === "string" ? result : String(result ?? "");
   /* ---- PART 0B (END) ---- */
 };
 /* ================================= SECTION 0 (END) ===================================== */
-
-
-/* ===========================================================================================
-   SECTION 1: Wire UI on DOMContentLoaded (START)
-   - Uses existing IDs (DO NOT CHANGE):
-       #snapText, #notesInput, #notesResult, #notesBtn, #notesClearBtn
-=========================================================================================== */
-document.addEventListener("DOMContentLoaded", () => {
-
-  /* =========================================================================================
-     SECTION 2: Grab elements (START)
-  ========================================================================================= */
-  const snapText    = document.getElementById("snapText");
-  const notesInput  = document.getElementById("notesInput");
-  const notesResult = document.getElementById("notesResult");
-  const notesBtn    = document.getElementById("notesBtn");
-  const notesClear  = document.getElementById("notesClearBtn");
-
-  if (!snapText || !notesInput || !notesResult || !notesBtn) {
-    console.warn("[Extract Notes] Missing elements; not wired up.");
-    return;
-  }
-
-  // Guard: don’t double-wire if this script accidentally runs twice
-  if (notesBtn.dataset && notesBtn.dataset.notesWired === "1") return;
-  if (notesBtn.dataset) notesBtn.dataset.notesWired = "1";
-  /* ================================= SECTION 2 (END) ==================================== */
-
-
-
-  /* =========================================================================================
-     SECTION 3: Local loading animation for notesResult (START)
-     Why we do this:
-     - In your other block, startResultLoading/stopResultLoading are scoped locally,
-       so they are NOT available here.
-     - This is a safe self-contained loading indicator that won’t break anything.
-  ========================================================================================= */
-  function startNotesLoading(baseText) {
-    const label = baseText || "Finding key points";
-
-    // Stop any previous loading interval first
-    stopNotesLoading();
-
-    let dotCount = 0;
-    const maxDots = 3;
-
-    notesResult.textContent = label;
-    const id = setInterval(() => {
-      dotCount = (dotCount + 1) % (maxDots + 1);
-      notesResult.textContent = label + ".".repeat(dotCount);
-    }, 400);
-
-    // Store interval id on the element so we can stop it later
-    notesResult.dataset.loadingIntervalId = String(id);
-  }
-
-  function stopNotesLoading() {
-    const id = notesResult.dataset.loadingIntervalId;
-    if (id) {
-      clearInterval(Number(id));
-      delete notesResult.dataset.loadingIntervalId;
-    }
-  }
-  /* ================================= SECTION 3 (END) ==================================== */
-
-
-
-  /* =========================================================================================
-     SECTION 4: Main "Extract Notes" button click (START)
-     What happens:
-     1) Read Snap text
-     2) Copy to notesInput (so the Notes tab shows same source text)
-     3) Switch tab to "notes"
-     4) Run usage limiter
-     5) Call AI and render result
-     6) Save to Notebook as type "Notes"
-  ========================================================================================= */
-  notesBtn.addEventListener("click", async () => {
-
-    /* ---- PART 4A: Read Snap text (START) ---- */
-    const text = (snapText.value || "").trim();
-    if (!text) {
-      alert("Paste or OCR some text into the main Snap box first.");
-      return;
-    }
-    /* ---- PART 4A (END) ---- */
-
-    /* ---- PART 4B: Copy into notesInput + switch tab (START) ---- */
-    notesInput.value = text;
-
-    if (typeof activateTab === "function") {
-      activateTab("notes");
-    }
-    /* ---- PART 4B (END) ---- */
-
-    /* ---- PART 4C: Usage limiter (START) ---- */
-    if (window.__canUseAIOnce) {
-      const allowed = await window.__canUseAIOnce();
-      if (!allowed) return;
-    } else if (window.__canUseAIOnceAnon && !window.__canUseAIOnceAnon()) {
-      return;
-    }
-    /* ---- PART 4C (END) ---- */
-
-    /* ---- PART 4D: Loading + AI call (START) ---- */
-    startNotesLoading("Finding key points");
-
-    try {
-      const raw = await window.runExtractNotes(text);
-
-      stopNotesLoading();
-
-      // IMPORTANT: do NOT run sanitizeAnswerText here because it would remove bullet lines
-      const clean = String(raw || "").trim();
-
-      // Render with your styled output helper if available
-      if (typeof renderAnswer === "function") {
-        renderAnswer(notesResult, clean);
-      } else {
-        notesResult.textContent = clean;
-      }
-
-      // Save to Notebook
-      if (typeof addNotebookItem === "function") {
-        addNotebookItem("Notes", clean);
-      }
-    } catch (err) {
-      console.error("[Extract Notes] error:", err);
-      stopNotesLoading();
-      notesResult.textContent = "⚠️ Error extracting notes: " + (err && err.message ? err.message : String(err));
-    }
-    /* ---- PART 4D (END) ---- */
-  });
-  /* ================================= SECTION 4 (END) ==================================== */
-
-
-
-  /* =========================================================================================
-     SECTION 5: Clear button inside Notes tool (START)
-     - Clears the Notes tool textarea + output
-  ========================================================================================= */
-  if (notesClear) {
-    notesClear.addEventListener("click", () => {
-      notesInput.value = "";
-      notesResult.textContent = "";
-    });
-  }
-  /* ================================= SECTION 5 (END) ==================================== */
-
-});
-/* ================================== SECTION 1 (END) ===================================== */
 </script>
 
 
