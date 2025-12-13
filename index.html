@@ -10983,7 +10983,191 @@ if (document.readyState === "loading") {
 })();
 </script>
 
+<script>
+<!-- BLOCK X: PDF Export (Print Only Output) -------------------------------------------------
+--------------------------------------------------------------------------------------------
+============================================================================================
+============================================================================================
+------------------------------------------------------------------------------------------->
 
+<script>
+/* ===========================================================================================
+   PDF EXPORT (PRINT ONLY OUTPUT) (START)
+   Goal:
+   - Works reliably on mobile + desktop (uses native print dialog)
+   - Prints ONLY the .tool-output-body content (no page sidebar, no url/footer junk)
+   - Keeps formatting + highlights because it prints the existing HTML
+   - Uses the subject/title if available by temporarily changing document.title
+   Requirements:
+   - Your PDF button has: class="output-pdf-download" and data-target="OUTPUT_ID"
+   - Output container has .tool-output-body inside (renderAnswer does this)
+=========================================================================================== */
+
+(function setupPrintOnlyOutputPdf() {
+  function getAllById(targetId) {
+    const safe = String(targetId || "").replace(/"/g, '\\"');
+    return Array.from(document.querySelectorAll('[id="' + safe + '"]'));
+  }
+
+  function isVisible(el) {
+    if (!el) return false;
+
+    const style = window.getComputedStyle(el);
+    if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") return false;
+
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return false;
+
+    const tab = el.closest(".tab-content");
+    if (tab && !tab.classList.contains("active")) return false;
+
+    return true;
+  }
+
+  function pickBestOutputEl(targetId) {
+    const candidates = getAllById(targetId);
+    const visible = candidates.find(isVisible);
+    return visible || candidates[0] || null;
+  }
+
+  function safeFilenameBase(name) {
+    return String(name || "export")
+      .trim()
+      .replace(/[\/\\?%*:|"<>]/g, "-")
+      .replace(/\s+/g, " ")
+      .slice(0, 80) || "export";
+  }
+
+  function getTitleForPdf(fallback) {
+    const subjInput = document.getElementById("saveSubjectInput");
+    const subject = subjInput ? String(subjInput.value || "").trim() : "";
+    return safeFilenameBase(subject || fallback || "export");
+  }
+
+  function buildPrintCss() {
+    return `
+      @media print {
+        /* Hide EVERYTHING */
+        body * { visibility: hidden !important; }
+
+        /* Show only our print root */
+        #__print_root__, #__print_root__ * { visibility: visible !important; }
+
+        /* Place it at top-left */
+        #__print_root__ {
+          position: fixed !important;
+          left: 0 !important;
+          top: 0 !important;
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #fff !important;
+        }
+
+        /* Page margins */
+        @page { margin: 14mm; }
+
+        /* Remove your output box border/background in PDF */
+        #__print_root__ .tool-output {
+          border: none !important;
+          background: transparent !important;
+          padding: 0 !important;
+          box-shadow: none !important;
+          margin: 0 !important;
+        }
+
+        /* Don't print the copy button/header */
+        #__print_root__ .tool-output-header { display: none !important; }
+
+        /* Make sure line breaks behave */
+        #__print_root__ .tool-output-body { white-space: pre-wrap !important; }
+
+        /* Keep highlights/colors when user enables "Background graphics" */
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      }
+    `;
+  }
+
+  function ensurePrintStyle() {
+    let style = document.getElementById("__print_style__");
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "__print_style__";
+      document.head.appendChild(style);
+    }
+    style.textContent = buildPrintCss();
+  }
+
+  function removePrintDom() {
+    const root = document.getElementById("__print_root__");
+    if (root) root.remove();
+  }
+
+  function makePrintDomFromBody(bodyEl) {
+    removePrintDom();
+
+    const root = document.createElement("div");
+    root.id = "__print_root__";
+
+    // Wrap it so your existing .tool-output styles apply,
+    // but our print CSS strips borders/background/header.
+    const wrap = document.createElement("div");
+    wrap.className = "tool-output";
+
+    const bodyClone = bodyEl.cloneNode(true);
+    // No editing caret weirdness in print
+    bodyClone.removeAttribute("contenteditable");
+
+    wrap.appendChild(bodyClone);
+    root.appendChild(wrap);
+    document.body.appendChild(root);
+  }
+
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".output-pdf-download");
+    if (!btn) return;
+
+    const targetId = btn.dataset.target;
+    if (!targetId) return;
+
+    const outputEl = pickBestOutputEl(targetId);
+    if (!outputEl) return;
+
+    const bodyEl = outputEl.querySelector(".tool-output-body");
+    if (!bodyEl) {
+      alert("Nothing to export yet.");
+      return;
+    }
+
+    // If it’s empty, stop
+    const hasStuff = String(bodyEl.innerText || "").trim().length > 0 || String(bodyEl.innerHTML || "").trim().length > 0;
+    if (!hasStuff) {
+      alert("Nothing to export yet.");
+      return;
+    }
+
+    ensurePrintStyle();
+    makePrintDomFromBody(bodyEl);
+
+    const originalTitle = document.title;
+    const newTitle = getTitleForPdf(targetId);
+    document.title = newTitle;
+
+    // Print
+    window.print();
+
+    // Cleanup + restore title
+    setTimeout(() => {
+      document.title = originalTitle;
+      removePrintDom();
+    }, 500);
+  }, true);
+})();
+
+/* ================================== PDF EXPORT (PRINT ONLY OUTPUT) (END) =================== */
+</script>
+
+</script>
 
 
 </body>
