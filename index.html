@@ -9118,12 +9118,6 @@ window.getCurrentUserPlan = async function () {
 /* ================================= SECTION 8 (END) ===================================== */
 </script>
 
-<!-- BLOCK BILLING: Upgrade button + Pro badge (plan check + checkout redirect) ---------------
---------------------------------------------------------------------------------------=----
-===========================================================================================
-===========================================================================================
-------------------------------------------------------------------------------------------->
-
 <script>
 /* ===========================================================================================
    SECTION 0: Run after DOM loads (START)
@@ -9138,9 +9132,6 @@ document.addEventListener("DOMContentLoaded", () => {
   ========================================================================================= */
   const upgradeBtn = document.getElementById("upgradeButton");
   const proBadge = document.getElementById("proBadge");
-  /* ---- NEW: u13 disclaimer element (id or class) ---- */
-  const u13Disclaimer =
-    document.getElementById("u13Disclaimer") || document.querySelector(".u13-disclaimer");
   /* ================================= SECTION 1 (END) ==================================== */
 
 
@@ -9164,30 +9155,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   /* =========================================================================================
-     SECTION 3: Check plan on page load (FIXED SAFELY) (START)
-     What this does:
-     - If supabaseClient is missing, it bails safely (won't crash the page)
-     - If user is logged out, it leaves Upgrade visible (so they can sign in)
-     - If user is Pro, it hides Upgrade and shows the badge
+     SECTION 3: Check plan (UPDATED) (START)
+     Fix:
+     - Billing check may run BEFORE OAuth session is set (async in another handler)
+     - So we:
+       1) retry if supabaseClient isn't ready yet
+       2) re-check whenever auth state changes
   ========================================================================================= */
-  (async function checkPlanOnLoad() {
+  async function checkPlanAndUpdateUI() {
     try {
-      // If supabaseClient is not available yet, don't crash
-      if (!window.supabaseClient) return;
+      // If supabaseClient isn't available yet, retry shortly (non-blocking)
+      if (!window.supabaseClient) {
+        setTimeout(checkPlanAndUpdateUI, 80);
+        return;
+      }
 
       const { data, error } = await window.supabaseClient.auth.getUser();
       if (error || !data.user) {
-        // Not logged in -> leave upgrade visible + show u13 disclaimer
+        // Not logged in -> leave upgrade visible
         setUpgradeUI();
-        if (u13Disclaimer) u13Disclaimer.style.display = "";
         return;
       }
 
       const user = data.user;
-
-      // ✅ Logged in -> always hide Upgrade + hide u13 disclaimer (per your requirement)
-      if (upgradeBtn) upgradeBtn.style.display = "none";
-      if (u13Disclaimer) u13Disclaimer.style.display = "none";
 
       // Look up plan by user_id (your current schema)
       const { data: planRow, error: planError } = await window.supabaseClient
@@ -9200,17 +9190,28 @@ document.addEventListener("DOMContentLoaded", () => {
         // ✅ Already Pro
         setProUI();
       } else {
-        // Logged in but not Pro -> hide badge
-        if (proBadge) proBadge.style.display = "none";
+        setUpgradeUI();
       }
     } catch (e) {
       console.error("Error checking user plan", e);
-      // Fail open:
-      // - If logged out, keep upgrade visible (setUpgradeUI handles that elsewhere)
-      // - If logged in, updateAuthUI will hide it; we won't force anything here.
+      // Fail open: keep upgrade visible so user isn't blocked
       setUpgradeUI();
     }
-  })();
+  }
+
+  // Run once on load
+  checkPlanAndUpdateUI();
+
+  // Re-run whenever auth state changes (this fixes OAuth timing)
+  try {
+    if (window.supabaseClient && window.supabaseClient.auth && window.supabaseClient.auth.onAuthStateChange) {
+      window.supabaseClient.auth.onAuthStateChange(() => {
+        checkPlanAndUpdateUI();
+      });
+    }
+  } catch (e) {
+    // ignore
+  }
   /* ================================= SECTION 3 (END) ==================================== */
 
 
@@ -9295,6 +9296,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 /* ================================== SECTION 0 (END) ===================================== */
 </script>
+
 
 
 
