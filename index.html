@@ -5214,6 +5214,7 @@ document.addEventListener("click", (e) => {
     outputEl.dataset.plainText = body.innerText || String(backup.text || "");
   }
 
+  /* ====================== REPLACE ONLY THIS FUNCTION ====================== */
   function printOutputToPdf(outputEl, titleText) {
     if (!outputEl) return;
 
@@ -5239,7 +5240,8 @@ document.addEventListener("click", (e) => {
       .map((n) => n.outerHTML)
       .join("\n");
 
-    const safeTitle = String(titleText || "Export").replace(/</g, "&lt;");
+    // Keep the doc title (tab title) but DO NOT print it on the page
+    const safeDocTitle = String(titleText || "Export").replace(/</g, "&lt;");
 
     const contentBlock = hasHtml
       ? `<div class="tool-output"><div class="tool-output-body">${bodyEl.innerHTML}</div></div>`
@@ -5250,19 +5252,22 @@ document.addEventListener("click", (e) => {
 <html>
 <head>
 <meta charset="utf-8">
-<title>${safeTitle}</title>
+<title>${safeDocTitle}</title>
 ${headBits}
 <style>
   ${toolCss}
-  body { padding: 24px; }
-  .print-title { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
-  .print-meta { font-size: 12px; opacity: 0.75; margin-bottom: 16px; }
+
+  /* Only the output — no extra title/date blocks */
+  body { padding: 0; margin: 0; }
+
+  /* PDF margins */
+  @page { margin: 14mm; }
+
+  .tool-output { margin: 0; }
   .tool-output-body { white-space: pre-wrap; }
 </style>
 </head>
 <body>
-  <div class="print-title">${safeTitle}</div>
-  <div class="print-meta">${new Date().toLocaleString()}</div>
   ${contentBlock}
 </body>
 </html>`;
@@ -5287,6 +5292,7 @@ ${headBits}
       setTimeout(() => iframe.remove(), 1000);
     };
   }
+  /* ==================== END REPLACEMENT FUNCTION ==================== */
 
   // ✅ capture=true so this runs even if another click handler stops propagation
   document.addEventListener("click", (e) => {
@@ -5355,6 +5361,7 @@ ${headBits}
     reader.readAsText(file);
   }, true);
 })();
+
 
 
 
