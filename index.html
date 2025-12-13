@@ -5252,10 +5252,18 @@ document.addEventListener("click", (e) => {
 <html>
 <head>
 <meta charset="utf-8">
+<base href="${location.href}">
 <title>${safeDocTitle}</title>
 ${headBits}
 <style>
   ${toolCss}
+/* PDF ONLY: remove the box/border/background */
+.tool-output {
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
 
   /* Only the output — no extra title/date blocks */
   body { padding: 0; margin: 0; }
