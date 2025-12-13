@@ -8976,7 +8976,7 @@ async function updateAuthUI() {
 
   /* ---- NEW (guest-only UI): logged in => hide Upgrade + hide u13 disclaimer ---- */
   if (upgradeBtn) upgradeBtn.style.display = "none";
-  if (u13Disclaimer) u13Disclaimer.style.display = "none";
+if (upgradeBtn) upgradeBtn.style.setProperty("display", "none", "important");
   if (proBadge) proBadge.style.display = isPro ? "inline-block" : "none";
 
   /* ---- PART 5D: Usage label lookup for this month (START) ---- */
