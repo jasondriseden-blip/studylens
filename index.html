@@ -11162,19 +11162,78 @@ if (document.readyState === "loading") {
       return;
     }
 
-    ensurePrintStyle();
-    makePrintDomFromBody(bodyEl);
-
-    const originalTitle = document.title;
+    // ✅ iOS Safari reliability: open the tab immediately from the click
     const newTitle = getTitleForPdf(targetId);
-    document.title = newTitle;
+    const w = window.open("", "_blank");
+    if (!w) {
+      alert("Popup blocked. Allow popups for PDF export.");
+      return;
+    }
 
-    window.print();
+    // Pull your existing tool-output CSS so highlights/formatting survive
+    const toolStylesEl = document.getElementById("tool-output-styles");
+    const toolCss = toolStylesEl ? toolStylesEl.textContent : "";
 
-    setTimeout(() => {
-      document.title = originalTitle;
-      removePrintDom();
-    }, 500);
+    // Also include other page styles (optional but helps with highlight classes)
+    const headBits = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map((n) => n.outerHTML)
+      .join("\n");
+
+    // Build a clean printable page with ONLY the output
+    const printableHtml = `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<base href="${location.href}">
+<title>${newTitle}</title>
+${headBits}
+<style>
+  ${toolCss}
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+  }
+
+  /* Remove borders/box */
+  .tool-output {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+  }
+
+  .tool-output-header { display: none !important; }
+  .tool-output-body { white-space: pre-wrap !important; }
+
+  @page { margin: 14mm; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+</style>
+</head>
+<body>
+  <div class="tool-output">
+    <div class="tool-output-body">${bodyEl.innerHTML}</div>
+  </div>
+
+  <script>
+    window.onload = () => {
+      setTimeout(() => {
+        window.focus();
+        window.print();
+      }, 250);
+    };
+  <\/script>
+</body>
+</html>`;
+
+    w.document.open();
+    w.document.write(printableHtml);
+    w.document.close();
   }, true);
 })();
 
