@@ -2,12 +2,8 @@
   "name": "passinggrade",
   "version": "1.0.0",
   "private": true,
-  "engines": { "node": "20.x" },
   "dependencies": {
     "stripe": "^16.0.0",
-    "@supabase/supabase-js": "^2.48.0",
-    "puppeteer-core": "^22.0.0",
-    "@sparticuz/chromium": "^123.0.0"
+    "@supabase/supabase-js": "^2.48.0"
   }
 }
-
