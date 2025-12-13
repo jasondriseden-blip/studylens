@@ -5256,9 +5256,29 @@ function restoreFromBackup(outputEl, backup) {
   outputEl.dataset.plainText = body.innerText || String(backup.text || "");
 }
 
+/* ✅ NEW: escape helper so plain text prints safely */
+function escapeHtml(s) {
+  return String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 function printOutputToPdf(outputEl, titleText) {
+  if (!outputEl) return;
+
   const bodyEl = getToolOutputBody(outputEl);
-  if (!bodyEl) {
+
+  // ✅ Fallback to plain text if bodyEl doesn't exist yet
+  const fallbackText =
+    (outputEl.dataset && outputEl.dataset.plainText) ||
+    outputEl.textContent ||
+    "";
+
+  const hasHtml = bodyEl && bodyEl.innerHTML && bodyEl.innerHTML.trim();
+  const hasText = String(fallbackText || "").trim().length > 0;
+
+  if (!hasHtml && !hasText) {
     alert("Nothing to export yet.");
     return;
   }
@@ -5272,13 +5292,24 @@ function printOutputToPdf(outputEl, titleText) {
     .map((n) => n.outerHTML)
     .join("\n");
 
+  const safeTitle = (titleText || "Export").replace(/</g, "&lt;");
+
+  // ✅ Use HTML if present; otherwise print plain text
+  const contentBlock = hasHtml
+    ? `<div class="tool-output">
+         <div class="tool-output-body">${bodyEl.innerHTML}</div>
+       </div>`
+    : `<div class="tool-output">
+         <pre class="tool-output-body" style="margin:0; white-space:pre-wrap;">${escapeHtml(fallbackText)}</pre>
+       </div>`;
+
   // Build a clean printable page (we print ONLY the output body, no Copy button)
   const printableHtml = `
 <!doctype html>
 <html>
 <head>
 <meta charset="utf-8">
-<title>${(titleText || "Export").replace(/</g, "&lt;")}</title>
+<title>${safeTitle}</title>
 ${headBits}
 <style>
   ${toolCss}
@@ -5293,11 +5324,9 @@ ${headBits}
 </style>
 </head>
 <body>
-  <div class="print-title">${(titleText || "Export").replace(/</g, "&lt;")}</div>
+  <div class="print-title">${safeTitle}</div>
   <div class="print-meta">${new Date().toLocaleString()}</div>
-  <div class="tool-output">
-    <div class="tool-output-body">${bodyEl.innerHTML}</div>
-  </div>
+  ${contentBlock}
 </body>
 </html>`;
 
@@ -5395,7 +5424,6 @@ document.addEventListener("input", (e) => {
   container.dataset.plainText = body.innerText || "";
 });
 /* ================================ SECTION 3D (END) ===================================== */
-
 
 
 /* ===========================================================================================
