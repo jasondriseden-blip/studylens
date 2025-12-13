@@ -10989,15 +10989,16 @@ if (document.readyState === "loading") {
 ============================================================================================
 ============================================================================================
 ------------------------------------------------------------------------------------------->
+
 <script>
 /* ===========================================================================================
-   PDF EXPORT (MOBILE RELIABLE) — BODY SWAP METHOD
-   Why this works on phones:
-   - Mobile browsers sometimes print a blank page if you hide most of the DOM and print a moved/cloned node.
-   - Swapping <body> to a minimal print-only body is the most consistent approach on iOS/Android.
+   PDF EXPORT (MOBILE RELIABLE) — BODY SWAP, OUTPUT-TEXT ONLY
+   - Swaps the entire <body> to a minimal print-only body (mobile reliable)
+   - Prints ONLY the .tool-output-body content
+   - Restores original page after print via afterprint + visibilitychange
 =========================================================================================== */
 
-(function setupMobilePdfPrint() {
+(function setupMobilePdfPrint_TextOnly() {
   function safeFilenameBase(name) {
     return String(name || "export")
       .trim()
@@ -11035,26 +11036,26 @@ if (document.readyState === "loading") {
     if (!bodyEl) return false;
     const html = String(bodyEl.innerHTML || "").replace(/<br\s*\/?>/gi, "").trim();
     const text = String(bodyEl.innerText || "").trim();
-    return (text.length > 0 || html.length > 0);
+    return text.length > 0 || html.length > 0;
   }
 
   function pickBestBodyEl(targetId, btn) {
     const candidates = getAllById(targetId);
 
-    // Prefer a visible candidate with a non-empty .tool-output-body
+    // Visible + has content first
     for (const el of candidates) {
       if (!isVisible(el)) continue;
       const body = el.querySelector(".tool-output-body");
       if (hasContent(body)) return body;
     }
 
-    // Otherwise, pick any candidate that has content
+    // Any with content
     for (const el of candidates) {
       const body = el.querySelector(".tool-output-body");
       if (hasContent(body)) return body;
     }
 
-    // Last fallback: nearest output around the tapped button
+    // Nearest to the button fallback
     if (btn) {
       const nearby =
         btn.closest?.(".tool-output")?.querySelector?.(".tool-output-body") ||
@@ -11083,9 +11084,11 @@ if (document.readyState === "loading") {
           -webkit-text-size-adjust: 100% !important;
           filter: none !important;
           -webkit-filter: none !important;
+          margin: 0 !important;
+          padding: 0 !important;
         }
 
-        /* Force readable text even if theme uses text-fill tricks */
+        /* Make sure text prints even under theme tricks */
         * {
           color: #000 !important;
           -webkit-text-fill-color: #000 !important;
@@ -11095,9 +11098,11 @@ if (document.readyState === "loading") {
           print-color-adjust: exact !important;
         }
 
-        .tool-output { border: none !important; box-shadow: none !important; background: transparent !important; }
-        .tool-output-header { display: none !important; }
-        .tool-output-body { white-space: pre-wrap !important; }
+        /* Only our content exists after body-swap, but keep it clean */
+        #__print_only__ {
+          white-space: pre-wrap !important;
+          overflow: visible !important;
+        }
       }
     `;
   }
@@ -11116,14 +11121,12 @@ if (document.readyState === "loading") {
     }
 
     function onVis() {
-      // When returning from print UI on mobile
       if (!document.hidden) cleanup();
     }
 
     window.addEventListener("afterprint", cleanup, { once: true });
     document.addEventListener("visibilitychange", onVis, true);
 
-    // hard fallback
     setTimeout(cleanup, 6000);
   }
 
@@ -11133,26 +11136,24 @@ if (document.readyState === "loading") {
     const scrollX = window.scrollX || 0;
     const scrollY = window.scrollY || 0;
 
-    // Create a minimal print body
     const printBody = document.createElement("body");
     printBody.style.background = "#fff";
     printBody.appendChild(printNode);
 
-    // Swap bodies (keeps <head> and CSS intact)
     document.title = titleForPdf;
     document.documentElement.replaceChild(printBody, originalBody);
 
-    // Force layout before print (mobile)
+    // HARD flush so mobile snapshots the swapped body (prevents “prints whole page”)
     void document.body.offsetHeight;
+    document.body.getBoundingClientRect();
 
     installCleanupHandlers(() => {
-      // Restore original body + title + scroll
       document.documentElement.replaceChild(originalBody, document.body);
       document.title = originalTitle;
       try { window.scrollTo(scrollX, scrollY); } catch (e) {}
     });
 
-    // MUST be inside user gesture
+    // Must be inside user gesture
     window.print();
   }
 
@@ -11160,7 +11161,6 @@ if (document.readyState === "loading") {
     const btn = e.target.closest(".output-pdf-download");
     if (!btn) return;
 
-    // prevent double-run on mobile
     if (printing) return;
     printing = true;
     setTimeout(() => (printing = false), 1500);
@@ -11174,30 +11174,24 @@ if (document.readyState === "loading") {
       return;
     }
 
-    // Important: prevent default and keep in this tap/click stack
     e.preventDefault();
 
     ensurePrintStyle();
 
-    // Clone the *whole* tool-output block (not just the body) to preserve styling/layout
-    const toolOutput = bodyEl.closest(".tool-output") || bodyEl;
-    const clone = toolOutput.cloneNode(true);
-
-    // Remove contenteditable artifacts
+    // ✅ TEXT-ONLY: clone ONLY the tool-output-body
+    const clone = bodyEl.cloneNode(true);
+    clone.id = "__print_only__";
+    clone.removeAttribute("contenteditable");
     clone.querySelectorAll("[contenteditable]").forEach(n => n.removeAttribute("contenteditable"));
 
-    // Wrap in a minimal structure that often matches your CSS selectors
-    const wrapper = document.createElement("div");
-    wrapper.className = "tab-content active";
-    wrapper.appendChild(clone);
+    // Optional: if you only want plain text (no formatting), uncomment:
+    // clone.textContent = bodyEl.innerText || "";
 
     const pdfTitle = getTitleForPdf(targetId);
-
-    bodySwapPrint(wrapper, pdfTitle);
+    bodySwapPrint(clone, pdfTitle);
   }, true);
 })();
 </script>
-
 
 
 
