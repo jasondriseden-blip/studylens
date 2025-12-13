@@ -2791,10 +2791,8 @@ details.nb-dropdown > summary:active {
 		  <!-- Export bar for Solve output -->
 <div class="output-export-bar" style="margin:8px 0; display:flex; align-items:center; gap:6px;">
   <button type="button" class="pill-button output-pdf-download" data-target="snapResult">Download PDF</button>
-  <button type="button" class="pill-button output-backup-download" data-target="snapResult">Backup</button>
-  <button type="button" class="pill-button output-backup-restore" data-target="snapResult">Restore</button>
-  <input type="file" class="output-backup-file" data-target="snapResult" accept="application/json" style="display:none;">
 </div>
+
         </div>
       </section>
 
@@ -2899,10 +2897,8 @@ details.nb-dropdown > summary:active {
 		  <!-- Export bar for Solve output -->
 <div class="output-export-bar" style="margin:8px 0; display:flex; align-items:center; gap:6px;">
   <button type="button" class="pill-button output-pdf-download" data-target="snapResult">Download PDF</button>
-  <button type="button" class="pill-button output-backup-download" data-target="snapResult">Backup</button>
-  <button type="button" class="pill-button output-backup-restore" data-target="snapResult">Restore</button>
-  <input type="file" class="output-backup-file" data-target="snapResult" accept="application/json" style="display:none;">
 </div>
+
         </div>
       </section>
 
@@ -2981,10 +2977,8 @@ details.nb-dropdown > summary:active {
 		  <!-- Export bar for Solve output -->
 <div class="output-export-bar" style="margin:8px 0; display:flex; align-items:center; gap:6px;">
   <button type="button" class="pill-button output-pdf-download" data-target="snapResult">Download PDF</button>
-  <button type="button" class="pill-button output-backup-download" data-target="snapResult">Backup</button>
-  <button type="button" class="pill-button output-backup-restore" data-target="snapResult">Restore</button>
-  <input type="file" class="output-backup-file" data-target="snapResult" accept="application/json" style="display:none;">
 </div>
+
         </div>
       </section>
 
@@ -3041,10 +3035,8 @@ details.nb-dropdown > summary:active {
 	<!-- Export bar for Solve output -->
 <div class="output-export-bar" style="margin:8px 0; display:flex; align-items:center; gap:6px;">
   <button type="button" class="pill-button output-pdf-download" data-target="snapResult">Download PDF</button>
-  <button type="button" class="pill-button output-backup-download" data-target="snapResult">Backup</button>
-  <button type="button" class="pill-button output-backup-restore" data-target="snapResult">Restore</button>
-  <input type="file" class="output-backup-file" data-target="snapResult" accept="application/json" style="display:none;">
 </div>
+
   </div>
 </section>
 
@@ -5105,168 +5097,6 @@ document.addEventListener("click", (e) => {
   }
 });
 /* ================================== SECTION 3 (END) ===================================== */
-
-
-
-/* ===========================================================================================
-   OUTPUT PDF (only) - MOBILE FIX
-   ✅ FIX:
-   - Mobile blocks iframe.print() (especially iPhone Safari / in-app browsers)
-   - Open a real new tab, show a big "Print / Save PDF" button, user taps it
-   - Keeps the exact output HTML (formatting/highlighting) when available
-=========================================================================================== */
-(function setupPdfOnly() {
-  function getToolOutputBody(outputEl) {
-    if (!outputEl) return null;
-    return outputEl.querySelector(".tool-output-body");
-  }
-
-  function escapeHtml(s) {
-    return String(s || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-  }
-
-  function getAllById(targetId) {
-    const safe = String(targetId || "").replace(/"/g, '\\"');
-    return Array.from(document.querySelectorAll('[id="' + safe + '"]'));
-  }
-
-  function isVisible(el) {
-    if (!el) return false;
-
-    const style = window.getComputedStyle(el);
-    if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") return false;
-
-    const rect = el.getBoundingClientRect();
-    if (rect.width === 0 && rect.height === 0) return false;
-
-    const tab = el.closest(".tab-content");
-    if (tab && !tab.classList.contains("active")) return false;
-
-    return true;
-  }
-
-  function pickBestOutputEl(targetId) {
-    const candidates = getAllById(targetId);
-    const visible = candidates.find(isVisible);
-    if (visible) return visible;
-    return candidates[0] || null;
-  }
-
-  function printOutputToPdf(outputEl, titleText) {
-    if (!outputEl) return;
-
-    const bodyEl = getToolOutputBody(outputEl);
-
-    const fallbackText =
-      (outputEl.dataset && outputEl.dataset.plainText) ||
-      outputEl.textContent ||
-      "";
-
-    const hasHtml = bodyEl && bodyEl.innerHTML && bodyEl.innerHTML.trim();
-    const hasText = String(fallbackText || "").trim().length > 0;
-
-    if (!hasHtml && !hasText) {
-      alert("Nothing to export yet.");
-      return;
-    }
-
-    const toolStylesEl = document.getElementById("tool-output-styles");
-    const toolCss = toolStylesEl ? toolStylesEl.textContent : "";
-
-    const headBits = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
-      .map((n) => n.outerHTML)
-      .join("\n");
-
-    const safeDocTitle = String(titleText || "Export").replace(/</g, "&lt;");
-
-    const contentBlock = hasHtml
-      ? `<div class="tool-output"><div class="tool-output-body">${bodyEl.innerHTML}</div></div>`
-      : `<div class="tool-output"><pre class="tool-output-body" style="margin:0; white-space:pre-wrap;">${escapeHtml(fallbackText)}</pre></div>`;
-
-    const printableHtml = `
-<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<base href="${location.href}">
-<title>${safeDocTitle}</title>
-${headBits}
-<style>
-  ${toolCss}
-
-  /* PDF ONLY: remove the box/border/background */
-  .tool-output {
-    border: none !important;
-    background: transparent !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-  }
-
-  body { padding: 0; margin: 0; }
-  @page { margin: 14mm; }
-  .tool-output { margin: 0; }
-  .tool-output-body { white-space: pre-wrap; }
-
-  /* Mobile-friendly print button bar */
-  .printbar {
-    position: sticky;
-    top: 0;
-    background: #fff;
-    padding: 12px;
-    border-bottom: 1px solid #e5e7eb;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    justify-content: flex-end;
-    z-index: 9999;
-  }
-  .printbtn {
-    font: inherit;
-    border: 1px solid #e5e7eb;
-    background: #f3f4f6;
-    border-radius: 10px;
-    padding: 10px 14px;
-    cursor: pointer;
-  }
-</style>
-</head>
-<body>
-  <div class="printbar">
-    <button class="printbtn" onclick="window.print()">Print / Save PDF</button>
-  </div>
-  ${contentBlock}
-</body>
-</html>`;
-
-    // ✅ Mobile-safe: open a real new tab/window (must be called inside the click)
-    const w = window.open("", "_blank");
-    if (!w) {
-      alert("Popup blocked. Allow popups, then try again.");
-      return;
-    }
-
-    w.document.open();
-    w.document.write(printableHtml);
-    w.document.close();
-  }
-
-  document.addEventListener("click", (e) => {
-    const pdfBtn = e.target.closest(".output-pdf-download");
-    if (pdfBtn) {
-      const targetId = pdfBtn.dataset.target;
-      if (!targetId) return;
-
-      const outputEl = pickBestOutputEl(targetId);
-      if (!outputEl) return;
-
-      printOutputToPdf(outputEl, targetId || "Export");
-      return;
-    }
-  }, true);
-})();
 
 
 
@@ -11154,6 +10984,169 @@ if (document.readyState === "loading") {
 </script>
 
 
+<!-- BLOCK X: Server-side PDF Download (client handler ONLY) --------------------------------
+--------------------------------------------------------------------------------------------
+============================================================================================
+============================================================================================
+------------------------------------------------------------------------------------------->
+
+<script>
+/* ===========================================================================================
+   SERVER PDF DOWNLOAD (CLIENT HANDLER) (START)
+   Goal:
+   - When user clicks any ".output-pdf-download" button:
+       1) Find the correct visible output element by its data-target id
+       2) Grab the CURRENT output HTML + plain text (keeps edits/highlights if present)
+       3) POST it to your server endpoint: /api/pdf
+       4) Download the returned PDF (works on mobile + desktop)
+   Notes:
+   - This does NOT do print()/iframe.
+   - This does NOT include backup/restore.
+   - Your server must implement POST /api/pdf and return application/pdf.
+=========================================================================================== */
+
+(function setupServerPdfDownload() {
+  function getAllById(targetId) {
+    const safe = String(targetId || "").replace(/"/g, '\\"');
+    return Array.from(document.querySelectorAll('[id="' + safe + '"]'));
+  }
+
+  function isVisible(el) {
+    if (!el) return false;
+
+    const style = window.getComputedStyle(el);
+    if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") return false;
+
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return false;
+
+    const tab = el.closest(".tab-content");
+    if (tab && !tab.classList.contains("active")) return false;
+
+    return true;
+  }
+
+  function pickBestOutputEl(targetId) {
+    const candidates = getAllById(targetId);
+    const visible = candidates.find(isVisible);
+    return visible || candidates[0] || null;
+  }
+
+  function getToolOutputBody(outputEl) {
+    if (!outputEl) return null;
+    return outputEl.querySelector(".tool-output-body");
+  }
+
+  function guessFilename(outputEl, fallbackId) {
+    // Prefer subject input if present
+    const subjInput = document.getElementById("saveSubjectInput");
+    const subject = subjInput ? String(subjInput.value || "").trim() : "";
+
+    const base = subject || String(fallbackId || outputEl.id || "export");
+    // safe filename
+    return base
+      .replace(/[\/\\?%*:|"<>]/g, "-")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 80) + ".pdf";
+  }
+
+  async function downloadPdfFromServer({ title, html, text, targetId }) {
+    const res = await fetch("/api/pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: title || targetId || "Export",
+        // send both; server can choose best for fidelity
+        html: String(html || ""),
+        text: String(text || ""),
+        targetId: targetId || "",
+      }),
+    });
+
+    if (!res.ok) {
+      const msg = await res.text().catch(() => "");
+      throw new Error("PDF error (" + res.status + "): " + (msg || "Request failed"));
+    }
+
+    const blob = await res.blob();
+
+    // Some servers may return JSON error; quick guard
+    if (blob.type && blob.type.includes("application/json")) {
+      const j = await blob.text();
+      throw new Error("Server returned JSON instead of PDF: " + j);
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = guessFilename(null, title);
+
+    // iOS Safari: anchor click sometimes needs to be in DOM
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  document.addEventListener(
+    "click",
+    async (e) => {
+      const pdfBtn = e.target.closest(".output-pdf-download");
+      if (!pdfBtn) return;
+
+      const targetId = pdfBtn.dataset.target;
+      if (!targetId) return;
+
+      const outputEl = pickBestOutputEl(targetId);
+      if (!outputEl) return;
+
+      // Prefer rich HTML from tool-output-body (keeps highlighting/formatting)
+      const bodyEl = getToolOutputBody(outputEl);
+      const html = bodyEl ? bodyEl.innerHTML : "";
+
+      // Prefer edited plain text (kept synced by your input handler)
+      const text =
+        (outputEl.dataset && outputEl.dataset.plainText) ||
+        (bodyEl ? bodyEl.innerText : "") ||
+        outputEl.textContent ||
+        "";
+
+      const hasSomething = (String(html || "").trim() || String(text || "").trim());
+      if (!hasSomething) {
+        alert("Nothing to export yet.");
+        return;
+      }
+
+      // Nice title: use subject if present, else target id
+      const subjInput = document.getElementById("saveSubjectInput");
+      const subject = subjInput ? String(subjInput.value || "").trim() : "";
+      const title = subject || targetId;
+
+      try {
+        // optional: tiny UI feedback
+        pdfBtn.disabled = true;
+
+        await downloadPdfFromServer({
+          title,
+          html,
+          text,
+          targetId,
+        });
+      } catch (err) {
+        console.error(err);
+        alert(err.message || "PDF download failed.");
+      } finally {
+        pdfBtn.disabled = false;
+      }
+    },
+    true
+  );
+})();
+
+/* ================================== SERVER PDF DOWNLOAD (END) ================================= */
+</script>
 
 
 </body>
