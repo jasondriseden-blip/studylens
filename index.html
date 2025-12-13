@@ -3617,10 +3617,12 @@ function renderNotebook() {
       header.appendChild(meta);
       wrapper.appendChild(header);
 
-      // Body
-      const body = document.createElement("div");
-      body.textContent = item.text;
-      wrapper.appendChild(body);
+      // Body (HIDDEN — keep text in storage, just don’t show it in the notebook list)
+const body = document.createElement("div");
+body.textContent = item.text || "";
+body.style.display = "none";
+wrapper.appendChild(body);
+
 
       // Footer
       const footer = document.createElement("div");
