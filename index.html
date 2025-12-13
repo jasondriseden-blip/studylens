@@ -4997,20 +4997,17 @@ function sanitizeAnswerText(raw) {
       white-space: pre-wrap;
     }
     .tool-output-copy {
-     
-      
       border-radius: 6px;
       font-size: 0.75rem;
       padding: 0.1rem 0.6rem;
       cursor: pointer;
-      
       display: inline-flex;
       align-items: center;
       gap: 0.25rem;
     }
     .tool-output-copy:hover {
       background: var(--btn-bg-active);
-	  color: var(--btn-fg-active);
+      color: var(--btn-fg-active);
     }
     .tool-output-copy-label {
       font-weight: 500;
@@ -5127,7 +5124,7 @@ function renderAnswer(preEl, text) {
         <span class="tool-output-copy-label">Copy</span>
       </button>
     </div>
-<div class="tool-output-body" contenteditable="true" spellcheck="true">${contentHtml}</div>
+    <div class="tool-output-body" contenteditable="true" spellcheck="true">${contentHtml}</div>
   `;
   /* ---- PART 2E (END) ---- */
 }
@@ -5189,12 +5186,15 @@ document.addEventListener("click", (e) => {
   /* ---- PART 3C (END) ---- */
 });
 /* ================================== SECTION 3 (END) ===================================== */
+
+
+
 /* ===========================================================================================
    OUTPUT PDF + BACKUP + RESTORE (keeps edits + highlighting)
-   - PDF uses print-to-PDF via hidden iframe for best fidelity (no libraries needed)
-   - Backup saves BOTH:
-       1) body.innerHTML (keeps highlighting/formatting/edits)
-       2) body.innerText (for safety / copy)
+   Fix:
+   - If there are duplicate IDs on the page, always use the output element in the SAME card/section
+     as the clicked button (scoped lookup), instead of the first element returned by getElementById.
+   - PDF export works even if .tool-output-body doesn't exist yet (plain <pre> text fallback).
 =========================================================================================== */
 
 function getToolOutputBody(outputEl) {
@@ -5256,7 +5256,7 @@ function restoreFromBackup(outputEl, backup) {
   outputEl.dataset.plainText = body.innerText || String(backup.text || "");
 }
 
-/* ✅ NEW: escape helper so plain text prints safely */
+/* ---- Helpers (START) ---- */
 function escapeHtml(s) {
   return String(s || "")
     .replace(/&/g, "&amp;")
@@ -5264,12 +5264,36 @@ function escapeHtml(s) {
     .replace(/>/g, "&gt;");
 }
 
+function cssEscapeId(id) {
+  if (window.CSS && typeof window.CSS.escape === "function") return window.CSS.escape(id);
+  return String(id || "").replace(/([ #;?%&,.+*~\':"!^$[\]()=>|\/@])/g, "\\$1");
+}
+
+function findOutputElFromButton(btn, targetId) {
+  const scopedRoot = btn.closest(".card") || btn.closest("section") || document;
+  const scoped = scopedRoot.querySelector("#" + cssEscapeId(targetId));
+  return scoped || document.getElementById(targetId);
+}
+
+function findFileInputFromButton(btn, targetId) {
+  const scopedRoot =
+    btn.closest(".output-export-bar") ||
+    btn.closest(".output-format-bar") ||
+    btn.closest(".card") ||
+    btn.closest("section") ||
+    document;
+
+  const scoped = scopedRoot.querySelector('.output-backup-file[data-target="' + targetId + '"]');
+  return scoped || document.querySelector('.output-backup-file[data-target="' + targetId + '"]');
+}
+/* ---- Helpers (END) ---- */
+
 function printOutputToPdf(outputEl, titleText) {
   if (!outputEl) return;
 
   const bodyEl = getToolOutputBody(outputEl);
 
-  // ✅ Fallback to plain text if bodyEl doesn't exist yet
+  // Fallback to plain text if tool-output-body isn't present yet
   const fallbackText =
     (outputEl.dataset && outputEl.dataset.plainText) ||
     outputEl.textContent ||
@@ -5294,7 +5318,6 @@ function printOutputToPdf(outputEl, titleText) {
 
   const safeTitle = (titleText || "Export").replace(/</g, "&lt;");
 
-  // ✅ Use HTML if present; otherwise print plain text
   const contentBlock = hasHtml
     ? `<div class="tool-output">
          <div class="tool-output-body">${bodyEl.innerHTML}</div>
@@ -5303,7 +5326,6 @@ function printOutputToPdf(outputEl, titleText) {
          <pre class="tool-output-body" style="margin:0; white-space:pre-wrap;">${escapeHtml(fallbackText)}</pre>
        </div>`;
 
-  // Build a clean printable page (we print ONLY the output body, no Copy button)
   const printableHtml = `
 <!doctype html>
 <html>
@@ -5352,12 +5374,14 @@ ${headBits}
   };
 }
 
-// Wire buttons
+// Wire buttons (scoped to the clicked section/card)
 document.addEventListener("click", (e) => {
   const pdfBtn = e.target.closest(".output-pdf-download");
   if (pdfBtn) {
     const targetId = pdfBtn.dataset.target;
-    const outputEl = document.getElementById(targetId);
+    if (!targetId) return;
+
+    const outputEl = findOutputElFromButton(pdfBtn, targetId);
     if (!outputEl) return;
 
     printOutputToPdf(outputEl, targetId || "Export");
@@ -5367,7 +5391,9 @@ document.addEventListener("click", (e) => {
   const backupBtn = e.target.closest(".output-backup-download");
   if (backupBtn) {
     const targetId = backupBtn.dataset.target;
-    const outputEl = document.getElementById(targetId);
+    if (!targetId) return;
+
+    const outputEl = findOutputElFromButton(backupBtn, targetId);
     if (!outputEl) return;
 
     const backup = makeBackupObject(outputEl);
@@ -5379,7 +5405,9 @@ document.addEventListener("click", (e) => {
   const restoreBtn = e.target.closest(".output-backup-restore");
   if (restoreBtn) {
     const targetId = restoreBtn.dataset.target;
-    const fileInput = document.querySelector('.output-backup-file[data-target="' + targetId + '"]');
+    if (!targetId) return;
+
+    const fileInput = findFileInputFromButton(restoreBtn, targetId);
     if (!fileInput) return;
 
     fileInput.value = ""; // allow re-select same file
@@ -5388,13 +5416,19 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// Handle restore file selection
+// Handle restore file selection (scoped)
 document.addEventListener("change", (e) => {
   const input = e.target.closest(".output-backup-file");
   if (!input) return;
 
   const targetId = input.dataset.target;
-  const outputEl = document.getElementById(targetId);
+  if (!targetId) return;
+
+  const scopedRoot = input.closest(".card") || input.closest("section") || document;
+  const outputEl =
+    scopedRoot.querySelector("#" + cssEscapeId(targetId)) ||
+    document.getElementById(targetId);
+
   const file = input.files && input.files[0];
   if (!file || !outputEl) return;
 
@@ -5411,7 +5445,7 @@ document.addEventListener("change", (e) => {
 });
 
 /* ===========================================================================================
-   SECTION 3D: Keep copy text synced with user edits (ADD THIS)
+   SECTION 3D: Keep copy text synced with user edits
    - When user edits .tool-output-body, update the parent .tool-output dataset.plainText
 =========================================================================================== */
 document.addEventListener("input", (e) => {
@@ -5424,6 +5458,7 @@ document.addEventListener("input", (e) => {
   container.dataset.plainText = body.innerText || "";
 });
 /* ================================ SECTION 3D (END) ===================================== */
+
 
 
 /* ===========================================================================================
