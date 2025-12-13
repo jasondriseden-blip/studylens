@@ -5096,7 +5096,7 @@ function renderAnswer(preEl, text) {
         <span class="tool-output-copy-label">Copy</span>
       </button>
     </div>
-    <div class="tool-output-body">${contentHtml}</div>
+<div class="tool-output-body" contenteditable="true" spellcheck="true">${contentHtml}</div>
   `;
   /* ---- PART 2E (END) ---- */
 }
@@ -5159,6 +5159,20 @@ document.addEventListener("click", (e) => {
 });
 /* ================================== SECTION 3 (END) ===================================== */
 
+/* ===========================================================================================
+   SECTION 3D: Keep copy text synced with user edits (ADD THIS)
+   - When user edits .tool-output-body, update the parent .tool-output dataset.plainText
+=========================================================================================== */
+document.addEventListener("input", (e) => {
+  const body = e.target.closest(".tool-output-body");
+  if (!body) return;
+
+  const container = body.closest(".tool-output");
+  if (!container) return;
+
+  container.dataset.plainText = body.innerText || "";
+});
+/* ================================ SECTION 3D (END) ===================================== */
 
 
 
