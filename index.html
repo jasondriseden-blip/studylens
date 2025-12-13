@@ -1532,8 +1532,9 @@ li {
 }
 :root[data-theme="light"] #cardsCard.flashcard-card-light {
       background-color: #fafafa;
-    border: 1px solid var(--outline);
-
+    border: 2px solid var(--outline);
+border-bottom: border: 1px solid var(--outline);
+    border-top: border: 1px solid var(--outline);
 }
 /* ============================
    FLASHCARD "GOT IT" BURST TEXT
@@ -3306,6 +3307,7 @@ details.nb-dropdown > summary:active {
 ------------------------------------------------------------------------------------------->
 
 <script>
+
 /* =========================================================
    SECTION 0: Grab the elements we will control (START)
    - These IDs must match your HTML exactly (we did not change them)
@@ -3513,7 +3515,295 @@ function getModelChoice() {
 }
 
 /* ===================== SECTION 3 (END) ===================== */
+
+/* =========================================================
+   PG NON-BLOCKING CONFIRM (START)
+   - Replaces confirm() with Promise-based modal
+   - Use: const ok = await pgConfirm("Delete this?");
+========================================================= */
+
+(function () {
+  // One global init guard
+  if (window.__pgConfirmReady) return;
+  window.__pgConfirmReady = true;
+
+  function ensureStyles() {
+    if (document.getElementById("pgConfirmStyles")) return;
+    const style = document.createElement("style");
+    style.id = "pgConfirmStyles";
+    style.textContent = `
+      .pgc-backdrop{
+        position:fixed; inset:0;
+        background:rgba(0,0,0,.45);
+        display:flex; align-items:center; justify-content:center;
+        z-index:99999;
+        padding:16px;
+      }
+      .pgc-modal{
+        width:min(440px, 100%);
+        background: var(--card-bg, #fff);
+        color: var(--text, #0f172a);
+        border: 1px solid rgba(148,163,184,.35);
+        border-radius: 14px;
+        box-shadow: 0 18px 60px rgba(0,0,0,.25);
+        padding: 14px;
+      }
+      .pgc-title{
+        font-weight:700;
+        font-size:14px;
+        margin:0 0 8px 0;
+      }
+      .pgc-msg{
+        font-size:13px;
+        line-height:1.35;
+        opacity:.92;
+        margin:0 0 12px 0;
+        white-space:pre-wrap;
+      }
+      .pgc-actions{
+        display:flex;
+        justify-content:flex-end;
+        gap:10px;
+      }
+      .pgc-btn{
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 12px;
+        border: 1px solid rgba(148,163,184,.55);
+        background: transparent;
+        cursor:pointer;
+        box-shadow: 0 1px 0 rgba(255,255,255,.35) inset;
+      }
+      .pgc-btn--danger{
+        border-color: rgba(239,68,68,.55);
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  window.pgConfirm = function pgConfirm(message, opts) {
+    ensureStyles();
+
+    opts = opts || {};
+    const title = opts.title || "Confirm";
+    const okText = opts.okText || "OK";
+    const cancelText = opts.cancelText || "Cancel";
+    const danger = !!opts.danger;
+
+    return new Promise((resolve) => {
+      const backdrop = document.createElement("div");
+      backdrop.className = "pgc-backdrop";
+
+      const modal = document.createElement("div");
+      modal.className = "pgc-modal";
+      modal.setAttribute("role", "dialog");
+      modal.setAttribute("aria-modal", "true");
+
+      const h = document.createElement("div");
+      h.className = "pgc-title";
+      h.textContent = title;
+
+      const p = document.createElement("div");
+      p.className = "pgc-msg";
+      p.textContent = String(message || "");
+
+      const actions = document.createElement("div");
+      actions.className = "pgc-actions";
+
+      const cancelBtn = document.createElement("button");
+      cancelBtn.type = "button";
+      cancelBtn.className = "pgc-btn";
+      cancelBtn.textContent = cancelText;
+
+      const okBtn = document.createElement("button");
+      okBtn.type = "button";
+      okBtn.className = "pgc-btn" + (danger ? " pgc-btn--danger" : "");
+      okBtn.textContent = okText;
+
+      actions.appendChild(cancelBtn);
+      actions.appendChild(okBtn);
+
+      modal.appendChild(h);
+      modal.appendChild(p);
+      modal.appendChild(actions);
+      backdrop.appendChild(modal);
+      document.body.appendChild(backdrop);
+
+      function cleanup(result) {
+        try { document.removeEventListener("keydown", onKey); } catch {}
+        if (backdrop && backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+        resolve(result);
+      }
+
+      function onKey(e) {
+        if (e.key === "Escape") cleanup(false);
+        if (e.key === "Enter") cleanup(true);
+      }
+
+      // click outside closes (cancel)
+      backdrop.addEventListener("pointerdown", (e) => {
+        if (e.target === backdrop) cleanup(false);
+      });
+
+      cancelBtn.addEventListener("click", () => cleanup(false));
+      okBtn.addEventListener("click", () => cleanup(true));
+      document.addEventListener("keydown", onKey);
+
+      // focus OK by default
+      setTimeout(() => { try { okBtn.focus(); } catch {} }, 0);
+    });
+  };
+})();
+
 </script>
+
+
+
+
+<!--=========================================================
+   PG SAFE WIRING (START)
+   - Prevents duplicate listeners when scripts are pasted multiple times
+   - Use: PG.on(el, "click", "unique-key", handler)
+   - Use: PG.delegate(root, "click", "unique-key", ".selector", handler)
+========================================================= -->
+<script>
+/* =========================================================
+   PG SAFE WIRING (START)
+   - Prevents duplicate listeners when scripts are pasted multiple times
+   - Use: PG.on(el, "click", "unique-key", handler)
+   - Use: PG.delegate(root, "click", "unique-key", ".selector", handler)
+========================================================= */
+
+(function () {
+  // One global namespace (don’t overwrite if already present)
+  window.PG = window.PG || {};
+
+  // Global init guard (prevents re-defining helpers)
+  if (window.PG.__safeWiringReady) return;
+  window.PG.__safeWiringReady = true;
+
+  // Tracks "element + event + key" => wired
+  const wired = new WeakMap();
+
+  function markWired(el, eventName, key) {
+    let map = wired.get(el);
+    if (!map) {
+      map = new Map();
+      wired.set(el, map);
+    }
+    const k = eventName + "::" + key;
+    if (map.get(k)) return false;
+    map.set(k, true);
+    return true;
+  }
+
+  // Safe addEventListener (won't double-wire)
+  window.PG.on = function (el, eventName, key, handler, options) {
+    if (!el || !eventName || !key || typeof handler !== "function") return;
+    if (!markWired(el, eventName, key)) return; // already wired
+    el.addEventListener(eventName, handler, options);
+  };
+
+  // Safe delegated listener (one listener on root, filters by selector)
+  window.PG.delegate = function (root, eventName, key, selector, handler, options) {
+    if (!root || !eventName || !key || !selector || typeof handler !== "function") return;
+
+    // Only wire ONE root listener per event+key
+    if (!markWired(root, eventName, key)) return;
+
+    root.addEventListener(eventName, function (e) {
+      const target = e.target && e.target.closest ? e.target.closest(selector) : null;
+      if (!target || !root.contains(target)) return;
+      handler.call(target, e, target);
+    }, options);
+  };
+})();
+</script>
+
+
+<!-- BLOCK: Global “click off” closer for dropdowns/menus (safe, doesn’t break toggles) ----
+--------------------------------------------------------------------------------------=----
+===========================================================================================
+===========================================================================================
+------------------------------------------------------------------------------------------->
+
+<script>
+  (function () {
+    function onReady(fn) {
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", fn);
+      } else {
+        fn();
+      }
+    }
+
+    function hide(el) {
+      if (!el) return;
+      el.style.display = "none";
+    }
+
+    onReady(function () {
+      const snapToggle = document.getElementById("snapActionsToggle");
+      const snapMenu   = document.getElementById("snapActionsMenu");
+
+      const textToggle = document.getElementById("textActionsToggle");
+      const textMenu   = document.getElementById("textActionsMenu");
+
+      function closeNotebookSubjectMenusIfClickOutside(target) {
+        const openMenus = document.querySelectorAll(".notebook-subject-dropdown");
+        openMenus.forEach(function (menu) {
+          if (menu.style.display === "none") return;
+
+          const row = menu.closest(".notebook-subject-row");
+          if (row && row.contains(target)) return; // clicked inside -> keep open
+
+          hide(menu);
+        });
+      }
+
+      document.addEventListener("click", function (e) {
+        const t = e.target;
+
+        // Snap actions dropdown
+        if (snapMenu) {
+          const clickedSnap = (snapMenu.contains(t) || (snapToggle && snapToggle.contains(t)));
+          if (!clickedSnap) hide(snapMenu);
+        }
+
+        // Text actions dropdown
+        if (textMenu) {
+          const clickedText = (textMenu.contains(t) || (textToggle && textToggle.contains(t)));
+          if (!clickedText) hide(textMenu);
+        }
+
+        // Notebook subject “…” dropdowns
+        closeNotebookSubjectMenusIfClickOutside(t);
+
+        // Any <details open> menus (header menu, etc.)
+        document.querySelectorAll("details[open]").forEach(function (d) {
+          if (!d.contains(t)) d.removeAttribute("open");
+        });
+      });
+
+      // ESC closes everything
+      document.addEventListener("keydown", function (e) {
+        if (e.key !== "Escape") return;
+
+        hide(snapMenu);
+        hide(textMenu);
+
+        document.querySelectorAll(".notebook-subject-dropdown").forEach(function (m) {
+          hide(m);
+        });
+
+        document.querySelectorAll("details[open]").forEach(function (d) {
+          d.removeAttribute("open");
+        });
+      });
+    });
+  })();
+</script>
+
 
 <!-- BLOCK: Close drawer when clicking outside (mobile only) --------------------------------
 --------------------------------------------------------------------------------------=----
@@ -3568,6 +3858,8 @@ document.addEventListener(
 
 /* ===================== SECTION 1 (END) ===================== */
 </script>
+
+
 
 
 <!-- BLOCK 2: Cheat mode toggle (remembers last mode across refresh) -----------------------
@@ -3737,6 +4029,8 @@ if (!modeChip) {
 
 } // end of "modeChip exists" else block
 </script>
+
+
 
 <!-- BLOCK 2: Notebook load/save/render, filters, add item ----------------------------------
 --------------------------------------------------------------------------------------=----
