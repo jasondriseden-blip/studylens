@@ -2322,6 +2322,20 @@ details.nb-dropdown > summary:active {
     align-items: self-end;
   }
 }
+.u13-disclaimer{
+  color: var(--muted, rgba(148,163,184,.95));
+}
+
+.u13-disclaimer a{
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  opacity: .9;
+}
+
+.u13-disclaimer a:hover{
+  opacity: 1;
+}
 
 </style>
 
@@ -2480,7 +2494,14 @@ details.nb-dropdown > summary:active {
             </svg>
             <span id="themeLabel">Dark</span>
           </button>
-
+ <button
+            id="authButton"
+            class="pill-button"
+            type="button"
+            style="width:100%; justify-content:center;"
+          >
+            Sign in
+          </button>
           <button
             id="upgradeButton"
             class="pill-button"
@@ -2489,17 +2510,11 @@ details.nb-dropdown > summary:active {
           >
             Upgrade to Pro
           </button>
+		  <p class="u13-disclaimer"  style="margin-left: 5px; font-size: .65em; margin-top: 0;">
+  Not for children under 13.
+  <a href="/privacy" target="_blank" rel="noopener" >Privacy</a>
+</p>
 
-          <button
-            id="authButton"
-            class="pill-button"
-            type="button"
-            style="width:100%; justify-content:center;"
-          >
-            Sign in
-          </button>
-
-          
         </div>
       </details>
     </div>
