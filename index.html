@@ -9135,17 +9135,24 @@ window.getCurrentUserPlan = async function () {
     }
   }
 
-  function taskToToolLabel(task) {
-    const t = String(task || "").toLowerCase();
-    if (t === "snap") return "Solve";
-    if (t === "math") return "Math Solver";
-    if (t === "study_guide") return "Study Guide";
-    if (t === "essay") return "Essay Helper";
-    if (t === "flashcards") return "Flashcards";
-    if (t === "simplify") return "Simplify";
-    if (t === "hint") return "Hint";
-    return String(task || "");
-  }
+ function taskToToolLabel(task) {
+  const t = String(task || "").toLowerCase();
+  if (t === "snap") return "Solve";
+  if (t === "math") return "Math Solver";
+  if (t === "study_guide") return "Study Guide";
+  if (t === "essay") return "Essay Helper";
+  if (t === "flashcards") return "Flashcards";
+  if (t === "simplify") return "Simplify";
+  if (t === "hint") return "Hint";
+
+  // Extract Notes
+  if (t === "extract_notes") return "Extract Notes";
+  if (t === "extract-notes") return "Extract Notes";
+  if (t === "notes") return "Extract Notes";
+
+  return String(task || "");
+}
+
 
   function getSourceTextBestEffort() {
     const candidates = [
