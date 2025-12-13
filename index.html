@@ -2439,78 +2439,83 @@ details.nb-dropdown > summary:active {
           <span>Menu</span>
         </summary>
 
-        <div
-          class="header-menu-inner"
-          style="
-            position:absolute;
-            top:calc(-100%);
-            left:-100%;
-            transform:translateX(-50%);
-            display:flex;
-            flex-direction:column;
-            gap:6px;
-            align-items:stretch;
-            width:1*0px;
-            z-index:30;
-            background: var(--card-bg);
-            padding: 16px;
-            border-radius: 6px;
-            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.35);
-          "
-        >
-          <!-- everything inside the dropdown stays exactly the same -->
-		  
-          <button
-            class="drawer-toggle" style="display:none";
-            id="drawerToggle"
-            type="button"
-            style="width:100%; justify-content:center;"
-          >
-            <span class="material-symbols-outlined">view_sidebar</span>
-            <span>Tools</span>
-          </button>
+       <div
+  class="header-menu-inner"
+  style="
+    position: absolute;
+    top: calc(-100%);
+    left: -100%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: stretch;
+    width: 100%;
+    z-index: 30;
+    background: var(--card-bg);
+    padding: 16px;
+    border-radius: 6px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.35);
+  "
+>
+  <!-- everything inside the dropdown stays exactly the same -->
 
-          <button
-            class="theme-toggle"
-            id="themeToggle"
-            type="button"
-            style="width:100%; justify-content:center;"
-          >
-            <svg id="iconSun" viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M12 4a1 1 0 0 1 1 1V6a1 1 0 1 1-2 0V5a1 1 0 0 1 1-1Zm0 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-4a1 1 0 0 1-1 1h-1a1 1 0 1 1 0-2h1a1 1 0 0 1 1 1ZM6 13a1 1 0 1 1 0-2H5a1 1 0 1 1 0 2h1Zm11.07-5.07a1 1 0 0 1-1.41 0L14.9 7.17a1 1 0 0 1 1.42-1.41l.76.76a1 1 0 0 1 0 1.41Zm-9.54 9.54a1 1 0 0 1-1.41 0l-.76-.76A1 1 0 0 1 6.24 15.3l.76.76a1 1 0 0 1 0 1.41ZM18 17.24a1 1 0 0 1 0-1.41l.76-.76a1 1 0 1 1 1.41 1.41l-.76.76a1 1 0 0 1-1.41 0ZM6.24 8.7a1 1 0 0 1-1.41-1.41l.76-.76A1 1 0 0 1 7 7.24l-.76.76Z"
-              />
-            </svg>
-            <svg id="iconMoon" viewBox="0 0 24 24" style="display: none">
-              <path
-                fill="currentColor"
-                d="M20.3 14.8A7.5 7.5 0 0 1 11.2 3.7 1 1 0 0 0 10 2.49 9.5 9.5 0 1 0 21.51 14a1 1 0 0 0-1.21-1.22Z"
-              />
-            </svg>
-            <span id="themeLabel">Dark</span>
-          </button>
- <button
-            id="authButton"
-            class="pill-button"
-            type="button"
-            style="width:100%; justify-content:center;"
-          >
-            Sign in
-          </button>
-          <button
-            id="upgradeButton"
-            class="pill-button"
-            type="button"
-            style="width:100%; justify-content:center;"
-          >
-            Upgrade to Pro
-          </button>
-		  <p class="u13-disclaimer">
-  Under 13? Please don’t create an account.
-</p>
+  <button
+    class="drawer-toggle"
+    id="drawerToggle"
+    type="button"
+    style="display:none; width:100%; justify-content:center;"
+  >
+    <span class="material-symbols-outlined">view_sidebar</span>
+    <span>Tools</span>
+  </button>
 
-        </div>
+  <button
+    class="theme-toggle"
+    id="themeToggle"
+    type="button"
+    style="width:100%; justify-content:center;"
+  >
+    <svg id="iconSun" viewBox="0 0 24 24">
+      <path
+        fill="currentColor"
+        d="M12 4a1 1 0 0 1 1 1V6a1 1 0 1 1-2 0V5a1 1 0 0 1 1-1Zm0 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-4a1 1 0 0 1-1 1h-1a1 1 0 1 1 0-2h1a1 1 0 0 1 1 1ZM6 13a1 1 0 1 1 0-2H5a1 1 0 1 1 0 2h1Zm11.07-5.07a1 1 0 0 1-1.41 0L14.9 7.17a1 1 0 0 1 1.42-1.41l.76.76a1 1 0 0 1 0 1.41Zm-9.54 9.54a1 1 0 0 1-1.41 0l-.76-.76A1 1 0 0 1 6.24 15.3l.76.76a1 1 0 0 1 0 1.41ZM18 17.24a1 1 0 0 1 0-1.41l.76-.76a1 1 0 1 1 1.41 1.41l-.76.76a1 1 0 0 1-1.41 0ZM6.24 8.7a1 1 0 0 1-1.41-1.41l.76-.76A1 1 0 0 1 7 7.24l-.76.76Z"
+      />
+    </svg>
+
+    <svg id="iconMoon" viewBox="0 0 24 24" style="display:none;">
+      <path
+        fill="currentColor"
+        d="M20.3 14.8A7.5 7.5 0 0 1 11.2 3.7 1 1 0 0 0 10 2.49 9.5 9.5 0 1 0 21.51 14a1 1 0 0 0-1.21-1.22Z"
+      />
+    </svg>
+
+    <span id="themeLabel">Dark</span>
+  </button>
+
+  <button
+    id="authButton"
+    class="pill-button"
+    type="button"
+    style="width:100%; justify-content:center;"
+  >
+    Sign in
+  </button>
+
+  <button
+    id="upgradeButton"
+    class="pill-button"
+    type="button"
+    style="width:100%; justify-content:center;"
+  >
+    Upgrade to Pro
+  </button>
+
+  <p class="u13-disclaimer">
+    Under 13? Please don’t create an account.
+  </p>
+</div>
+
       </details>
     </div>
 
@@ -9098,15 +9103,29 @@ document.addEventListener("DOMContentLoaded", () => {
      - Logged in: hide disclaimer
      - Pro: hide upgrade, show badge
   ========================================================================================= */
+
+  // ✅ NEW: prevent flicker from overlapping async checks
+  let latestRunId = 0;
+  let scheduleTimer = null;
+
+  // ✅ NEW: remember last known plan so temporary errors don’t flip UI wrong
+  let lastKnownIsPro = null;
+
   async function checkPlanOnLoad() {
+    const runId = ++latestRunId;
+
     try {
       if (!window.supabaseClient) return;
 
       const { data, error } = await window.supabaseClient.auth.getUser();
 
+      // If another newer run started, ignore this run’s result
+      if (runId !== latestRunId) return;
+
       if (error || !data.user) {
         setUpgradeUI();
         if (u13Disclaimer) unforceHide(u13Disclaimer);
+        lastKnownIsPro = null;
         return;
       }
 
@@ -9121,28 +9140,44 @@ document.addEventListener("DOMContentLoaded", () => {
         .eq("user_id", user.id)
         .maybeSingle();
 
+      // If another newer run started, ignore this run’s result
+      if (runId !== latestRunId) return;
+
       if (!planError && planRow && planRow.plan === "pro") {
+        lastKnownIsPro = true;
         setProUI();
       } else {
+        lastKnownIsPro = false;
         setUpgradeUI();
       }
     } catch (e) {
       console.error("Error checking user plan", e);
-      // Fail open: keep upgrade visible so user isn't blocked
-      setUpgradeUI();
+
+      // ✅ NEW: if we *already* know they’re Pro, don’t pop Upgrade back in on a transient error
+      if (lastKnownIsPro === true) {
+        setProUI();
+      } else {
+        // Fail open: keep upgrade visible so user isn't blocked
+        setUpgradeUI();
+      }
     }
   }
 
-  // run once now
-  checkPlanOnLoad();
+  function scheduleCheck(delayMs) {
+    clearTimeout(scheduleTimer);
+    scheduleTimer = setTimeout(checkPlanOnLoad, delayMs || 0);
+  }
 
-  // run again shortly after load (covers “session restore” timing)
-  setTimeout(checkPlanOnLoad, 400);
+  // run once now
+  scheduleCheck(0);
+
+  // run again shortly after load (covers “session restore” timing) — but without overlap
+  scheduleCheck(300);
 
   // re-run whenever auth changes (sign in/out, session refresh)
   try {
     window.supabaseClient.auth.onAuthStateChange(() => {
-      checkPlanOnLoad();
+      scheduleCheck(50);
     });
   } catch (e) {}
   /* ================================= SECTION 3 (END) ==================================== */
@@ -9214,6 +9249,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 /* ================================== SECTION 0 (END) ===================================== */
 </script>
+
 
 
 <script>
