@@ -4861,6 +4861,12 @@ runWhenReady(() => {
 
 
 
+<!-- BLOCK 3: Answer sanitizing, AI backend call, and all task helpers ----------------------
+--------------------------------------------------------------------------------------=----
+===========================================================================================
+===========================================================================================
+------------------------------------------------------------------------------------------->
+
 <script>
 /* ===========================================================================================
    SECTION 0: Answer sanitizing (START)
@@ -5051,7 +5057,6 @@ function renderAnswer(preEl, text) {
   });
 
   const contentHtml = htmlLines.join("\n");
-
   const copyTarget = preEl.id ? ` data-copy-target="${preEl.id}"` : "";
 
   preEl.innerHTML = `
@@ -5108,12 +5113,11 @@ document.addEventListener("click", (e) => {
 
 /* ===========================================================================================
    OUTPUT PDF + BACKUP + RESTORE (keeps edits + highlighting)
-   FIXED FOR REAL:
-   - Uses the output element in the SAME card/section as the clicked button (prevents duplicate-id bugs)
-   - PDF export works whether output is:
-       A) renderAnswer() HTML (.tool-output-body exists)
-       B) plain <pre> text (no .tool-output-body yet)
-   - Uses a closure so later scripts can't overwrite the functions this handler uses
+   ✅ ACTUAL FIX:
+   - Handles duplicate IDs by finding ALL elements with that id and picking the VISIBLE one
+   - Prefers element inside .tab-content.active when your app uses tabs
+   - Uses capture=true so it still fires even if other code stops propagation
+   - PDF works whether the output is renderAnswer HTML OR plain text
 =========================================================================================== */
 (function setupPdfBackupRestore() {
   function getToolOutputBody(outputEl) {
@@ -5128,36 +5132,43 @@ document.addEventListener("click", (e) => {
       .replace(/>/g, "&gt;");
   }
 
-  function cssEscapeId(id) {
-    if (window.CSS && typeof window.CSS.escape === "function") return window.CSS.escape(id);
-    return String(id || "").replace(/([ #;?%&,.+*~\':"!^$[\]()=>|\/@])/g, "\\$1");
+  function getAllById(targetId) {
+    // ✅ returns ALL elements even if IDs are duplicated
+    const safe = String(targetId || "").replace(/"/g, '\\"');
+    return Array.from(document.querySelectorAll('[id="' + safe + '"]'));
   }
 
-  // ✅ This is the BIG fix: scope lookup to the same card/section as the clicked button
-  function findOutputElFromButton(btn, targetId) {
-    const root = btn.closest(".card") || btn.closest("section") || document;
-    const scoped = root.querySelector("#" + cssEscapeId(targetId));
-    return scoped || document.getElementById(targetId);
+  function isVisible(el) {
+    if (!el) return false;
+
+    const style = window.getComputedStyle(el);
+    if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") return false;
+
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return false;
+
+    // If inside tab system, require active tab
+    const tab = el.closest(".tab-content");
+    if (tab && !tab.classList.contains("active")) return false;
+
+    return true;
   }
 
-  function findFileInputFromButton(btn, targetId) {
-    const root =
-      btn.closest(".output-export-bar") ||
-      btn.closest(".output-format-bar") ||
-      btn.closest(".card") ||
-      btn.closest("section") ||
-      document;
+  function pickBestOutputEl(targetId) {
+    const candidates = getAllById(targetId);
 
-    return (
-      root.querySelector('.output-backup-file[data-target="' + targetId + '"]') ||
-      document.querySelector('.output-backup-file[data-target="' + targetId + '"]')
-    );
+    // 1) visible + active tab
+    const visible = candidates.find(isVisible);
+    if (visible) return visible;
+
+    // 2) if none visible, fallback to first
+    return candidates[0] || null;
   }
 
   function makeBackupObject(outputEl) {
     const body = getToolOutputBody(outputEl);
-
     const html = body ? body.innerHTML : "";
+
     const text =
       (outputEl.dataset && outputEl.dataset.plainText) ||
       (body ? body.innerText : "") ||
@@ -5277,14 +5288,14 @@ ${headBits}
     };
   }
 
-  // Wire buttons (uses scoped lookup)
+  // ✅ capture=true so this runs even if another click handler stops propagation
   document.addEventListener("click", (e) => {
     const pdfBtn = e.target.closest(".output-pdf-download");
     if (pdfBtn) {
       const targetId = pdfBtn.dataset.target;
       if (!targetId) return;
 
-      const outputEl = findOutputElFromButton(pdfBtn, targetId);
+      const outputEl = pickBestOutputEl(targetId);
       if (!outputEl) return;
 
       printOutputToPdf(outputEl, targetId || "Export");
@@ -5296,7 +5307,7 @@ ${headBits}
       const targetId = backupBtn.dataset.target;
       if (!targetId) return;
 
-      const outputEl = findOutputElFromButton(backupBtn, targetId);
+      const outputEl = pickBestOutputEl(targetId);
       if (!outputEl) return;
 
       const backup = makeBackupObject(outputEl);
@@ -5310,14 +5321,15 @@ ${headBits}
       const targetId = restoreBtn.dataset.target;
       if (!targetId) return;
 
-      const fileInput = findFileInputFromButton(restoreBtn, targetId);
+      // pick ANY matching file input (they shouldn't be duplicated)
+      const fileInput = document.querySelector('.output-backup-file[data-target="' + targetId + '"]');
       if (!fileInput) return;
 
       fileInput.value = "";
       fileInput.click();
       return;
     }
-  });
+  }, true);
 
   document.addEventListener("change", (e) => {
     const input = e.target.closest(".output-backup-file");
@@ -5326,10 +5338,7 @@ ${headBits}
     const targetId = input.dataset.target;
     if (!targetId) return;
 
-    const root = input.closest(".card") || input.closest("section") || document;
-    const outputEl =
-      root.querySelector("#" + cssEscapeId(targetId)) ||
-      document.getElementById(targetId);
+    const outputEl = pickBestOutputEl(targetId);
 
     const file = input.files && input.files[0];
     if (!file || !outputEl) return;
@@ -5344,7 +5353,7 @@ ${headBits}
       }
     };
     reader.readAsText(file);
-  });
+  }, true);
 })();
 
 
