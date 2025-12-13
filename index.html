@@ -4763,7 +4763,7 @@ if (clearNotebookBtn) {
       return;
     }
 
-    const ok = confirm("Clear all saved notebook items? You can undo this once.");
+    const ok = confirm("Clear all saved notebook items? You cannot undo this.");
     if (!ok) return;
 
     notebookLastSnapshot = items.slice();
