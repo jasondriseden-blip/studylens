@@ -11052,7 +11052,7 @@ if (document.readyState === "loading") {
   }
 
   async function downloadPdfFromServer({ title, html, text, targetId }) {
-    const res = await fetch("/api/pdf", {
+    const res = await fetch("/api/export-pdf", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
