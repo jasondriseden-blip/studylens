@@ -10989,7 +10989,6 @@ if (document.readyState === "loading") {
 ============================================================================================
 ============================================================================================
 ------------------------------------------------------------------------------------------->
-
 <script>
 /* ===========================================================================================
    PDF EXPORT (PRINT ONLY OUTPUT) (MOBILE-SAFE)
@@ -10997,6 +10996,10 @@ if (document.readyState === "loading") {
    - Uses display:none (not visibility) so layout space is removed
    - Forces a reflow before printing so mobile browsers pick up the new DOM
    - Cleans up via afterprint + visibilitychange fallback (timeout is unreliable on mobile)
+   - MOBILE FIXES:
+     ✅ Prevent double-fire (pointerup+click) with a lock
+     ✅ Pick the output/body that ACTUALLY has content (handles duplicate IDs / hidden tabs)
+     ✅ Prefer nearest output around the clicked button when needed
 =========================================================================================== */
 
 (function setupPrintOnlyOutputPdf() {
@@ -11017,12 +11020,6 @@ if (document.readyState === "loading") {
     if (tab && !tab.classList.contains("active")) return false;
 
     return true;
-  }
-
-  function pickBestOutputEl(targetId) {
-    const candidates = getAllById(targetId);
-    const visible = candidates.find(isVisible);
-    return visible || candidates[0] || null;
   }
 
   function safeFilenameBase(name) {
@@ -11140,7 +11137,6 @@ if (document.readyState === "loading") {
     }
 
     function onVisChange() {
-      // Mobile browsers often return to the page and trigger visibilitychange instead of afterprint reliably
       if (!document.hidden) cleanup();
     }
 
@@ -11151,37 +11147,95 @@ if (document.readyState === "loading") {
     setTimeout(cleanup, 4000);
   }
 
+  /* ===================== MOBILE FIX: pick body with content ===================== */
+
+  function hasPrintableBody(candidate) {
+    const body =
+      (candidate && candidate.matches?.(".tool-output-body") && candidate) ||
+      candidate?.querySelector?.(".tool-output-body");
+
+    if (!body) return null;
+
+    const html = String(body.innerHTML || "").replace(/<br\s*\/?>/gi, "").trim();
+    const text = String(body.innerText || "").trim();
+
+    if (text.length === 0 && html.length === 0) return null;
+    return body;
+  }
+
+  function pickBestOutputBody(targetId, btn) {
+    const candidates = getAllById(targetId);
+
+    let best = null;
+    let bestScore = -1;
+
+    for (const el of candidates) {
+      const body = hasPrintableBody(el);
+      if (!body) continue;
+
+      let score = 0;
+
+      if (isVisible(el)) score += 100;
+
+      // Prefer the output in the same "panel" as the clicked button (best-effort)
+      if (btn && el.closest && btn.closest) {
+        const a = el.closest(".tool-output, .card, .tab-content");
+        const b = btn.closest(".tool-output, .card, .tab-content");
+        if (a && b && a === b) score += 50;
+      }
+
+      // Prefer longer content a bit
+      score += Math.min(40, String(body.innerText || "").trim().length / 50);
+
+      if (score > bestScore) {
+        bestScore = score;
+        best = body;
+      }
+    }
+
+    // Fallback: if data-target is wrong/duplicated, grab the nearest output around the button
+    if (!best && btn) {
+      const nearby =
+        btn.closest?.(".tool-output")?.querySelector?.(".tool-output-body") ||
+        btn.closest?.(".tab-content")?.querySelector?.(".tool-output-body");
+
+      if (nearby) {
+        const html = String(nearby.innerHTML || "").trim();
+        const text = String(nearby.innerText || "").trim();
+        if (text.length || html.length) best = nearby;
+      }
+    }
+
+    return best;
+  }
+
+  /* ===================== MOBILE FIX: prevent double-fire ===================== */
+
+  let __printingNow = false;
+
   function handleExport(e, btn) {
+    if (__printingNow) return;
+
+    // lock briefly so pointerup+click doesn't run twice on mobile
+    __printingNow = true;
+    setTimeout(() => { __printingNow = false; }, 1500);
+
     const targetId = btn.dataset.target;
     if (!targetId) return;
 
-    const outputEl = pickBestOutputEl(targetId);
-    if (!outputEl) return;
-
-    const bodyEl = outputEl.querySelector(".tool-output-body");
+    const bodyEl = pickBestOutputBody(targetId, btn);
     if (!bodyEl) {
       alert("Nothing to export yet.");
       return;
     }
 
-    const hasStuff =
-      String(bodyEl.innerText || "").trim().length > 0 ||
-      String(bodyEl.innerHTML || "").trim().length > 0;
-
-    if (!hasStuff) {
-      alert("Nothing to export yet.");
-      return;
-    }
-
-    // Keep print inside the user gesture
     e.preventDefault();
 
     ensurePrintStyle();
     makePrintDomFromBody(bodyEl);
 
     const originalTitle = document.title;
-    const newTitle = getTitleForPdf(targetId);
-    document.title = newTitle;
+    document.title = getTitleForPdf(targetId);
 
     installCleanupHandlers(originalTitle);
 
@@ -11189,17 +11243,21 @@ if (document.readyState === "loading") {
     window.print();
   }
 
-  // Support both click and pointerup (some mobile setups feel “snappier” with pointer events)
   function delegate(evt) {
     const btn = evt.target.closest(".output-pdf-download");
     if (!btn) return;
     handleExport(evt, btn);
   }
 
+  // ✅ Use ONE event to avoid duplicates. Click is most reliable across mobile browsers.
   document.addEventListener("click", delegate, true);
-  document.addEventListener("pointerup", delegate, true);
+
+  // If you *must* support pointer events, re-enable this line, but the lock above should prevent duplicates:
+  // document.addEventListener("pointerup", delegate, true);
+
 })();
 </script>
+
 
 
 
