@@ -10498,6 +10498,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     /* ---- PART 4B: Copy into notesInput + switch tab (START) ---- */
     notesInput.value = text;
+	snapText.value = "";
+
 
     if (typeof activateTab === "function") {
       activateTab("notes");
