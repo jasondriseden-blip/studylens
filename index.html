@@ -11044,6 +11044,7 @@ if (document.readyState === "loading") {
     return safeFilenameBase(subject || fallback || "export");
   }
 
+  /* ======================= ADD THIS FUNCTION (START) ======================= */
   function buildPrintCss() {
     return `
       @media print {
@@ -11082,11 +11083,16 @@ if (document.readyState === "loading") {
         /* Make sure line breaks behave */
         #__print_root__ .tool-output-body { white-space: pre-wrap !important; }
 
-        /* Keep highlights/colors when user enables "Background graphics" */
+        /* Prevent “big black box” / forced dark mode printing */
+        html, body { background: #fff !important; color: #000 !important; }
+        * { text-shadow: none !important; }
+
+        /* Try to keep highlight colors when supported */
         * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       }
     `;
   }
+  /* ======================= ADD THIS FUNCTION (END) ========================= */
 
   function ensurePrintStyle() {
     let style = document.getElementById("__print_style__");
@@ -11139,8 +11145,10 @@ if (document.readyState === "loading") {
       return;
     }
 
-    // If it’s empty, stop
-    const hasStuff = String(bodyEl.innerText || "").trim().length > 0 || String(bodyEl.innerHTML || "").trim().length > 0;
+    const hasStuff =
+      String(bodyEl.innerText || "").trim().length > 0 ||
+      String(bodyEl.innerHTML || "").trim().length > 0;
+
     if (!hasStuff) {
       alert("Nothing to export yet.");
       return;
@@ -11153,10 +11161,8 @@ if (document.readyState === "loading") {
     const newTitle = getTitleForPdf(targetId);
     document.title = newTitle;
 
-    // Print
     window.print();
 
-    // Cleanup + restore title
     setTimeout(() => {
       document.title = originalTitle;
       removePrintDom();
