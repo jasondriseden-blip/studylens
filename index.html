@@ -2324,18 +2324,14 @@ details.nb-dropdown > summary:active {
 }
 .u13-disclaimer{
   color: var(--muted, rgba(148,163,184,.95));
+     margin-left: 5px;
+    font-size: .65em;
+    margin-top: 5px;
+    border-top: 1px solid var(--outline);
+    padding: 7px 5px 0 7px;
+	margin-left: 5px; font-size: .65em;
 }
 
-.u13-disclaimer a{
-  color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  opacity: .9;
-}
-
-.u13-disclaimer a:hover{
-  opacity: 1;
-}
 
 </style>
 
@@ -2510,9 +2506,8 @@ details.nb-dropdown > summary:active {
           >
             Upgrade to Pro
           </button>
-		  <p class="u13-disclaimer"  style="margin-left: 5px; font-size: .65em; margin-top: 0;">
-  Not for children under 13.
-  <a href="/privacy" target="_blank" rel="noopener" >Privacy</a>
+		  <p class="u13-disclaimer">
+  Under 13? Please don’t create an account.
 </p>
 
         </div>
@@ -6444,6 +6439,7 @@ document.addEventListener("DOMContentLoaded", function () {
       stopResultLoading(essayResult);
 
       const clean = sanitizeAnswerText(ans);
+	  essayResult.dataset.raw = clean;
       renderAnswer(essayResult, clean);
       addNotebookItem("Essay", clean);
     });
@@ -8933,11 +8929,22 @@ async function updateAuthUI() {
   const authButton = document.getElementById("authButton");
   if (!userPlanLabel || !authButton) return;
 
+  /* ---- NEW (guest-only UI): hide/show Upgrade + u13 disclaimer based on login ---- */
+  const upgradeBtn = document.getElementById("upgradeButton");
+  const proBadge = document.getElementById("proBadge");
+  const u13Disclaimer =
+    document.getElementById("u13Disclaimer") || document.querySelector(".u13-disclaimer");
+
   /* ---- PART 5A: Determine login state (START) ---- */
   const { data, error } = await supabaseClient.auth.getUser();
 
   // Not logged in
   if (error || !data.user) {
+    // ✅ Guest: show Upgrade + show u13 disclaimer, hide pro badge
+    if (upgradeBtn) upgradeBtn.style.display = "";
+    if (u13Disclaimer) u13Disclaimer.style.display = "";
+    if (proBadge) proBadge.style.display = "none";
+
     // Read guest usage from the same key the limiter uses
     let anonUses = 0;
     try {
@@ -8966,6 +8973,11 @@ async function updateAuthUI() {
   const plan = await fetchUserPlan(user.id);
   const isPro = plan === "pro";
   /* ---- PART 5C (END) ---- */
+
+  /* ---- NEW (guest-only UI): logged in => hide Upgrade + hide u13 disclaimer ---- */
+  if (upgradeBtn) upgradeBtn.style.display = "none";
+  if (u13Disclaimer) u13Disclaimer.style.display = "none";
+  if (proBadge) proBadge.style.display = isPro ? "inline-block" : "none";
 
   /* ---- PART 5D: Usage label lookup for this month (START) ---- */
   let usageText = "";
@@ -9126,6 +9138,9 @@ document.addEventListener("DOMContentLoaded", () => {
   ========================================================================================= */
   const upgradeBtn = document.getElementById("upgradeButton");
   const proBadge = document.getElementById("proBadge");
+  /* ---- NEW: u13 disclaimer element (id or class) ---- */
+  const u13Disclaimer =
+    document.getElementById("u13Disclaimer") || document.querySelector(".u13-disclaimer");
   /* ================================= SECTION 1 (END) ==================================== */
 
 
@@ -9162,12 +9177,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const { data, error } = await window.supabaseClient.auth.getUser();
       if (error || !data.user) {
-        // Not logged in -> leave upgrade visible
+        // Not logged in -> leave upgrade visible + show u13 disclaimer
         setUpgradeUI();
+        if (u13Disclaimer) u13Disclaimer.style.display = "";
         return;
       }
 
       const user = data.user;
+
+      // ✅ Logged in -> always hide Upgrade + hide u13 disclaimer (per your requirement)
+      if (upgradeBtn) upgradeBtn.style.display = "none";
+      if (u13Disclaimer) u13Disclaimer.style.display = "none";
 
       // Look up plan by user_id (your current schema)
       const { data: planRow, error: planError } = await window.supabaseClient
@@ -9180,12 +9200,14 @@ document.addEventListener("DOMContentLoaded", () => {
         // ✅ Already Pro
         setProUI();
       } else {
-        // Not Pro (or row missing)
-        setUpgradeUI();
+        // Logged in but not Pro -> hide badge
+        if (proBadge) proBadge.style.display = "none";
       }
     } catch (e) {
       console.error("Error checking user plan", e);
-      // Fail open: keep upgrade visible so user isn't blocked
+      // Fail open:
+      // - If logged out, keep upgrade visible (setUpgradeUI handles that elsewhere)
+      // - If logged in, updateAuthUI will hide it; we won't force anything here.
       setUpgradeUI();
     }
   })();
