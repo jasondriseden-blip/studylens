@@ -1,15 +1,12 @@
 /* ===========================================================================================
    BLOCK X: Server-side PDF export (Vercel Function)  (START)
    Goal:
-   - POST { title, html, text } -> returns application/pdf
-   - Works on mobile/desktop (server-generated PDF)
-   - Fixes libnss3.so missing by setting LD_LIBRARY_PATH for Sparticuz Chromium
-   Route:
-   - /api/export-pdf   (because this file is: /api/export-pdf.js)
+   - POST { title, html } -> returns a downloadable PDF
+   - Reliable on mobile/desktop because PDF is generated server-side
+   - Uses Browserless PDF API (supports sending raw HTML)
+   What you must have:
+   - Vercel env var: BROWSERLESS_TOKEN
 =========================================================================================== */
-
-const chromium = require("@sparticuz/chromium");
-const puppeteer = require("puppeteer-core");
 
 function safeFilename(name) {
   const base = String(name || "export")
@@ -20,36 +17,8 @@ function safeFilename(name) {
   return (base || "export") + ".pdf";
 }
 
-function escapeHtml(s) {
-  return String(s || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-async function readJsonBody(req) {
-  // If something already parsed it:
-  if (req.body && typeof req.body === "object") return req.body;
-
-  const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
-  const raw = Buffer.concat(chunks).toString("utf8").trim();
-  if (!raw) return {};
-  return JSON.parse(raw);
-}
-
-function ensureChromiumLibs() {
-  // ✅ Fix for: libnss3.so: cannot open shared object file
-  const addPath = "/tmp/al2/lib";
-  const cur = process.env.LD_LIBRARY_PATH || "";
-  if (!cur.includes(addPath)) {
-    process.env.LD_LIBRARY_PATH = cur ? `${cur}:${addPath}` : addPath;
-  }
-  // Helps fonts render more consistently
-  process.env.FONTCONFIG_PATH = "/tmp/fonts";
-}
-
 module.exports = async (req, res) => {
+  // Only allow POST
   if (req.method !== "POST") {
     res.statusCode = 405;
     res.setHeader("Content-Type", "application/json");
@@ -58,78 +27,84 @@ module.exports = async (req, res) => {
   }
 
   try {
-    ensureChromiumLibs();
-
-    const body = await readJsonBody(req);
-    const title = String(body.title || "export");
-    const htmlInner = String(body.html || "");
-    const textFallback = String(body.text || "");
-
-    if (!htmlInner.trim() && !textFallback.trim()) {
-      res.statusCode = 400;
+    const token = process.env.BROWSERLESS_TOKEN;
+    if (!token) {
+      res.statusCode = 500;
       res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ error: "Missing html/text" }));
+      res.end(JSON.stringify({ error: "Missing BROWSERLESS_TOKEN env var" }));
       return;
     }
 
-    // Build a clean printable HTML doc.
-    // Note: keeps inline formatting/highlights if they exist in htmlInner.
-    const docHtml = `<!doctype html>
+    const body = req.body || {};
+    const title = String(body.title || "export");
+    const inner = String(body.html || "").trim();
+
+    if (!inner) {
+      res.statusCode = 400;
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ error: "Missing html" }));
+      return;
+    }
+
+    // Wrap the incoming innerHTML into a full HTML doc.
+    // Also: remove the tool-output border/background in the PDF.
+    const fullHtml = `<!doctype html>
 <html>
 <head>
-<meta charset="utf-8" />
-<title>${escapeHtml(title)}</title>
-<style>
-  /* basic page */
-  body { margin: 0; padding: 14mm; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-  /* remove any box/border if your html contains .tool-output wrapper */
-  .tool-output { border: none !important; background: transparent !important; padding: 0 !important; box-shadow: none !important; margin: 0 !important; }
-  .tool-output-header { display: none !important; } /* don’t print the Copy button area */
-  .tool-output-body { white-space: pre-wrap; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { margin: 0; padding: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    @page { margin: 14mm; }
+    /* If your output includes .tool-output, strip the box for PDF */
+    .tool-output { border: none !important; background: transparent !important; padding: 0 !important; box-shadow: none !important; margin: 0 !important; }
+  </style>
 </head>
 <body>
-  ${
-    htmlInner.trim()
-      ? `<div class="tool-output"><div class="tool-output-body">${htmlInner}</div></div>`
-      : `<pre class="tool-output-body" style="margin:0; white-space:pre-wrap;">${escapeHtml(textFallback)}</pre>`
-  }
+  ${inner}
 </body>
 </html>`;
 
-    const browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
+    // Browserless PDF API: send either { html } or { url } :contentReference[oaicite:1]{index=1}
+    const endpoint = `https://production-sfo.browserless.io/pdf?token=${encodeURIComponent(token)}`;
+
+    const r = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache",
+      },
+      body: JSON.stringify({
+        html: fullHtml,
+        options: {
+          // printBackground=true keeps highlight backgrounds when they exist in HTML/CSS :contentReference[oaicite:2]{index=2}
+          printBackground: true,
+          preferCSSPageSize: true,
+          margin: { top: "14mm", right: "14mm", bottom: "14mm", left: "14mm" },
+        },
+      }),
     });
 
-    const page = await browser.newPage();
-    await page.setContent(docHtml, { waitUntil: ["load", "networkidle0"] });
+    if (!r.ok) {
+      const txt = await r.text().catch(() => "");
+      res.statusCode = 500;
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ error: "Browserless PDF failed", detail: txt || `HTTP ${r.status}` }));
+      return;
+    }
 
-    const pdfBuffer = await page.pdf({
-      format: "letter",
-      printBackground: true,
-      preferCSSPageSize: true,
-      margin: { top: "0mm", right: "0mm", bottom: "0mm", left: "0mm" },
-    });
-
-    await browser.close();
+    const pdfBuf = Buffer.from(await r.arrayBuffer());
+    const filename = safeFilename(title);
 
     res.statusCode = 200;
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${safeFilename(title)}"`);
-    res.end(pdfBuffer);
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.end(pdfBuf);
   } catch (err) {
-    console.error("PDF export error:", err);
+    console.error("export-pdf error:", err);
     res.statusCode = 500;
     res.setHeader("Content-Type", "application/json");
-    res.end(
-      JSON.stringify({
-        error: "PDF export failed",
-        detail: String(err && err.message ? err.message : err),
-      })
-    );
+    res.end(JSON.stringify({ error: "PDF export failed", detail: String(err && err.message ? err.message : err) }));
   }
 };
 
