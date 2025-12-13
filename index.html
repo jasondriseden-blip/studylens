@@ -8820,53 +8820,30 @@ async function showCurrentUsage() {
 
 /* ===========================================================================================
    SECTION 3: Handle OAuth tokens returned in URL (START)
-   What this does:
-   - After Google sign-in, Supabase may redirect back with tokens in:
-       - the hash:  #access_token=...&refresh_token=...
-       - OR the query: ?access_token=...&refresh_token=...
-   - We read them, set the session, then CLEAN the URL so tokens aren't visible.
-
-   IMPORTANT FIX (non-breaking):
-   - Your original code cleaned the URL using:
-       pathname + search
-     That could accidentally keep tokens if they were in the query string.
-   - This version removes auth params safely and keeps other query params (if any).
 =========================================================================================== */
 async function handleAuthFromUrl() {
   const rawHash = window.location.hash || "";
   const rawSearch = window.location.search || "";
 
-  // Nothing to do if neither hash nor search has anything
   if (!rawHash && !rawSearch) return;
 
-  // Combine params from hash and search (Supabase can use either)
   const hashParams = new URLSearchParams(rawHash.replace(/^#/, ""));
   const searchParams = new URLSearchParams(rawSearch.replace(/^\?/, ""));
 
-  // Prefer hash token values, but fall back to query if needed
   const accessToken =
     hashParams.get("access_token") || searchParams.get("access_token");
   const refreshToken =
     hashParams.get("refresh_token") || searchParams.get("refresh_token");
 
-  // If we don't see tokens, do nothing
   if (!accessToken || !refreshToken) return;
 
   try {
-    // Tell Supabase to store the session in its auth storage
     await supabaseClient.auth.setSession({
       access_token: accessToken,
       refresh_token: refreshToken
     });
 
-    /* ---- PART 3A: Clean URL (remove tokens) (START)
-       - Remove tokens from the query string if they exist there
-       - Remove the hash entirely
-       - Keep other query params that are not auth-related
-    */
     const cleanedSearch = new URLSearchParams(rawSearch.replace(/^\?/, ""));
-
-    // Remove common auth params if present
     cleanedSearch.delete("access_token");
     cleanedSearch.delete("refresh_token");
     cleanedSearch.delete("token_type");
@@ -8878,8 +8855,6 @@ async function handleAuthFromUrl() {
     const newUrl = window.location.pathname + (qs ? "?" + qs : "");
 
     window.history.replaceState({}, document.title, newUrl);
-    // (Hash is implicitly removed because we didn't include it)
-    /* ---- PART 3A (END) ---- */
   } catch (err) {
     console.error("Error setting session from OAuth redirect:", err);
   }
@@ -8889,8 +8864,6 @@ async function handleAuthFromUrl() {
 
 /* ===========================================================================================
    SECTION 4: Read user's plan from your "user_plans" table (START)
-   - userId is the Supabase auth user.id (UUID)
-   - Returns: "free" or "pro" (default "free")
 =========================================================================================== */
 async function fetchUserPlan(userId) {
   try {
@@ -8916,36 +8889,15 @@ async function fetchUserPlan(userId) {
 
 /* ===========================================================================================
    SECTION 5: Update header UI (START)
-   Updates:
-   - #userPlanLabel text (guest/free/pro status + usage)
-   - #authButton label and dataset.authState ("signed-in" / "signed-out")
-
-   NOTE:
-   - Guest usage reads localStorage("passinggrade-anon-uses")
-   - Logged-in usage reads usage_counters for action="ocr" and this month periodStart
 =========================================================================================== */
 async function updateAuthUI() {
   const userPlanLabel = document.getElementById("userPlanLabel");
   const authButton = document.getElementById("authButton");
   if (!userPlanLabel || !authButton) return;
 
-  /* ---- NEW (guest-only UI): hide/show Upgrade + u13 disclaimer based on login ---- */
-  const upgradeBtn = document.getElementById("upgradeButton");
-  const proBadge = document.getElementById("proBadge");
-  const u13Disclaimer =
-    document.getElementById("u13Disclaimer") || document.querySelector(".u13-disclaimer");
-
-  /* ---- PART 5A: Determine login state (START) ---- */
   const { data, error } = await supabaseClient.auth.getUser();
 
-  // Not logged in
   if (error || !data.user) {
-    // ✅ Guest: show Upgrade + show u13 disclaimer, hide pro badge
-    if (upgradeBtn) upgradeBtn.style.display = "";
-    if (u13Disclaimer) u13Disclaimer.style.display = "";
-    if (proBadge) proBadge.style.display = "none";
-
-    // Read guest usage from the same key the limiter uses
     let anonUses = 0;
     try {
       const raw = localStorage.getItem("passinggrade-anon-uses");
@@ -8961,29 +8913,17 @@ async function updateAuthUI() {
     authButton.dataset.authState = "signed-out";
     return;
   }
-  /* ---- PART 5A (END) ---- */
 
-  /* ---- PART 5B: Logged in user info (START) ---- */
   const user = data.user;
   const email = user.email || "";
   const namePart = (email.split("@")[0] || "your account");
-  /* ---- PART 5B (END) ---- */
 
-  /* ---- PART 5C: Plan lookup (START) ---- */
   const plan = await fetchUserPlan(user.id);
   const isPro = plan === "pro";
-  /* ---- PART 5C (END) ---- */
 
-  /* ---- NEW (guest-only UI): logged in => hide Upgrade + hide u13 disclaimer ---- */
-  if (upgradeBtn) upgradeBtn.style.display = "none";
-if (upgradeBtn) upgradeBtn.style.setProperty("display", "none", "important");
-  if (proBadge) proBadge.style.display = isPro ? "inline-block" : "none";
-
-  /* ---- PART 5D: Usage label lookup for this month (START) ---- */
   let usageText = "";
 
   try {
-    // YYYY-MM-01
     const now = new Date();
     const month = String(now.getMonth() + 1).padStart(2, "0");
     const periodStart = `${now.getFullYear()}-${month}-01`;
@@ -9002,16 +8942,13 @@ if (upgradeBtn) upgradeBtn.style.setProperty("display", "none", "important");
 
     const currentCount = row?.count || 0;
 
-    // Pro: no /10 cap display. Free: show /10.
     usageText = isPro
       ? ` · ${currentCount} uses this month`
       : ` · ${currentCount}/10 uses this month`;
   } catch (e) {
     console.error("usage label exception", e);
   }
-  /* ---- PART 5D (END) ---- */
 
-  /* ---- PART 5E: Build final header label + button (START) ---- */
   let label = `signed in as ${namePart}`;
   if (!isPro) {
     label = `Free plan · ${label}`;
@@ -9020,16 +8957,12 @@ if (upgradeBtn) upgradeBtn.style.setProperty("display", "none", "important");
   userPlanLabel.textContent = `${label}${usageText}`;
   authButton.textContent = "Sign out";
   authButton.dataset.authState = "signed-in";
-  /* ---- PART 5E (END) ---- */
 }
 /* ================================= SECTION 5 (END) ===================================== */
 
 
 /* ===========================================================================================
    SECTION 6: Auth button click handler (START)
-   Behavior:
-   - If signed in -> sign out
-   - If signed out -> start Google OAuth flow
 =========================================================================================== */
 async function handleAuthButtonClick() {
   const authButton = document.getElementById("authButton");
@@ -9037,21 +8970,17 @@ async function handleAuthButtonClick() {
 
   const state = authButton.dataset.authState || "signed-out";
 
-  /* ---- PART 6A: Signed in -> Sign out (START) ---- */
   if (state === "signed-in") {
     await supabaseClient.auth.signOut();
     await updateAuthUI();
     alert("Signed out.");
     return;
   }
-  /* ---- PART 6A (END) ---- */
 
-  /* ---- PART 6B: Signed out -> Start Google OAuth (START) ---- */
   try {
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: "google",
       options: {
-        // Must match your Supabase Auth "Site URL"
         redirectTo: "https://passinggrade.app"
       }
     });
@@ -9065,29 +8994,21 @@ async function handleAuthButtonClick() {
     console.error("OAuth error:", err);
     alert("Error starting sign-in. Please try again.");
   }
-  /* ---- PART 6B (END) ---- */
 }
 /* ================================= SECTION 6 (END) ===================================== */
 
 
 /* ===========================================================================================
    SECTION 7: DOM wiring (START)
-   - On DOMContentLoaded:
-     1) handleAuthFromUrl() (finish OAuth)
-     2) wire #authButton click
-     3) updateAuthUI() (refresh header)
 =========================================================================================== */
 document.addEventListener("DOMContentLoaded", async () => {
-  // 1) If we just came back from Google/Supabase, set the session
   await handleAuthFromUrl();
 
-  // 2) Wire the button
   const authButton = document.getElementById("authButton");
   if (authButton) {
     authButton.addEventListener("click", handleAuthButtonClick);
   }
 
-  // 3) Update header
   updateAuthUI();
 });
 /* ================================= SECTION 7 (END) ===================================== */
@@ -9095,10 +9016,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 /* ===========================================================================================
    SECTION 8: Global helper: getCurrentUserPlan (START)
-   - Other code can call: await window.getCurrentUserPlan()
-   - Returns:
-       - null if not logged in
-       - "free" or "pro" if logged in
 =========================================================================================== */
 window.getCurrentUserPlan = async function () {
   try {
@@ -9117,6 +9034,174 @@ window.getCurrentUserPlan = async function () {
 };
 /* ================================= SECTION 8 (END) ===================================== */
 </script>
+
+<!-- BLOCK BILLING: Upgrade button + Pro badge (plan check + checkout redirect) ---------------
+--------------------------------------------------------------------------------------=----
+===========================================================================================
+===========================================================================================
+------------------------------------------------------------------------------------------->
+
+<script>
+/* ===========================================================================================
+   SECTION 0: Run after DOM loads (START)
+=========================================================================================== */
+document.addEventListener("DOMContentLoaded", () => {
+
+  /* =========================================================================================
+     SECTION 1: Grab elements (START)
+  ========================================================================================= */
+  const upgradeBtn = document.getElementById("upgradeButton");
+  const proBadge = document.getElementById("proBadge");
+
+  // U13 disclaimer (supports id OR class OR data attr)
+  const u13Disclaimer =
+    document.getElementById("u13Disclaimer") ||
+    document.querySelector(".u13-disclaimer") ||
+    document.querySelector("[data-u13-disclaimer]");
+  /* ================================= SECTION 1 (END) ==================================== */
+
+
+
+  /* =========================================================================================
+     SECTION 2: Helpers (START)
+     - IMPORTANT: force-hide uses !important so CSS cannot override it
+  ========================================================================================= */
+  function forceHide(el) {
+    if (!el) return;
+    el.style.setProperty("display", "none", "important");
+  }
+
+  function unforceHide(el) {
+    if (!el) return;
+    el.style.removeProperty("display");
+  }
+
+  function setProUI() {
+    forceHide(upgradeBtn);
+    if (proBadge) {
+      unforceHide(proBadge);
+      proBadge.style.display = "inline-block";
+    }
+  }
+
+  function setUpgradeUI() {
+    unforceHide(upgradeBtn);
+    if (proBadge) forceHide(proBadge);
+  }
+  /* ================================= SECTION 2 (END) ==================================== */
+
+
+
+  /* =========================================================================================
+     SECTION 3: Check plan on page load (START)
+     - Logged out: show upgrade, show disclaimer
+     - Logged in: hide disclaimer
+     - Pro: hide upgrade, show badge
+  ========================================================================================= */
+  (async function checkPlanOnLoad() {
+    try {
+      if (!window.supabaseClient) return;
+
+      const { data, error } = await window.supabaseClient.auth.getUser();
+
+      if (error || !data.user) {
+        setUpgradeUI();
+        if (u13Disclaimer) unforceHide(u13Disclaimer);
+        return;
+      }
+
+      // Logged in: hide disclaimer always
+      if (u13Disclaimer) forceHide(u13Disclaimer);
+
+      const user = data.user;
+
+      const { data: planRow, error: planError } = await window.supabaseClient
+        .from("user_plans")
+        .select("plan")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!planError && planRow && planRow.plan === "pro") {
+        setProUI();
+      } else {
+        setUpgradeUI();
+      }
+    } catch (e) {
+      console.error("Error checking user plan", e);
+      // Fail open: keep upgrade visible so user isn't blocked
+      setUpgradeUI();
+    }
+  })();
+  /* ================================= SECTION 3 (END) ==================================== */
+
+
+
+  /* =========================================================================================
+     SECTION 4: Click handler for Upgrade (START)
+  ========================================================================================= */
+  if (!upgradeBtn) return;
+
+  upgradeBtn.addEventListener("click", async () => {
+    try {
+      if (!window.supabaseClient) {
+        alert("Auth system isn't loaded yet. Please refresh and try again.");
+        return;
+      }
+
+      const { data, error } = await window.supabaseClient.auth.getUser();
+
+      if (error || !data.user) {
+        alert("Please sign in first before upgrading to Pro.");
+        return;
+      }
+
+      const user = data.user;
+
+      const originalText = upgradeBtn.textContent;
+      upgradeBtn.disabled = true;
+      upgradeBtn.textContent = "Opening checkout...";
+
+      try {
+        const res = await fetch("/api/create-checkout-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: user.id,
+            email: user.email
+          })
+        });
+
+        if (!res.ok) {
+          throw new Error("Network error: " + res.status);
+        }
+
+        const payload = await res.json();
+
+        if (!payload.url) {
+          throw new Error("No checkout URL returned");
+        }
+
+        window.location.href = payload.url;
+      } catch (err) {
+        console.error("Upgrade error", err);
+        alert("Could not start checkout. Please try again in a moment.");
+
+        upgradeBtn.disabled = false;
+        upgradeBtn.textContent = originalText;
+      }
+
+    } catch (e) {
+      console.error("Error checking auth before upgrade", e);
+      alert("Could not verify your login. Please sign in again and try.");
+    }
+  });
+
+  /* ================================= SECTION 4 (END) ==================================== */
+
+});
+/* ================================== SECTION 0 (END) ===================================== */
+</script>
+
 
 <script>
 /* ===========================================================================================
