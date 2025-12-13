@@ -4861,12 +4861,6 @@ runWhenReady(() => {
 
 
 
-<!-- BLOCK 3: Answer sanitizing, AI backend call, and all task helpers ----------------------
---------------------------------------------------------------------------------------=----
-===========================================================================================
-===========================================================================================
-------------------------------------------------------------------------------------------->
-
 <script>
 /* ===========================================================================================
    SECTION 0: Answer sanitizing (START)
@@ -4880,30 +4874,18 @@ function sanitizeAnswerText(raw) {
   let text = String(raw);
 
   /* ---- PART 0A: Remove common markdown formatting (START) ---- */
-  // Remove markdown headings (#, ##, ###...) entire lines
   text = text.replace(/^\s*#{1,6}\s+.*$/gm, "");
-
-  // Remove horizontal rules like --- or *** lines
   text = text.replace(/^\s*[-*_]{3,}\s*$/gm, "");
-
-  // Remove triple-dash runs and code fences
   text = text.replace(/---/g, "");
   text = text.replace(/```/g, "");
   /* ---- PART 0A (END) ---- */
 
-
   /* ---- PART 0B: Convert common LaTeX-ish patterns into plain text (START) ---- */
-  // \frac{a}{b} -> a/b
   text = text.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "$1/$2");
-
-  // \sqrt{a} -> √(a) then we simplify √(x) -> √x for simple cases
   text = text.replace(/\\sqrt\{([^}]+)\}/g, "√($1)");
   text = text.replace(/√\(([^()]+)\)/g, "√$1");
-
-  // \boxed{...} -> ...
   text = text.replace(/\\boxed\{([^}]+)\}/g, "$1");
   /* ---- PART 0B (END) ---- */
-
 
   /* ---- PART 0C: Remove LaTeX math wrappers like \( \) and \[ \] and $ $ (START) ---- */
   text = text.replace(/\\\(|\\\)/g, "");
@@ -4912,26 +4894,19 @@ function sanitizeAnswerText(raw) {
   text = text.replace(/\$(.*?)\$/g, "$1");
   /* ---- PART 0C (END) ---- */
 
-
   /* ---- PART 0D: Replace LaTeX operators with symbols (START) ---- */
   text = text.replace(/\\times/g, "×");
   text = text.replace(/\\cdot/g, "·");
   /* ---- PART 0D (END) ---- */
 
-
   /* ---- PART 0E: Remove bullet markers when they aren't numeric lists (START) ---- */
-  // Removes "- something" when "something" doesn't start with a digit
   text = text.replace(/^\s*-\s+(?!\d)/gm, "");
-
-  // Removes "* something" when "something" doesn't start with a digit
   text = text.replace(/^\s*\*\s+(?!\d)/gm, "");
   /* ---- PART 0E (END) ---- */
-
 
   /* ---- PART 0F: Remove specific filler lines (START) ---- */
   text = text.replace(/^Lets solve.*$/gmi, "");
   /* ---- PART 0F (END) ---- */
-
 
   /* ---- PART 0G: Strip leftover special characters + normalize spacing (START) ---- */
   text = text.replace(/[\\`#*_$>]/g, "");
@@ -4939,11 +4914,7 @@ function sanitizeAnswerText(raw) {
   text = text.replace(/\n{3,}/g, "\n\n");
   /* ---- PART 0G (END) ---- */
 
-
-  /* ---- PART 0H: Fix "Final answer:" line if it's empty (START)
-     If there is a line exactly like "Final answer:" with nothing after it,
-     we fill it with the last number found anywhere in the text.
-  ---- */
+  /* ---- PART 0H: Fix "Final answer:" line if it's empty (START) ---- */
   const finalLineMatch = text.match(/Final answer:\s*$/m);
   if (finalLineMatch) {
     const numbers = text.match(/-?\d+(\.\d+)?/g);
@@ -4962,12 +4933,8 @@ function sanitizeAnswerText(raw) {
 
 /* ===========================================================================================
    SECTION 1: Inject styles for tool outputs (START)
-   Goal:
-   - Add a <style> tag once
-   - Uses id="tool-output-styles" so it never duplicates
 =========================================================================================== */
 (function ensureToolOutputStyles() {
-  // If we've already injected the styles, do nothing
   if (document.getElementById("tool-output-styles")) return;
 
   const style = document.createElement("style");
@@ -5009,9 +4976,7 @@ function sanitizeAnswerText(raw) {
       background: var(--btn-bg-active);
       color: var(--btn-fg-active);
     }
-    .tool-output-copy-label {
-      font-weight: 500;
-    }
+    .tool-output-copy-label { font-weight: 500; }
     .section-heading {
       display: block;
       font-weight: 700;
@@ -5026,14 +4991,8 @@ function sanitizeAnswerText(raw) {
       color: #111827;
       margin-top: 0.4rem;
     }
-    .answer-label {
-      font-weight: 700;
-      color: #000;
-    }
-    .answer-value {
-      font-weight: 500;
-      color: #111827;
-    }
+    .answer-label { font-weight: 700; color: #000; }
+    .answer-value { font-weight: 500; color: #111827; }
     .hint-label {
       display: inline-block;
       margin-top: 0.75rem;
@@ -5050,40 +5009,25 @@ function sanitizeAnswerText(raw) {
 
 /* ===========================================================================================
    SECTION 2: Render tool output with formatting + copy button (START)
-   Goal:
-   - Take plain text
-   - Escape it (avoid HTML injection)
-   - Add small formatting helpers (Final answer, Step lines, headings, Hint label)
-   - Store original plain text in preEl.dataset.plainText for copying
 =========================================================================================== */
 function renderAnswer(preEl, text) {
   if (!preEl) return;
 
-  /* ---- PART 2A: Save plain text for copy (START) ---- */
   const plain = String(text || "");
   preEl.dataset.plainText = plain;
-  /* ---- PART 2A (END) ---- */
 
-  /* ---- PART 2B: Ensure base class is applied (START) ---- */
   preEl.classList.add("tool-output");
-  /* ---- PART 2B (END) ---- */
 
-  /* ---- PART 2C: Escape HTML special characters (START) ----
-     So if the AI returns "<script>" etc., it displays as text, not HTML.
-  */
   const escaped = plain
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
-  /* ---- PART 2C (END) ---- */
 
-  /* ---- PART 2D: Turn lines into HTML with extra styling (START) ---- */
   const lines = escaped.split("\n");
 
   const htmlLines = lines.map((line) => {
     const trimmed = line.trim();
 
-    // 1) "Final answer: ..."
     const finalMatch = line.match(/^(Final answer:\s*)(.*)$/i);
     if (finalMatch) {
       const label = finalMatch[1];
@@ -5091,31 +5035,23 @@ function renderAnswer(preEl, text) {
       return `<span class="answer-label">${label}</span><span class="answer-value"> ${value}</span>`;
     }
 
-    // 2) "Step 1", "Step 2", etc.
     if (/^Step\s+\d+/i.test(trimmed)) {
       return `<span class="step-line">${line}</span>`;
     }
 
-    // 3) Section headings like "Summary:", "Answer Key:", etc.
     if (/^(Summary|Answer Key|Multiple Choice|Short Answer|True\/False)\s*:/i.test(trimmed)) {
       return `<span class="section-heading">${line}</span>`;
     }
 
-    // 4) "Hint:" label line
     if (/^Hint:\s*$/i.test(trimmed)) {
       return `<span class="hint-label">Hint</span>`;
     }
 
-    // Default: plain line
     return line;
   });
 
   const contentHtml = htmlLines.join("\n");
-  /* ---- PART 2D (END) ---- */
 
-  /* ---- PART 2E: Build the final HTML including copy button (START) ---- */
-  // If this element has an ID, we store it on the copy button so the click handler
-  // can find the right container easily.
   const copyTarget = preEl.id ? ` data-copy-target="${preEl.id}"` : "";
 
   preEl.innerHTML = `
@@ -5126,7 +5062,6 @@ function renderAnswer(preEl, text) {
     </div>
     <div class="tool-output-body" contenteditable="true" spellcheck="true">${contentHtml}</div>
   `;
-  /* ---- PART 2E (END) ---- */
 }
 /* ================================== SECTION 2 (END) ===================================== */
 
@@ -5134,56 +5069,38 @@ function renderAnswer(preEl, text) {
 
 /* ===========================================================================================
    SECTION 3: Global click handler for tool-output copy buttons (FIXED)
-   Fix:
-   - Never use container.innerText (it includes the "Copy" button text)
-   - Prefer dataset.plainText
-   - Fallback to .tool-output-body innerText
 =========================================================================================== */
 document.addEventListener("click", (e) => {
-  /* ---- PART 3A: Find the clicked copy button (START) ---- */
   const btn = e.target.closest(".tool-output-copy");
   if (!btn) return;
-  /* ---- PART 3A (END) ---- */
 
-  /* ---- PART 3B: Find the text to copy (FIXED) ---- */
   let container = null;
 
   const targetId = btn.dataset.copyTarget;
-  if (targetId) {
-    container = document.getElementById(targetId);
-  }
-  if (!container) {
-    container = btn.closest(".tool-output");
-  }
+  if (targetId) container = document.getElementById(targetId);
+  if (!container) container = btn.closest(".tool-output");
   if (!container) return;
 
   let textToCopy = "";
 
-  // 1) Best: plain text saved by renderAnswer()
   if (container.dataset && container.dataset.plainText && container.dataset.plainText.trim()) {
     textToCopy = container.dataset.plainText;
   } else {
-    // 2) Fallback: ONLY copy the body (never includes the header/copy button)
     const body = container.querySelector(".tool-output-body");
     textToCopy = body ? body.innerText : "";
   }
 
   textToCopy = String(textToCopy || "").trim();
   if (!textToCopy) return;
-  /* ---- PART 3B (END) ---- */
 
-  /* ---- PART 3C: Copy + show quick "Copied!" feedback (START) ---- */
   copyTextToClipboard(textToCopy);
 
   const label = btn.querySelector(".tool-output-copy-label");
   if (label) {
     const old = label.textContent;
     label.textContent = "Copied!";
-    setTimeout(() => {
-      label.textContent = old;
-    }, 1200);
+    setTimeout(() => { label.textContent = old; }, 1200);
   }
-  /* ---- PART 3C (END) ---- */
 });
 /* ================================== SECTION 3 (END) ===================================== */
 
@@ -5191,142 +5108,133 @@ document.addEventListener("click", (e) => {
 
 /* ===========================================================================================
    OUTPUT PDF + BACKUP + RESTORE (keeps edits + highlighting)
-   Fix:
-   - If there are duplicate IDs on the page, always use the output element in the SAME card/section
-     as the clicked button (scoped lookup), instead of the first element returned by getElementById.
-   - PDF export works even if .tool-output-body doesn't exist yet (plain <pre> text fallback).
+   FIXED FOR REAL:
+   - Uses the output element in the SAME card/section as the clicked button (prevents duplicate-id bugs)
+   - PDF export works whether output is:
+       A) renderAnswer() HTML (.tool-output-body exists)
+       B) plain <pre> text (no .tool-output-body yet)
+   - Uses a closure so later scripts can't overwrite the functions this handler uses
 =========================================================================================== */
+(function setupPdfBackupRestore() {
+  function getToolOutputBody(outputEl) {
+    if (!outputEl) return null;
+    return outputEl.querySelector(".tool-output-body");
+  }
 
-function getToolOutputBody(outputEl) {
-  if (!outputEl) return null;
-  return outputEl.querySelector(".tool-output-body");
-}
+  function escapeHtml(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
 
-function makeBackupObject(outputEl) {
-  const body = getToolOutputBody(outputEl);
+  function cssEscapeId(id) {
+    if (window.CSS && typeof window.CSS.escape === "function") return window.CSS.escape(id);
+    return String(id || "").replace(/([ #;?%&,.+*~\':"!^$[\]()=>|\/@])/g, "\\$1");
+  }
 
-  // If not rendered yet, fallback to plainText/textContent
-  const html = body ? body.innerHTML : "";
-  const text =
-    (outputEl.dataset && outputEl.dataset.plainText) ||
-    (body ? body.innerText : "") ||
-    outputEl.textContent ||
-    "";
+  // ✅ This is the BIG fix: scope lookup to the same card/section as the clicked button
+  function findOutputElFromButton(btn, targetId) {
+    const root = btn.closest(".card") || btn.closest("section") || document;
+    const scoped = root.querySelector("#" + cssEscapeId(targetId));
+    return scoped || document.getElementById(targetId);
+  }
 
-  return {
-    version: 1,
-    id: outputEl.id || "",
-    savedAt: new Date().toISOString(),
-    html: String(html || ""),
-    text: String(text || ""),
-  };
-}
+  function findFileInputFromButton(btn, targetId) {
+    const root =
+      btn.closest(".output-export-bar") ||
+      btn.closest(".output-format-bar") ||
+      btn.closest(".card") ||
+      btn.closest("section") ||
+      document;
 
-function downloadJson(filename, obj) {
-  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(a.href);
-}
+    return (
+      root.querySelector('.output-backup-file[data-target="' + targetId + '"]') ||
+      document.querySelector('.output-backup-file[data-target="' + targetId + '"]')
+    );
+  }
 
-function restoreFromBackup(outputEl, backup) {
-  if (!outputEl) return;
+  function makeBackupObject(outputEl) {
+    const body = getToolOutputBody(outputEl);
 
-  // Ensure tool-output structure exists (so header/copy button stays)
-  if (!outputEl.querySelector(".tool-output-body")) {
-    if (typeof renderAnswer === "function") {
-      renderAnswer(outputEl, backup.text || "");
-    } else {
-      outputEl.textContent = backup.text || "";
+    const html = body ? body.innerHTML : "";
+    const text =
+      (outputEl.dataset && outputEl.dataset.plainText) ||
+      (body ? body.innerText : "") ||
+      outputEl.textContent ||
+      "";
+
+    return {
+      version: 1,
+      id: outputEl.id || "",
+      savedAt: new Date().toISOString(),
+      html: String(html || ""),
+      text: String(text || ""),
+    };
+  }
+
+  function downloadJson(filename, obj) {
+    const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function restoreFromBackup(outputEl, backup) {
+    if (!outputEl) return;
+
+    if (!outputEl.querySelector(".tool-output-body")) {
+      if (typeof renderAnswer === "function") {
+        renderAnswer(outputEl, backup.text || "");
+      } else {
+        outputEl.textContent = backup.text || "";
+        return;
+      }
+    }
+
+    const body = getToolOutputBody(outputEl);
+    if (!body) return;
+
+    body.innerHTML = String(backup.html || "");
+    outputEl.dataset.plainText = body.innerText || String(backup.text || "");
+  }
+
+  function printOutputToPdf(outputEl, titleText) {
+    if (!outputEl) return;
+
+    const bodyEl = getToolOutputBody(outputEl);
+
+    const fallbackText =
+      (outputEl.dataset && outputEl.dataset.plainText) ||
+      outputEl.textContent ||
+      "";
+
+    const hasHtml = bodyEl && bodyEl.innerHTML && bodyEl.innerHTML.trim();
+    const hasText = String(fallbackText || "").trim().length > 0;
+
+    if (!hasHtml && !hasText) {
+      alert("Nothing to export yet.");
       return;
     }
-  }
 
-  const body = getToolOutputBody(outputEl);
-  if (!body) return;
+    const toolStylesEl = document.getElementById("tool-output-styles");
+    const toolCss = toolStylesEl ? toolStylesEl.textContent : "";
 
-  // Restore HTML (keeps highlighting/formatting/edits)
-  body.innerHTML = String(backup.html || "");
+    const headBits = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map((n) => n.outerHTML)
+      .join("\n");
 
-  // Sync plainText for copy logic
-  outputEl.dataset.plainText = body.innerText || String(backup.text || "");
-}
+    const safeTitle = String(titleText || "Export").replace(/</g, "&lt;");
 
-/* ---- Helpers (START) ---- */
-function escapeHtml(s) {
-  return String(s || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
+    const contentBlock = hasHtml
+      ? `<div class="tool-output"><div class="tool-output-body">${bodyEl.innerHTML}</div></div>`
+      : `<div class="tool-output"><pre class="tool-output-body" style="margin:0; white-space:pre-wrap;">${escapeHtml(fallbackText)}</pre></div>`;
 
-function cssEscapeId(id) {
-  if (window.CSS && typeof window.CSS.escape === "function") return window.CSS.escape(id);
-  return String(id || "").replace(/([ #;?%&,.+*~\':"!^$[\]()=>|\/@])/g, "\\$1");
-}
-
-function findOutputElFromButton(btn, targetId) {
-  const scopedRoot = btn.closest(".card") || btn.closest("section") || document;
-  const scoped = scopedRoot.querySelector("#" + cssEscapeId(targetId));
-  return scoped || document.getElementById(targetId);
-}
-
-function findFileInputFromButton(btn, targetId) {
-  const scopedRoot =
-    btn.closest(".output-export-bar") ||
-    btn.closest(".output-format-bar") ||
-    btn.closest(".card") ||
-    btn.closest("section") ||
-    document;
-
-  const scoped = scopedRoot.querySelector('.output-backup-file[data-target="' + targetId + '"]');
-  return scoped || document.querySelector('.output-backup-file[data-target="' + targetId + '"]');
-}
-/* ---- Helpers (END) ---- */
-
-function printOutputToPdf(outputEl, titleText) {
-  if (!outputEl) return;
-
-  const bodyEl = getToolOutputBody(outputEl);
-
-  // Fallback to plain text if tool-output-body isn't present yet
-  const fallbackText =
-    (outputEl.dataset && outputEl.dataset.plainText) ||
-    outputEl.textContent ||
-    "";
-
-  const hasHtml = bodyEl && bodyEl.innerHTML && bodyEl.innerHTML.trim();
-  const hasText = String(fallbackText || "").trim().length > 0;
-
-  if (!hasHtml && !hasText) {
-    alert("Nothing to export yet.");
-    return;
-  }
-
-  // Grab your injected tool-output styles (so it looks the same)
-  const toolStylesEl = document.getElementById("tool-output-styles");
-  const toolCss = toolStylesEl ? toolStylesEl.textContent : "";
-
-  // Also include your existing stylesheet links + style tags for theme
-  const headBits = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
-    .map((n) => n.outerHTML)
-    .join("\n");
-
-  const safeTitle = (titleText || "Export").replace(/</g, "&lt;");
-
-  const contentBlock = hasHtml
-    ? `<div class="tool-output">
-         <div class="tool-output-body">${bodyEl.innerHTML}</div>
-       </div>`
-    : `<div class="tool-output">
-         <pre class="tool-output-body" style="margin:0; white-space:pre-wrap;">${escapeHtml(fallbackText)}</pre>
-       </div>`;
-
-  const printableHtml = `
+    const printableHtml = `
 <!doctype html>
 <html>
 <head>
@@ -5335,13 +5243,9 @@ function printOutputToPdf(outputEl, titleText) {
 ${headBits}
 <style>
   ${toolCss}
-
-  /* Print polish */
   body { padding: 24px; }
   .print-title { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
   .print-meta { font-size: 12px; opacity: 0.75; margin-bottom: 16px; }
-
-  /* Make sure editable styling prints nicely */
   .tool-output-body { white-space: pre-wrap; }
 </style>
 </head>
@@ -5352,101 +5256,101 @@ ${headBits}
 </body>
 </html>`;
 
-  // Hidden iframe print (doesn't mess up your UI)
-  const iframe = document.createElement("iframe");
-  iframe.style.position = "fixed";
-  iframe.style.right = "0";
-  iframe.style.bottom = "0";
-  iframe.style.width = "0";
-  iframe.style.height = "0";
-  iframe.style.border = "0";
-  document.body.appendChild(iframe);
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    document.body.appendChild(iframe);
 
-  const doc = iframe.contentWindow.document;
-  doc.open();
-  doc.write(printableHtml);
-  doc.close();
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(printableHtml);
+    doc.close();
 
-  iframe.onload = () => {
-    iframe.contentWindow.focus();
-    iframe.contentWindow.print();
-    setTimeout(() => iframe.remove(), 1000);
-  };
-}
-
-// Wire buttons (scoped to the clicked section/card)
-document.addEventListener("click", (e) => {
-  const pdfBtn = e.target.closest(".output-pdf-download");
-  if (pdfBtn) {
-    const targetId = pdfBtn.dataset.target;
-    if (!targetId) return;
-
-    const outputEl = findOutputElFromButton(pdfBtn, targetId);
-    if (!outputEl) return;
-
-    printOutputToPdf(outputEl, targetId || "Export");
-    return;
+    iframe.onload = () => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      setTimeout(() => iframe.remove(), 1000);
+    };
   }
 
-  const backupBtn = e.target.closest(".output-backup-download");
-  if (backupBtn) {
-    const targetId = backupBtn.dataset.target;
-    if (!targetId) return;
+  // Wire buttons (uses scoped lookup)
+  document.addEventListener("click", (e) => {
+    const pdfBtn = e.target.closest(".output-pdf-download");
+    if (pdfBtn) {
+      const targetId = pdfBtn.dataset.target;
+      if (!targetId) return;
 
-    const outputEl = findOutputElFromButton(backupBtn, targetId);
-    if (!outputEl) return;
+      const outputEl = findOutputElFromButton(pdfBtn, targetId);
+      if (!outputEl) return;
 
-    const backup = makeBackupObject(outputEl);
-    const name = (targetId || "output") + "-backup.json";
-    downloadJson(name, backup);
-    return;
-  }
-
-  const restoreBtn = e.target.closest(".output-backup-restore");
-  if (restoreBtn) {
-    const targetId = restoreBtn.dataset.target;
-    if (!targetId) return;
-
-    const fileInput = findFileInputFromButton(restoreBtn, targetId);
-    if (!fileInput) return;
-
-    fileInput.value = ""; // allow re-select same file
-    fileInput.click();
-    return;
-  }
-});
-
-// Handle restore file selection (scoped)
-document.addEventListener("change", (e) => {
-  const input = e.target.closest(".output-backup-file");
-  if (!input) return;
-
-  const targetId = input.dataset.target;
-  if (!targetId) return;
-
-  const scopedRoot = input.closest(".card") || input.closest("section") || document;
-  const outputEl =
-    scopedRoot.querySelector("#" + cssEscapeId(targetId)) ||
-    document.getElementById(targetId);
-
-  const file = input.files && input.files[0];
-  if (!file || !outputEl) return;
-
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const backup = JSON.parse(reader.result);
-      restoreFromBackup(outputEl, backup);
-    } catch (err) {
-      alert("Invalid backup file.");
+      printOutputToPdf(outputEl, targetId || "Export");
+      return;
     }
-  };
-  reader.readAsText(file);
-});
+
+    const backupBtn = e.target.closest(".output-backup-download");
+    if (backupBtn) {
+      const targetId = backupBtn.dataset.target;
+      if (!targetId) return;
+
+      const outputEl = findOutputElFromButton(backupBtn, targetId);
+      if (!outputEl) return;
+
+      const backup = makeBackupObject(outputEl);
+      const name = (targetId || "output") + "-backup.json";
+      downloadJson(name, backup);
+      return;
+    }
+
+    const restoreBtn = e.target.closest(".output-backup-restore");
+    if (restoreBtn) {
+      const targetId = restoreBtn.dataset.target;
+      if (!targetId) return;
+
+      const fileInput = findFileInputFromButton(restoreBtn, targetId);
+      if (!fileInput) return;
+
+      fileInput.value = "";
+      fileInput.click();
+      return;
+    }
+  });
+
+  document.addEventListener("change", (e) => {
+    const input = e.target.closest(".output-backup-file");
+    if (!input) return;
+
+    const targetId = input.dataset.target;
+    if (!targetId) return;
+
+    const root = input.closest(".card") || input.closest("section") || document;
+    const outputEl =
+      root.querySelector("#" + cssEscapeId(targetId)) ||
+      document.getElementById(targetId);
+
+    const file = input.files && input.files[0];
+    if (!file || !outputEl) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const backup = JSON.parse(reader.result);
+        restoreFromBackup(outputEl, backup);
+      } catch (err) {
+        alert("Invalid backup file.");
+      }
+    };
+    reader.readAsText(file);
+  });
+})();
+
+
 
 /* ===========================================================================================
    SECTION 3D: Keep copy text synced with user edits
-   - When user edits .tool-output-body, update the parent .tool-output dataset.plainText
 =========================================================================================== */
 document.addEventListener("input", (e) => {
   const body = e.target.closest(".tool-output-body");
@@ -5463,15 +5367,13 @@ document.addEventListener("input", (e) => {
 
 /* ===========================================================================================
    SECTION 4: Flashcard-side cleaning helper (START)
-   Goal:
-   - Normalize flashcard fronts/backs so they don't contain extra "Q:" / "A:" / ":" noise
 =========================================================================================== */
 function cleanSide(text) {
   return String(text || "")
     .trim()
-    .replace(/^[QA]\s*:\s*/i, "") // remove leading "Q:" or "A:"
-    .replace(/^:\s*/, "")         // remove leading ":"
-    .replace(/\s*:\s*$/, "");     // remove trailing ":"
+    .replace(/^[QA]\s*:\s*/i, "")
+    .replace(/^:\s*/, "")
+    .replace(/\s*:\s*$/, "");
 }
 /* ================================== SECTION 4 (END) ===================================== */
 
@@ -5479,19 +5381,12 @@ function cleanSide(text) {
 
 /* ===========================================================================================
    SECTION 5: AI ENGINE (BACKEND HOOK POINT) (START)
-   Goal:
-   - Send prompt + task + model to /api/solve
-   - Includes Mode, Subject, Tool in the prompt text
-   - Returns a string response or an error message
 =========================================================================================== */
 async function callAI({ prompt, task }) {
-  /* ---- PART 5A: Gather context values (START) ---- */
   const modelChoice = getModelChoice();
   const subject = getSubject();
   const mode = window.__cheatMode ? "cheat" : "learn";
-  /* ---- PART 5A (END) ---- */
 
-  /* ---- PART 5B: POST request to your backend (START) ---- */
   try {
     const res = await fetch("/api/solve", {
       method: "POST",
@@ -5507,7 +5402,6 @@ async function callAI({ prompt, task }) {
       }),
     });
 
-    // If HTTP status is not 200-299
     if (!res.ok) {
       throw new Error("Network error (" + res.status + ")");
     }
@@ -5520,7 +5414,6 @@ async function callAI({ prompt, task }) {
     console.error(err);
     return "⚠️ Error talking to AI:\n" + err.message;
   }
-  /* ---- PART 5B (END) ---- */
 }
 /* ================================== SECTION 5 (END) ===================================== */
 
@@ -5528,11 +5421,6 @@ async function callAI({ prompt, task }) {
 
 /* ===========================================================================================
    SECTION 6: TASK HELPERS (START)
-   Goal:
-   - Each helper builds a prompt for a specific tool
-   - Then calls callAI({prompt, task})
-   Notes:
-   - Some prompts switch depending on window.__cheatMode
 =========================================================================================== */
 
 /* ---- PART 6A: Math Solver (START) ---- */
