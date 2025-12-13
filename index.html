@@ -10992,13 +10992,13 @@ if (document.readyState === "loading") {
 
 <script>
 /* ===========================================================================================
-   PDF EXPORT (MOBILE RELIABLE) — BODY SWAP, OUTPUT-TEXT ONLY
-   - Swaps the entire <body> to a minimal print-only body (mobile reliable)
-   - Prints ONLY the .tool-output-body content
-   - Restores original page after print via afterprint + visibilitychange
+   PDF EXPORT (MOBILE RELIABLE) — NEW PRINT WINDOW (PRINTS ONLY .tool-output-body)
+   Notes:
+   - Most reliable on iOS/Android because it prints a clean document
+   - Requires popups allowed (window.open). If blocked, you'll get an alert.
 =========================================================================================== */
 
-(function setupMobilePdfPrint_TextOnly() {
+(function setupPdfPrintNewWindow() {
   function safeFilenameBase(name) {
     return String(name || "export")
       .trim()
@@ -11042,20 +11042,17 @@ if (document.readyState === "loading") {
   function pickBestBodyEl(targetId, btn) {
     const candidates = getAllById(targetId);
 
-    // Visible + has content first
     for (const el of candidates) {
       if (!isVisible(el)) continue;
       const body = el.querySelector(".tool-output-body");
       if (hasContent(body)) return body;
     }
 
-    // Any with content
     for (const el of candidates) {
       const body = el.querySelector(".tool-output-body");
       if (hasContent(body)) return body;
     }
 
-    // Nearest to the button fallback
     if (btn) {
       const nearby =
         btn.closest?.(".tool-output")?.querySelector?.(".tool-output-body") ||
@@ -11066,104 +11063,63 @@ if (document.readyState === "loading") {
     return null;
   }
 
-  function ensurePrintStyle() {
-    let style = document.getElementById("__print_style__");
-    if (!style) {
-      style = document.createElement("style");
-      style.id = "__print_style__";
-      document.head.appendChild(style);
-    }
-
-    style.textContent = `
-      @media print {
-        @page { margin: 14mm; }
-
-        html, body {
-          background: #fff !important;
-          color: #000 !important;
-          -webkit-text-size-adjust: 100% !important;
-          filter: none !important;
-          -webkit-filter: none !important;
-          margin: 0 !important;
-          padding: 0 !important;
-        }
-
-        /* Make sure text prints even under theme tricks */
-        * {
-          color: #000 !important;
-          -webkit-text-fill-color: #000 !important;
-          filter: none !important;
-          -webkit-filter: none !important;
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-        }
-
-        /* Only our content exists after body-swap, but keep it clean */
-        #__print_only__ {
-          white-space: pre-wrap !important;
-          overflow: visible !important;
-        }
-      }
-    `;
+  function collectHeadCssForPrint() {
+    // Copy your existing CSS so the output keeps formatting/highlights
+    const nodes = Array.from(document.head.querySelectorAll("link[rel='stylesheet'], style"));
+    return nodes.map(n => n.outerHTML).join("\n");
   }
 
-  let printing = false;
+  function buildPrintHtml(title, bodyHtml) {
+    const headCss = collectHeadCssForPrint();
 
-  function installCleanupHandlers(restoreFn) {
-    let done = false;
+    return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="${location.href}">
+  <title>${title}</title>
+  ${headCss}
+  <style>
+    /* Print-focused tweaks */
+    html, body { background:#fff !important; color:#000 !important; margin:0; padding:0; }
+    /* prevent dark-mode / text-fill issues */
+    * { filter:none !important; -webkit-filter:none !important; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .tool-output-body { white-space: pre-wrap !important; }
+    @page { margin: 14mm; }
 
-    function cleanup() {
-      if (done) return;
-      done = true;
-      try { restoreFn(); } catch (e) {}
-      window.removeEventListener("afterprint", cleanup);
-      document.removeEventListener("visibilitychange", onVis, true);
-    }
+    /* Optional small top bar (won't print) */
+    .__printbar { padding: 10px 12px; border-bottom:1px solid #ddd; position: sticky; top:0; background:#fff; }
+    .__printbar button { font-size:16px; padding:8px 12px; }
+    @media print { .__printbar { display:none !important; } }
+  </style>
+</head>
+<body>
+  <div class="__printbar">
+    <button onclick="window.print()">Print / Save PDF</button>
+  </div>
 
-    function onVis() {
-      if (!document.hidden) cleanup();
-    }
+  <!-- ONLY the output content -->
+  <div class="tool-output-body" id="__print_only__">${bodyHtml}</div>
 
-    window.addEventListener("afterprint", cleanup, { once: true });
-    document.addEventListener("visibilitychange", onVis, true);
-
-    setTimeout(cleanup, 6000);
+  <script>
+    // Try to auto-open print dialog; if mobile blocks it, user can tap the button.
+    try { window.focus(); window.print(); } catch (e) {}
+  <\/script>
+</body>
+</html>`;
   }
 
-  function bodySwapPrint(printNode, titleForPdf) {
-    const originalTitle = document.title;
-    const originalBody = document.body;
-    const scrollX = window.scrollX || 0;
-    const scrollY = window.scrollY || 0;
-
-    const printBody = document.createElement("body");
-    printBody.style.background = "#fff";
-    printBody.appendChild(printNode);
-
-    document.title = titleForPdf;
-    document.documentElement.replaceChild(printBody, originalBody);
-
-    // HARD flush so mobile snapshots the swapped body (prevents “prints whole page”)
-    void document.body.offsetHeight;
-    document.body.getBoundingClientRect();
-
-    installCleanupHandlers(() => {
-      document.documentElement.replaceChild(originalBody, document.body);
-      document.title = originalTitle;
-      try { window.scrollTo(scrollX, scrollY); } catch (e) {}
-    });
-
-    // Must be inside user gesture
-    window.print();
-  }
+  let printingLock = false;
 
   document.addEventListener("click", (e) => {
     const btn = e.target.closest(".output-pdf-download");
     if (!btn) return;
 
-    if (printing) return;
-    printing = true;
-    setTimeout(() => (printing = false), 1500);
+    if (printingLock) return;
+    printingLock = true;
+    setTimeout(() => (printingLock = false), 1200);
 
     const targetId = btn.dataset.target;
     if (!targetId) return;
@@ -11176,19 +11132,18 @@ if (document.readyState === "loading") {
 
     e.preventDefault();
 
-    ensurePrintStyle();
+    const title = getTitleForPdf(targetId);
+    const html = buildPrintHtml(title, bodyEl.innerHTML);
 
-    // ✅ TEXT-ONLY: clone ONLY the tool-output-body
-    const clone = bodyEl.cloneNode(true);
-    clone.id = "__print_only__";
-    clone.removeAttribute("contenteditable");
-    clone.querySelectorAll("[contenteditable]").forEach(n => n.removeAttribute("contenteditable"));
+    const w = window.open("", "_blank");
+    if (!w) {
+      alert("Popup blocked. Allow popups for this site to export PDF on mobile.");
+      return;
+    }
 
-    // Optional: if you only want plain text (no formatting), uncomment:
-    // clone.textContent = bodyEl.innerText || "";
-
-    const pdfTitle = getTitleForPdf(targetId);
-    bodySwapPrint(clone, pdfTitle);
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
   }, true);
 })();
 </script>
