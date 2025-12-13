@@ -7212,10 +7212,7 @@ if (cardsClearBtn) {
   cardsClearBtn.addEventListener("click", () => {
     if (!flashcards.length) return;
 
-    const ok = confirm(
-      "Reset this set?\n\nThis will RESET progress on all cards so they all come back into the active deck. Your notebook will NOT be cleared."
-    );
-    if (!ok) return;
+
 
     const now = Date.now();
     flashcards = flashcards.map((c) => ({
