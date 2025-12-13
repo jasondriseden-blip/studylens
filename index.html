@@ -2439,83 +2439,76 @@ details.nb-dropdown > summary:active {
           <span>Menu</span>
         </summary>
 
-       <div
-  class="header-menu-inner"
-  style="
-    position: absolute;
-    top: calc(-100%);
-    left: -100%;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    align-items: stretch;
-    width: 100%;
-    z-index: 30;
-    background: var(--card-bg);
-    padding: 16px;
-    border-radius: 6px;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.35);
-  "
->
-  <!-- everything inside the dropdown stays exactly the same -->
+        <div
+          class="header-menu-inner"
+          style="
+            position:absolute;
+            top:calc(-100%);
+            left:-100%;
+            transform:translateX(-50%);
+            display:flex;
+            flex-direction:column;
+            gap:6px;
+            align-items:stretch;
+            z-index:30;
+            background: var(--card-bg);
+            padding: 16px;
+            border-radius: 6px;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.35);
+          " >
+          <!-- everything inside the dropdown stays exactly the same -->
+		  
+          <button
+            class="drawer-toggle" style="display:none;"
+            id="drawerToggle"
+            type="button"
+            style="width:100%; justify-content:center;"
+          >
+            <span class="material-symbols-outlined">view_sidebar</span>
+            <span>Tools</span>
+          </button>
 
-  <button
-    class="drawer-toggle"
-    id="drawerToggle"
-    type="button"
-    style="display:none; width:100%; justify-content:center;"
-  >
-    <span class="material-symbols-outlined">view_sidebar</span>
-    <span>Tools</span>
-  </button>
+          <button
+            class="theme-toggle"
+            id="themeToggle"
+            type="button"
+            style="width:100%; justify-content:center;"
+          >
+            <svg id="iconSun" viewBox="0 0 24 24">
+              <path
+                fill="currentColor"
+                d="M12 4a1 1 0 0 1 1 1V6a1 1 0 1 1-2 0V5a1 1 0 0 1 1-1Zm0 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-4a1 1 0 0 1-1 1h-1a1 1 0 1 1 0-2h1a1 1 0 0 1 1 1ZM6 13a1 1 0 1 1 0-2H5a1 1 0 1 1 0 2h1Zm11.07-5.07a1 1 0 0 1-1.41 0L14.9 7.17a1 1 0 0 1 1.42-1.41l.76.76a1 1 0 0 1 0 1.41Zm-9.54 9.54a1 1 0 0 1-1.41 0l-.76-.76A1 1 0 0 1 6.24 15.3l.76.76a1 1 0 0 1 0 1.41ZM18 17.24a1 1 0 0 1 0-1.41l.76-.76a1 1 0 1 1 1.41 1.41l-.76.76a1 1 0 0 1-1.41 0ZM6.24 8.7a1 1 0 0 1-1.41-1.41l.76-.76A1 1 0 0 1 7 7.24l-.76.76Z"
+              />
+            </svg>
+            <svg id="iconMoon" viewBox="0 0 24 24" style="display: none">
+              <path
+                fill="currentColor"
+                d="M20.3 14.8A7.5 7.5 0 0 1 11.2 3.7 1 1 0 0 0 10 2.49 9.5 9.5 0 1 0 21.51 14a1 1 0 0 0-1.21-1.22Z"
+              />
+            </svg>
+            <span id="themeLabel">Dark</span>
+          </button>
+ <button
+            id="authButton"
+            class="pill-button"
+            type="button"
+            style="width:100%; justify-content:center;"
+          >
+            Sign in
+          </button>
+          <button
+            id="upgradeButton"
+            class="pill-button"
+            type="button"
+            style="width:100%; justify-content:center;"
+          >
+            Upgrade to Pro
+          </button>
+		  <p class="u13-disclaimer">
+  Under 13? Please don’t create an account.
+</p>
 
-  <button
-    class="theme-toggle"
-    id="themeToggle"
-    type="button"
-    style="width:100%; justify-content:center;"
-  >
-    <svg id="iconSun" viewBox="0 0 24 24">
-      <path
-        fill="currentColor"
-        d="M12 4a1 1 0 0 1 1 1V6a1 1 0 1 1-2 0V5a1 1 0 0 1 1-1Zm0 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-4a1 1 0 0 1-1 1h-1a1 1 0 1 1 0-2h1a1 1 0 0 1 1 1ZM6 13a1 1 0 1 1 0-2H5a1 1 0 1 1 0 2h1Zm11.07-5.07a1 1 0 0 1-1.41 0L14.9 7.17a1 1 0 0 1 1.42-1.41l.76.76a1 1 0 0 1 0 1.41Zm-9.54 9.54a1 1 0 0 1-1.41 0l-.76-.76A1 1 0 0 1 6.24 15.3l.76.76a1 1 0 0 1 0 1.41ZM18 17.24a1 1 0 0 1 0-1.41l.76-.76a1 1 0 1 1 1.41 1.41l-.76.76a1 1 0 0 1-1.41 0ZM6.24 8.7a1 1 0 0 1-1.41-1.41l.76-.76A1 1 0 0 1 7 7.24l-.76.76Z"
-      />
-    </svg>
-
-    <svg id="iconMoon" viewBox="0 0 24 24" style="display:none;">
-      <path
-        fill="currentColor"
-        d="M20.3 14.8A7.5 7.5 0 0 1 11.2 3.7 1 1 0 0 0 10 2.49 9.5 9.5 0 1 0 21.51 14a1 1 0 0 0-1.21-1.22Z"
-      />
-    </svg>
-
-    <span id="themeLabel">Dark</span>
-  </button>
-
-  <button
-    id="authButton"
-    class="pill-button"
-    type="button"
-    style="width:100%; justify-content:center;"
-  >
-    Sign in
-  </button>
-
-  <button
-    id="upgradeButton"
-    class="pill-button"
-    type="button"
-    style="width:100%; justify-content:center;"
-  >
-    Upgrade to Pro
-  </button>
-
-  <p class="u13-disclaimer">
-    Under 13? Please don’t create an account.
-  </p>
-</div>
-
+        </div>
       </details>
     </div>
 
