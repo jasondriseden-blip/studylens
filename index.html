@@ -6480,6 +6480,9 @@ const cardsCard = document.getElementById("cardsCard");
 
 const cardsStorageKey = "studyai-flashcards";
 const cardsStateKey = "studyai-flashcards-state";
+
+/* 🔹 NEW: disable the "stack squares" UI entirely (removes cardsStacksWrapper) */
+const ENABLE_FLASHCARD_STACKS_UI = false;
 /* ================================== SECTION 0 (END) ===================================== */
 
 
@@ -6545,23 +6548,11 @@ let fixedCardHeight = null;
 
 /* ===========================================================================================
    SECTION 4: IMPORTANT FIX — avoid overriding global cleanSide() (START)
-   Problem you had:
-   - Block 3 already defines function cleanSide(...)
-   - This block ALSO defined function cleanSide(...)
-   - In JavaScript, the later one overwrote the earlier one (name collision)
-
-   Fix:
-   - DO NOT define a global function named cleanSide here.
-   - Instead define a LOCAL helper with a different name.
-   - Prefer the global window.cleanSide (from Block 3) if it exists.
 =========================================================================================== */
 function cleanSideForCardsViewer(raw) {
-  // Use the Block 3 helper if available (it removes "Q:" / "A:" prefixes too)
   if (typeof window.cleanSide === "function") {
     return window.cleanSide(raw);
   }
-
-  // Safe fallback: just trim whitespace
   if (raw == null) return "";
   return String(raw).trim();
 }
@@ -6862,8 +6853,11 @@ function loadFlashcardsFromText(rawText, opts = {}) {
   saveFlashcards(flashcards);
   saveFlashcardsState();
 
-  initDeckStacksUI();
-  updateStacksUI();
+  if (ENABLE_FLASHCARD_STACKS_UI) {
+    initDeckStacksUI();
+    updateStacksUI();
+  }
+
   renderCurrentCard();
 
   if (opts.scroll !== false && cardsViewer && typeof cardsViewer.scrollIntoView === "function") {
@@ -6903,14 +6897,19 @@ function getDeckIndices() {
 
 /* ===========================================================================================
    SECTION 12: Stacks UI creation + updates (START)
-   (unchanged behavior)
+   (DISABLED when ENABLE_FLASHCARD_STACKS_UI=false)
 =========================================================================================== */
 function initDeckStacksUI() {
+  // Always remove it if it exists (you said you want it gone)
+  const existing = document.getElementById("cardsStacksWrapper");
+  if (existing) existing.remove();
+
+  // Never recreate if disabled
+  if (!ENABLE_FLASHCARD_STACKS_UI) return;
+
   if (!cardsViewer || !cardsViewer.parentNode) return;
 
   const container = cardsViewer.parentNode;
-  const existing = document.getElementById("cardsStacksWrapper");
-  if (existing) return;
 
   const wrapper = document.createElement("div");
   wrapper.id = "cardsStacksWrapper";
@@ -6973,6 +6972,8 @@ function initDeckStacksUI() {
 }
 
 function updateStacksUI() {
+  if (!ENABLE_FLASHCARD_STACKS_UI) return;
+
   if (!flashcards || !flashcards.length) {
     [cardsStackGotBtn, cardsStackNeedsBtn, cardsStackAllBtn].forEach((btn) => {
       if (!btn) return;
@@ -7086,7 +7087,6 @@ function renderCurrentCard() {
   const rawFront = card.front || "[No question]";
   const rawBack  = card.back  || "[No answer]";
 
-  // ✅ collision-free cleaner:
   const frontText = cleanSideForCardsViewer(rawFront) || "[No question]";
   const backText  = cleanSideForCardsViewer(rawBack)  || "[No answer]";
 
@@ -7116,7 +7116,7 @@ function renderCurrentCard() {
     currentCardIndex =
       typeof state.currentCardIndex === "number" ? state.currentCardIndex : 0;
 
-    updateStacksUI();
+    if (ENABLE_FLASHCARD_STACKS_UI) updateStacksUI();
     renderCurrentCard();
 
     if (cardsViewer && typeof cardsViewer.scrollIntoView === "function") {
@@ -7124,7 +7124,7 @@ function renderCurrentCard() {
       cardsViewer.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   } else {
-    updateStacksUI();
+    if (ENABLE_FLASHCARD_STACKS_UI) updateStacksUI();
   }
 })();
 /* ================================== SECTION 15 (END) ==================================== */
@@ -7205,7 +7205,7 @@ if (cardsClearBtn) {
 
     saveFlashcards(flashcards);
     saveFlashcardsState();
-    updateStacksUI();
+    if (ENABLE_FLASHCARD_STACKS_UI) updateStacksUI();
     renderCurrentCard();
 
     if (cardsViewer) cardsViewer.style.display = "block";
@@ -7262,7 +7262,7 @@ if (cardsGotItBtn) {
 
     spawnGotItBurst(cardsGotItBtn);
 
-    updateStacksUI();
+    if (ENABLE_FLASHCARD_STACKS_UI) updateStacksUI();
     goToNextCard();
   });
 }
@@ -7287,7 +7287,7 @@ if (cardsNeedWorkBtn) {
     saveFlashcards(flashcards);
     saveFlashcardsState();
 
-    updateStacksUI();
+    if (ENABLE_FLASHCARD_STACKS_UI) updateStacksUI();
 
     if (cardsCard) {
       cardsCard.style.borderColor = "";
@@ -7298,7 +7298,6 @@ if (cardsNeedWorkBtn) {
 }
 /* ================================== SECTION 17 (END) ==================================== */
 </script>
-
 
 
 
