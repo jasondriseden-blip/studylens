@@ -5112,14 +5112,14 @@ document.addEventListener("click", (e) => {
 
 
 /* ===========================================================================================
-   OUTPUT PDF + BACKUP + RESTORE (keeps edits + highlighting)
+   OUTPUT PDF (only)
    ✅ ACTUAL FIX:
    - Handles duplicate IDs by finding ALL elements with that id and picking the VISIBLE one
    - Prefers element inside .tab-content.active when your app uses tabs
    - Uses capture=true so it still fires even if other code stops propagation
    - PDF works whether the output is renderAnswer HTML OR plain text
 =========================================================================================== */
-(function setupPdfBackupRestore() {
+(function setupPdfOnly() {
   function getToolOutputBody(outputEl) {
     if (!outputEl) return null;
     return outputEl.querySelector(".tool-output-body");
@@ -5133,7 +5133,6 @@ document.addEventListener("click", (e) => {
   }
 
   function getAllById(targetId) {
-    // ✅ returns ALL elements even if IDs are duplicated
     const safe = String(targetId || "").replace(/"/g, '\\"');
     return Array.from(document.querySelectorAll('[id="' + safe + '"]'));
   }
@@ -5147,7 +5146,6 @@ document.addEventListener("click", (e) => {
     const rect = el.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) return false;
 
-    // If inside tab system, require active tab
     const tab = el.closest(".tab-content");
     if (tab && !tab.classList.contains("active")) return false;
 
@@ -5156,65 +5154,11 @@ document.addEventListener("click", (e) => {
 
   function pickBestOutputEl(targetId) {
     const candidates = getAllById(targetId);
-
-    // 1) visible + active tab
     const visible = candidates.find(isVisible);
     if (visible) return visible;
-
-    // 2) if none visible, fallback to first
     return candidates[0] || null;
   }
 
-  function makeBackupObject(outputEl) {
-    const body = getToolOutputBody(outputEl);
-    const html = body ? body.innerHTML : "";
-
-    const text =
-      (outputEl.dataset && outputEl.dataset.plainText) ||
-      (body ? body.innerText : "") ||
-      outputEl.textContent ||
-      "";
-
-    return {
-      version: 1,
-      id: outputEl.id || "",
-      savedAt: new Date().toISOString(),
-      html: String(html || ""),
-      text: String(text || ""),
-    };
-  }
-
-  function downloadJson(filename, obj) {
-    const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(a.href);
-  }
-
-  function restoreFromBackup(outputEl, backup) {
-    if (!outputEl) return;
-
-    if (!outputEl.querySelector(".tool-output-body")) {
-      if (typeof renderAnswer === "function") {
-        renderAnswer(outputEl, backup.text || "");
-      } else {
-        outputEl.textContent = backup.text || "";
-        return;
-      }
-    }
-
-    const body = getToolOutputBody(outputEl);
-    if (!body) return;
-
-    body.innerHTML = String(backup.html || "");
-    outputEl.dataset.plainText = body.innerText || String(backup.text || "");
-  }
-
-  /* ====================== REPLACE ONLY THIS FUNCTION ====================== */
   function printOutputToPdf(outputEl, titleText) {
     if (!outputEl) return;
 
@@ -5240,7 +5184,6 @@ document.addEventListener("click", (e) => {
       .map((n) => n.outerHTML)
       .join("\n");
 
-    // Keep the doc title (tab title) but DO NOT print it on the page
     const safeDocTitle = String(titleText || "Export").replace(/</g, "&lt;");
 
     const contentBlock = hasHtml
@@ -5257,6 +5200,7 @@ document.addEventListener("click", (e) => {
 ${headBits}
 <style>
   ${toolCss}
+
 /* PDF ONLY: remove the box/border/background */
 .tool-output {
   border: none !important;
@@ -5265,12 +5209,8 @@ ${headBits}
   box-shadow: none !important;
 }
 
-  /* Only the output — no extra title/date blocks */
   body { padding: 0; margin: 0; }
-
-  /* PDF margins */
   @page { margin: 14mm; }
-
   .tool-output { margin: 0; }
   .tool-output-body { white-space: pre-wrap; }
 </style>
@@ -5300,9 +5240,7 @@ ${headBits}
       setTimeout(() => iframe.remove(), 1000);
     };
   }
-  /* ==================== END REPLACEMENT FUNCTION ==================== */
 
-  // ✅ capture=true so this runs even if another click handler stops propagation
   document.addEventListener("click", (e) => {
     const pdfBtn = e.target.closest(".output-pdf-download");
     if (pdfBtn) {
@@ -5315,61 +5253,8 @@ ${headBits}
       printOutputToPdf(outputEl, targetId || "Export");
       return;
     }
-
-    const backupBtn = e.target.closest(".output-backup-download");
-    if (backupBtn) {
-      const targetId = backupBtn.dataset.target;
-      if (!targetId) return;
-
-      const outputEl = pickBestOutputEl(targetId);
-      if (!outputEl) return;
-
-      const backup = makeBackupObject(outputEl);
-      const name = (targetId || "output") + "-backup.json";
-      downloadJson(name, backup);
-      return;
-    }
-
-    const restoreBtn = e.target.closest(".output-backup-restore");
-    if (restoreBtn) {
-      const targetId = restoreBtn.dataset.target;
-      if (!targetId) return;
-
-      // pick ANY matching file input (they shouldn't be duplicated)
-      const fileInput = document.querySelector('.output-backup-file[data-target="' + targetId + '"]');
-      if (!fileInput) return;
-
-      fileInput.value = "";
-      fileInput.click();
-      return;
-    }
-  }, true);
-
-  document.addEventListener("change", (e) => {
-    const input = e.target.closest(".output-backup-file");
-    if (!input) return;
-
-    const targetId = input.dataset.target;
-    if (!targetId) return;
-
-    const outputEl = pickBestOutputEl(targetId);
-
-    const file = input.files && input.files[0];
-    if (!file || !outputEl) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const backup = JSON.parse(reader.result);
-        restoreFromBackup(outputEl, backup);
-      } catch (err) {
-        alert("Invalid backup file.");
-      }
-    };
-    reader.readAsText(file);
   }, true);
 })();
-
 
 
 
