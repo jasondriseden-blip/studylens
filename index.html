@@ -10382,7 +10382,6 @@ const OUTPUT_FORMATTERS = {
 /* ================================= SECTION 0 (END) ===================================== */
 
 
-
 /* ===========================================================================================
    SECTION 1: setupOutputFormatControls() (START)
    What this does:
@@ -10436,34 +10435,58 @@ function setupOutputFormatControls() {
 
       /* =============================================================================
          STEP 4: Get the *clean* current text
-         - Prefer dataset.plainText (set by renderAnswer)
-         - Fall back to textContent
+         FIX:
+         - If this is essayResult, pull the CURRENT text from the student's text box
+           so it never uses old cached output.
+         - Otherwise behave exactly like before.
       ============================================================================= */
-      const currentTxt =
-        (outputEl.dataset && outputEl.dataset.plainText) ||
-        outputEl.textContent ||
-        "";
+      let currentTxt = "";
+
+      if (targetId === "essayResult") {
+        // Prefer #essayInput if it exists, otherwise use #snapText (your main box)
+        const essayTa = document.getElementById("essayInput");
+        const snapTa  = document.getElementById("snapText");
+
+        currentTxt =
+          (essayTa && essayTa.value ? essayTa.value : "") ||
+          (snapTa && snapTa.value ? snapTa.value : "");
+
+      } else {
+        currentTxt =
+          (outputEl.dataset && outputEl.dataset.plainText) ||
+          outputEl.textContent ||
+          "";
+      }
 
       /* =============================================================================
-         STEP 5: Capture the original text once (so multiple formatting clicks don’t stack)
-         - Store it in: outputEl.dataset.originalText
+         STEP 5: Capture the original text
+         FIX:
+         - For essayResult, ALWAYS refresh originalText (so it never stays stuck on old text)
+         - For other outputs, keep your original behavior (capture once)
       ============================================================================= */
-      if (
-        (!outputEl.dataset.originalText || !outputEl.dataset.originalText.trim()) &&
-        String(currentTxt).trim()
-      ) {
-        outputEl.dataset.originalText = String(currentTxt);
+      if (targetId === "essayResult") {
+        if (outputEl.dataset) outputEl.dataset.originalText = String(currentTxt || "");
+      } else {
+        if (
+          (!outputEl.dataset.originalText || !outputEl.dataset.originalText.trim()) &&
+          String(currentTxt).trim()
+        ) {
+          outputEl.dataset.originalText = String(currentTxt);
+        }
       }
 
       /* =============================================================================
          STEP 6: Choose base text
-         - Use originalText if we have it (best)
-         - Otherwise use current text
+         FIX:
+         - For essayResult, base is ALWAYS the current text box text (no caching)
+         - For other outputs, keep your original behavior
       ============================================================================= */
       const base =
-        (outputEl.dataset.originalText && outputEl.dataset.originalText.trim())
-          ? outputEl.dataset.originalText
-          : String(currentTxt);
+        (targetId === "essayResult")
+          ? String(currentTxt)
+          : ((outputEl.dataset.originalText && outputEl.dataset.originalText.trim())
+              ? outputEl.dataset.originalText
+              : String(currentTxt));
 
       /* =============================================================================
          STEP 7: Apply formatting
