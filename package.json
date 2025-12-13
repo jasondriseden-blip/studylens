@@ -4,6 +4,8 @@
   "private": true,
   "dependencies": {
     "stripe": "^16.0.0",
-    "@supabase/supabase-js": "^2.48.0"
+    "@supabase/supabase-js": "^2.48.0",
+    "puppeteer-core": "^24.2.0",
+    "@sparticuz/chromium": "^131.0.0"
   }
 }
