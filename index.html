@@ -3075,14 +3075,7 @@ details.nb-dropdown > summary:active {
             </div>
 
             <div class="btn-row" style="margin-top: 8px;">
-              <button
-                class="secondary"
-                id="cardsNeedWorkBtn"
-                type="button"
-              >
-                <span class="material-symbols-outlined"></span>
-                <span>I Don't Know This</span>
-              </button>
+              
 
               <button
                 class="secondary"
@@ -3091,6 +3084,15 @@ details.nb-dropdown > summary:active {
               >
                 <span class="material-symbols-outlined">check_circle</span>
                 <span>I Know This</span>
+              </button>
+			  
+			  <button
+                class="secondary"
+                id="cardsNeedWorkBtn"
+                type="button"
+              >
+                <span class="material-symbols-outlined"></span>
+                <span>Study More</span>
               </button>
 
               <button id="cardsFlipBtn" type="button">
@@ -6781,6 +6783,34 @@ function saveFlashcards(cards) {
 
 
 /* ===========================================================================================
+   SECTION 8B: Non-blocking saves (START)
+   - localStorage is synchronous (can cause huge INP spikes)
+   - Queue saves to run when the browser is idle
+=========================================================================================== */
+function pgIdle(fn) {
+  if (window.requestIdleCallback) {
+    return window.requestIdleCallback(fn, { timeout: 800 });
+  }
+  return setTimeout(fn, 0);
+}
+
+let __pgCardsSaveQueued = false;
+
+function queueFlashcardsSave() {
+  if (__pgCardsSaveQueued) return;
+  __pgCardsSaveQueued = true;
+
+  pgIdle(() => {
+    __pgCardsSaveQueued = false;
+    try { saveFlashcards(flashcards); } catch (e) {}
+    try { saveFlashcardsState(); } catch (e) {}
+  });
+}
+/* ================================== SECTION 8B (END) ==================================== */
+
+
+
+/* ===========================================================================================
    SECTION 9: Parse flashcards from Q/A text (START)
 =========================================================================================== */
 function parseFlashcardsFromText(raw) {
@@ -6850,8 +6880,7 @@ function loadFlashcardsFromText(rawText, opts = {}) {
   showingBack = false;
   fixedCardHeight = null;
 
-  saveFlashcards(flashcards);
-  saveFlashcardsState();
+  queueFlashcardsSave();
 
   if (ENABLE_FLASHCARD_STACKS_UI) {
     initDeckStacksUI();
@@ -6951,7 +6980,7 @@ function initDeckStacksUI() {
     btn.addEventListener("click", () => {
       currentDeck = deckKey;
       currentCardIndex = 0;
-      saveFlashcardsState();
+      queueFlashcardsSave();
       renderCurrentCard();
       updateStacksUI();
     });
@@ -7203,8 +7232,7 @@ if (cardsClearBtn) {
     showingBack = false;
     fixedCardHeight = null;
 
-    saveFlashcards(flashcards);
-    saveFlashcardsState();
+    queueFlashcardsSave();
     if (ENABLE_FLASHCARD_STACKS_UI) updateStacksUI();
     renderCurrentCard();
 
@@ -7228,7 +7256,7 @@ function goToNextCard() {
     return;
   }
   currentCardIndex = (currentCardIndex + 1) % deck.length;
-  saveFlashcardsState();
+  queueFlashcardsSave();
   renderCurrentCard();
 }
 
@@ -7250,8 +7278,7 @@ if (cardsGotItBtn) {
     card.correct = (card.correct || 0) + 1;
     card.lastSeen = Date.now();
 
-    saveFlashcards(flashcards);
-    saveFlashcardsState();
+    queueFlashcardsSave();
 
     if (ENABLE_FLASHCARD_SOUND && gotItAudio) {
       try {
@@ -7284,8 +7311,7 @@ if (cardsNeedWorkBtn) {
     card.seen = (card.seen || 0) + 1;
     card.lastSeen = Date.now();
 
-    saveFlashcards(flashcards);
-    saveFlashcardsState();
+    queueFlashcardsSave();
 
     if (ENABLE_FLASHCARD_STACKS_UI) updateStacksUI();
 
@@ -7298,6 +7324,7 @@ if (cardsNeedWorkBtn) {
 }
 /* ================================== SECTION 17 (END) ==================================== */
 </script>
+
 
 
 
