@@ -3058,7 +3058,7 @@ details.nb-dropdown > summary:active {
             style="display: none; margin-top: 10px;"
           >
             <div id="cardsStats" class="desc">
-              <!-- e.g. Card 1 of 10 • You know 3 • Don't Know 2 -->
+              <!-- e.g. Card 1 of 10 • You Got It 3 • Study More 2 -->
             </div>
 
             <div id="cardsCard" class="flashcard">
@@ -3083,7 +3083,7 @@ details.nb-dropdown > summary:active {
                 type="button"
               >
                 <span class="material-symbols-outlined">check_circle</span>
-                <span>I Know This</span>
+                <span>Got It</span>
               </button>
 			  
 			  <button
@@ -7064,7 +7064,7 @@ function updateCardsStats() {
     cardsStats.textContent =
       `Card ${indexLabel} of ${totalDeck}` +
       ` • Got it ${got}` +
-      ` • Need work ${need}`;
+      ` • Study More ${need}`;
   }
 }
 
