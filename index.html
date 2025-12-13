@@ -9043,186 +9043,176 @@ window.getCurrentUserPlan = async function () {
 
 <script>
 /* ===========================================================================================
-   SECTION 0: Safe run helper (START)
-   - Runs even if this script loads after DOMContentLoaded
+   SECTION 0: Run after DOM loads (START)
 =========================================================================================== */
-(function () {
-  function onReady(fn) {
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", fn);
-    } else {
-      fn();
+document.addEventListener("DOMContentLoaded", () => {
+
+  /* =========================================================================================
+     SECTION 1: Grab elements (START)
+  ========================================================================================= */
+  const upgradeBtn = document.getElementById("upgradeButton");
+  const proBadge = document.getElementById("proBadge");
+
+  // U13 disclaimer (supports id OR class OR data attr)
+  const u13Disclaimer =
+    document.getElementById("u13Disclaimer") ||
+    document.querySelector(".u13-disclaimer") ||
+    document.querySelector("[data-u13-disclaimer]");
+  /* ================================= SECTION 1 (END) ==================================== */
+
+
+
+  /* =========================================================================================
+     SECTION 2: Helpers (START)
+     - IMPORTANT: force-hide uses !important so CSS cannot override it
+  ========================================================================================= */
+  function forceHide(el) {
+    if (!el) return;
+    el.style.setProperty("display", "none", "important");
+  }
+
+  function unforceHide(el) {
+    if (!el) return;
+    el.style.removeProperty("display");
+  }
+
+  function setProUI() {
+    forceHide(upgradeBtn);
+    if (proBadge) {
+      unforceHide(proBadge);
+      proBadge.style.display = "inline-block";
     }
   }
 
-  onReady(() => {
-
-    /* =========================================================================================
-       SECTION 1: Helpers (START)
-    ========================================================================================= */
-    function forceHide(el) {
-      if (!el) return;
-      el.style.setProperty("display", "none", "important");
-    }
-
-    function unforceHide(el) {
-      if (!el) return;
-      el.style.removeProperty("display");
-    }
-
-    function getEls() {
-      const upgradeBtn = document.getElementById("upgradeButton");
-      const proBadge = document.getElementById("proBadge");
-      const u13Disclaimer =
-        document.getElementById("u13Disclaimer") ||
-        document.querySelector(".u13-disclaimer") ||
-        document.querySelector("[data-u13-disclaimer]");
-      return { upgradeBtn, proBadge, u13Disclaimer };
-    }
-
-    function setProUI(upgradeBtn, proBadge) {
-      forceHide(upgradeBtn);
-      if (proBadge) {
-        unforceHide(proBadge);
-        proBadge.style.display = "inline-block";
-      }
-    }
-
-    function setUpgradeUI(upgradeBtn, proBadge) {
-      unforceHide(upgradeBtn);
-      if (proBadge) forceHide(proBadge);
-    }
-    /* ================================= SECTION 1 (END) ==================================== */
+  function setUpgradeUI() {
+    unforceHide(upgradeBtn);
+    if (proBadge) forceHide(proBadge);
+  }
+  /* ================================= SECTION 2 (END) ==================================== */
 
 
 
-    /* =========================================================================================
-       SECTION 2: Refresh Billing UI (START)
-       - Logged out: Upgrade visible + disclaimer visible
-       - Logged in: disclaimer hidden
-       - Pro: Upgrade hidden + badge shown
-    ========================================================================================= */
-    async function refreshBillingUI() {
-      try {
-        const { upgradeBtn, proBadge, u13Disclaimer } = getEls();
-
-        // If Supabase client isn’t ready yet, don’t crash.
-        if (!window.supabaseClient) return;
-
-        const { data, error } = await window.supabaseClient.auth.getUser();
-
-        // Logged OUT
-        if (error || !data.user) {
-          setUpgradeUI(upgradeBtn, proBadge);
-          if (u13Disclaimer) unforceHide(u13Disclaimer);
-          return;
-        }
-
-        // Logged IN
-        if (u13Disclaimer) forceHide(u13Disclaimer);
-
-        const user = data.user;
-
-        const { data: planRow, error: planError } = await window.supabaseClient
-          .from("user_plans")
-          .select("plan")
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        const isPro = !planError && planRow && planRow.plan === "pro";
-
-        if (isPro) setProUI(upgradeBtn, proBadge);
-        else setUpgradeUI(upgradeBtn, proBadge);
-
-      } catch (e) {
-        console.error("Billing UI refresh error", e);
-        const { upgradeBtn, proBadge } = getEls();
-        setUpgradeUI(upgradeBtn, proBadge);
-      }
-    }
-    /* ================================= SECTION 2 (END) ==================================== */
-
-
-
-    /* =========================================================================================
-       SECTION 3: Wire Upgrade click (ONLY ONCE) (START)
-    ========================================================================================= */
-    const { upgradeBtn } = getEls();
-
-    if (upgradeBtn && !upgradeBtn.dataset.pgWired) {
-      upgradeBtn.dataset.pgWired = "1";
-
-      upgradeBtn.addEventListener("click", async () => {
-        try {
-          if (!window.supabaseClient) {
-            alert("Auth system isn't loaded yet. Please refresh and try again.");
-            return;
-          }
-
-          const { data, error } = await window.supabaseClient.auth.getUser();
-          if (error || !data.user) {
-            alert("Please sign in first before upgrading to Pro.");
-            return;
-          }
-
-          const user = data.user;
-
-          const originalText = upgradeBtn.textContent;
-          upgradeBtn.disabled = true;
-          upgradeBtn.textContent = "Opening checkout...";
-
-          try {
-            const res = await fetch("/api/create-checkout-session", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                userId: user.id,
-                email: user.email
-              })
-            });
-
-            if (!res.ok) throw new Error("Network error: " + res.status);
-
-            const payload = await res.json();
-            if (!payload.url) throw new Error("No checkout URL returned");
-
-            window.location.href = payload.url;
-          } catch (err) {
-            console.error("Upgrade error", err);
-            alert("Could not start checkout. Please try again in a moment.");
-            upgradeBtn.disabled = false;
-            upgradeBtn.textContent = originalText;
-          }
-        } catch (e) {
-          console.error("Error checking auth before upgrade", e);
-          alert("Could not verify your login. Please sign in again and try.");
-        }
-      });
-    }
-    /* ================================= SECTION 3 (END) ==================================== */
-
-
-
-    /* =========================================================================================
-       SECTION 4: Run now + re-run on auth changes (START)
-    ========================================================================================= */
-    refreshBillingUI();
-
-    // Run again shortly after load (covers “session restored after redirect” timing)
-    setTimeout(refreshBillingUI, 400);
-
-    // Re-run whenever auth state changes
+  /* =========================================================================================
+     SECTION 3: Check plan on page load (START)
+     - Logged out: show upgrade, show disclaimer
+     - Logged in: hide disclaimer
+     - Pro: hide upgrade, show badge
+  ========================================================================================= */
+  async function checkPlanOnLoad() {
     try {
-      window.supabaseClient.auth.onAuthStateChange(() => {
-        refreshBillingUI();
-      });
-    } catch (e) {
-      // ignore
-    }
-    /* ================================= SECTION 4 (END) ==================================== */
+      if (!window.supabaseClient) return;
 
+      const { data, error } = await window.supabaseClient.auth.getUser();
+
+      if (error || !data.user) {
+        setUpgradeUI();
+        if (u13Disclaimer) unforceHide(u13Disclaimer);
+        return;
+      }
+
+      // Logged in: hide disclaimer always
+      if (u13Disclaimer) forceHide(u13Disclaimer);
+
+      const user = data.user;
+
+      const { data: planRow, error: planError } = await window.supabaseClient
+        .from("user_plans")
+        .select("plan")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!planError && planRow && planRow.plan === "pro") {
+        setProUI();
+      } else {
+        setUpgradeUI();
+      }
+    } catch (e) {
+      console.error("Error checking user plan", e);
+      // Fail open: keep upgrade visible so user isn't blocked
+      setUpgradeUI();
+    }
+  }
+
+  // run once now
+  checkPlanOnLoad();
+
+  // run again shortly after load (covers “session restore” timing)
+  setTimeout(checkPlanOnLoad, 400);
+
+  // re-run whenever auth changes (sign in/out, session refresh)
+  try {
+    window.supabaseClient.auth.onAuthStateChange(() => {
+      checkPlanOnLoad();
+    });
+  } catch (e) {}
+  /* ================================= SECTION 3 (END) ==================================== */
+
+
+
+  /* =========================================================================================
+     SECTION 4: Click handler for Upgrade (START)
+  ========================================================================================= */
+  if (!upgradeBtn) return;
+
+  upgradeBtn.addEventListener("click", async () => {
+    try {
+      if (!window.supabaseClient) {
+        alert("Auth system isn't loaded yet. Please refresh and try again.");
+        return;
+      }
+
+      const { data, error } = await window.supabaseClient.auth.getUser();
+
+      if (error || !data.user) {
+        alert("Please sign in first before upgrading to Pro.");
+        return;
+      }
+
+      const user = data.user;
+
+      const originalText = upgradeBtn.textContent;
+      upgradeBtn.disabled = true;
+      upgradeBtn.textContent = "Opening checkout...";
+
+      try {
+        const res = await fetch("/api/create-checkout-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: user.id,
+            email: user.email
+          })
+        });
+
+        if (!res.ok) {
+          throw new Error("Network error: " + res.status);
+        }
+
+        const payload = await res.json();
+
+        if (!payload.url) {
+          throw new Error("No checkout URL returned");
+        }
+
+        window.location.href = payload.url;
+      } catch (err) {
+        console.error("Upgrade error", err);
+        alert("Could not start checkout. Please try again in a moment.");
+
+        upgradeBtn.disabled = false;
+        upgradeBtn.textContent = originalText;
+      }
+
+    } catch (e) {
+      console.error("Error checking auth before upgrade", e);
+      alert("Could not verify your login. Please sign in again and try.");
+    }
   });
-})();
+
+  /* ================================= SECTION 4 (END) ==================================== */
+
+});
+/* ================================== SECTION 0 (END) ===================================== */
 </script>
 
 
