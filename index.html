@@ -10991,15 +10991,8 @@ if (document.readyState === "loading") {
 ------------------------------------------------------------------------------------------->
 <script>
 /* ===========================================================================================
-   PDF EXPORT (PRINT ONLY OUTPUT) (MOBILE-SAFE)
-   - Keeps window.print() in the tap/click handler (iOS requirement)
-   - Uses display:none (not visibility) so layout space is removed
-   - Forces a reflow before printing so mobile browsers pick up the new DOM
-   - Cleans up via afterprint + visibilitychange fallback (timeout is unreliable on mobile)
-   - MOBILE FIXES:
-     ✅ Prevent double-fire (pointerup+click) with a lock
-     ✅ Pick the output/body that ACTUALLY has content (handles duplicate IDs / hidden tabs)
-     ✅ Prefer nearest output around the clicked button when needed
+   PDF EXPORT (PRINT ONLY OUTPUT) (MOBILE-SAFE + NON-BLANK)
+   Key fix: MOVE the real .tool-output-body into print root (don't clone)
 =========================================================================================== */
 
 (function setupPrintOnlyOutputPdf() {
@@ -11038,8 +11031,17 @@ if (document.readyState === "loading") {
 
   function buildPrintCss() {
     return `
+      /* keep print root out of view on screen */
+      #__print_root__ {
+        position: fixed;
+        left: -99999px;
+        top: 0;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+      }
+
       @media print {
-        /* Print ONLY our root (no layout ghosting) */
         body > *:not(#__print_root__) { display: none !important; }
 
         html, body {
@@ -11047,42 +11049,50 @@ if (document.readyState === "loading") {
           color: #000 !important;
           filter: none !important;
           -webkit-filter: none !important;
-          -webkit-text-size-adjust: 100% !important; /* mobile */
+          -webkit-text-size-adjust: 100% !important;
         }
 
-        /* Remove sticky/fixed UI that sometimes leaks into print on mobile */
-        * { box-shadow: none !important; }
+        /* Force visibility/opacity in case something is styled off */
+        #__print_root__, #__print_root__ * {
+          visibility: visible !important;
+          opacity: 1 !important;
+          transform: none !important;
+        }
+
+        /* Many mobile themes set weird text-fill; force readable */
+        #__print_root__, #__print_root__ * {
+          color: #000 !important;
+          -webkit-text-fill-color: #000 !important;
+          background: transparent !important;
+          filter: none !important;
+          -webkit-filter: none !important;
+        }
 
         #__print_root__ {
-          display: block !important;
           position: static !important;
+          left: auto !important;
+          top: auto !important;
           width: auto !important;
+          height: auto !important;
+          overflow: visible !important;
           margin: 0 !important;
           padding: 0 !important;
           background: #fff !important;
-          filter: none !important;
-          -webkit-filter: none !important;
-        }
-
-        #__print_root__ * {
-          filter: none !important;
-          -webkit-filter: none !important;
         }
 
         @page { margin: 14mm; }
 
         #__print_root__ .tool-output {
           border: none !important;
-          background: transparent !important;
+          box-shadow: none !important;
           padding: 0 !important;
           margin: 0 !important;
         }
 
         #__print_root__ .tool-output-header { display: none !important; }
-
         #__print_root__ .tool-output-body { white-space: pre-wrap !important; }
 
-        /* Ask browser to keep colors (user must enable “Background graphics” in some browsers) */
+        /* Allow highlight colors when enabled */
         * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       }
     `;
@@ -11098,30 +11108,70 @@ if (document.readyState === "loading") {
     style.textContent = buildPrintCss();
   }
 
-  function removePrintDom() {
-    const root = document.getElementById("__print_root__");
-    if (root) root.remove();
+  function ensurePrintRoot() {
+    let root = document.getElementById("__print_root__");
+    if (!root) {
+      root = document.createElement("div");
+      root.id = "__print_root__";
+      document.body.appendChild(root);
+    }
+    return root;
   }
 
-  function makePrintDomFromBody(bodyEl) {
-    removePrintDom();
+  // Tracks moved node so we can put it back
+  let __moveState = null;
 
-    const root = document.createElement("div");
-    root.id = "__print_root__";
+  function clearPrintRoot() {
+    const root = document.getElementById("__print_root__");
+    if (root) root.innerHTML = "";
+  }
+
+  // ✅ MOVE the real node (fixes blank PDFs on mobile)
+  function makePrintDomByMovingBody(bodyEl) {
+    // restore if somehow still moved
+    restoreMovedBodyIfAny();
+
+    const root = ensurePrintRoot();
+    clearPrintRoot();
 
     const wrap = document.createElement("div");
     wrap.className = "tool-output";
 
-    const bodyClone = bodyEl.cloneNode(true);
-    bodyClone.removeAttribute("contenteditable");
+    // placeholder to put it back exactly where it was
+    const placeholder = document.createComment("print_placeholder");
+    const parent = bodyEl.parentNode;
+    const next = bodyEl.nextSibling;
 
-    wrap.appendChild(bodyClone);
+    // record state
+    __moveState = { bodyEl, parent, next, placeholder };
+
+    parent.insertBefore(placeholder, bodyEl);
+    wrap.appendChild(bodyEl);
     root.appendChild(wrap);
-    document.body.appendChild(root);
 
-    // Force layout/reflow so mobile browsers “see” the new DOM before print
+    // Force reflow so mobile print sees it
     void root.offsetHeight;
     void document.body.offsetHeight;
+  }
+
+  function restoreMovedBodyIfAny() {
+    if (!__moveState) return;
+
+    const { bodyEl, parent, next, placeholder } = __moveState;
+
+    try {
+      // Put bodyEl back where it was
+      if (parent && parent.isConnected) {
+        if (next && next.parentNode === parent) parent.insertBefore(bodyEl, next);
+        else parent.insertBefore(bodyEl, placeholder);
+      }
+      if (placeholder && placeholder.parentNode) placeholder.remove();
+    } catch (e) {
+      // ignore
+    }
+
+    __moveState = null;
+    clearPrintRoot();
   }
 
   function installCleanupHandlers(originalTitle) {
@@ -11131,7 +11181,7 @@ if (document.readyState === "loading") {
       if (cleaned) return;
       cleaned = true;
       document.title = originalTitle;
-      removePrintDom();
+      restoreMovedBodyIfAny();
       window.removeEventListener("afterprint", cleanup);
       document.removeEventListener("visibilitychange", onVisChange, true);
     }
@@ -11143,11 +11193,11 @@ if (document.readyState === "loading") {
     window.addEventListener("afterprint", cleanup, { once: true });
     document.addEventListener("visibilitychange", onVisChange, true);
 
-    // Last-resort fallback (kept long enough not to race iOS print UI)
-    setTimeout(cleanup, 4000);
+    // fallback
+    setTimeout(cleanup, 5000);
   }
 
-  /* ===================== MOBILE FIX: pick body with content ===================== */
+  /* ===================== pick body with content ===================== */
 
   function hasPrintableBody(candidate) {
     const body =
@@ -11158,8 +11208,8 @@ if (document.readyState === "loading") {
 
     const html = String(body.innerHTML || "").replace(/<br\s*\/?>/gi, "").trim();
     const text = String(body.innerText || "").trim();
-
     if (text.length === 0 && html.length === 0) return null;
+
     return body;
   }
 
@@ -11174,17 +11224,14 @@ if (document.readyState === "loading") {
       if (!body) continue;
 
       let score = 0;
-
       if (isVisible(el)) score += 100;
 
-      // Prefer the output in the same "panel" as the clicked button (best-effort)
       if (btn && el.closest && btn.closest) {
         const a = el.closest(".tool-output, .card, .tab-content");
         const b = btn.closest(".tool-output, .card, .tab-content");
         if (a && b && a === b) score += 50;
       }
 
-      // Prefer longer content a bit
       score += Math.min(40, String(body.innerText || "").trim().length / 50);
 
       if (score > bestScore) {
@@ -11193,7 +11240,6 @@ if (document.readyState === "loading") {
       }
     }
 
-    // Fallback: if data-target is wrong/duplicated, grab the nearest output around the button
     if (!best && btn) {
       const nearby =
         btn.closest?.(".tool-output")?.querySelector?.(".tool-output-body") ||
@@ -11209,14 +11255,12 @@ if (document.readyState === "loading") {
     return best;
   }
 
-  /* ===================== MOBILE FIX: prevent double-fire ===================== */
+  /* ===================== prevent double-fire ===================== */
 
   let __printingNow = false;
 
   function handleExport(e, btn) {
     if (__printingNow) return;
-
-    // lock briefly so pointerup+click doesn't run twice on mobile
     __printingNow = true;
     setTimeout(() => { __printingNow = false; }, 1500);
 
@@ -11232,14 +11276,17 @@ if (document.readyState === "loading") {
     e.preventDefault();
 
     ensurePrintStyle();
-    makePrintDomFromBody(bodyEl);
+    ensurePrintRoot();
+
+    // ✅ MOVE instead of clone (prevents blank PDFs on mobile)
+    makePrintDomByMovingBody(bodyEl);
 
     const originalTitle = document.title;
     document.title = getTitleForPdf(targetId);
 
     installCleanupHandlers(originalTitle);
 
-    // iOS: MUST be called directly from the user event handler
+    // MUST be inside user gesture
     window.print();
   }
 
@@ -11249,12 +11296,8 @@ if (document.readyState === "loading") {
     handleExport(evt, btn);
   }
 
-  // ✅ Use ONE event to avoid duplicates. Click is most reliable across mobile browsers.
+  // Use ONE event to avoid duplicates
   document.addEventListener("click", delegate, true);
-
-  // If you *must* support pointer events, re-enable this line, but the lock above should prevent duplicates:
-  // document.addEventListener("pointerup", delegate, true);
-
 })();
 </script>
 
