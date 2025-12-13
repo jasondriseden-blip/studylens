@@ -1006,7 +1006,6 @@
     border: 1px solid var(--outline);
     background: var(--field-bg);
     font-size: 0.78rem;
-    font-weight: 600;
     cursor: pointer;
   }
 
@@ -1249,7 +1248,7 @@
   }
 
   .nb-dropdown-menu .pill-button {
-    font-size: 0.76rem;
+    font-size: 0.86rem;
     padding: 6px 10px;
   }
 
@@ -1850,21 +1849,19 @@ padding: 8px;
   }
 }
 
- 
-
-
-
 </style>
+
+
+
 <!-- BLOCK: Desktop sticky aside nav (CSS only) ------------------------------------------------
 --------------------------------------------------------------------------------------=----
 ===========================================================================================
 ===========================================================================================
 ------------------------------------------------------------------------------------------->
-
 <style>
 @media (min-width: 700px) {
   /* set your offset once */
-  :root { --pg-sticky-offset: 85px; } /* <-- change this number */
+  :root { --pg-sticky-offset: 85px; } 
 
   #sideDrawer {
     position: sticky;
@@ -1886,6 +1883,441 @@ padding: 8px;
 }
 </style>
 
+<style>
+/* =========================================================
+   Pro dropdown styling for:
+   - #snapActionsMenu  (OCR dropdown)
+   - #textActionsMenu  (Text actions dropdown)
+   NO ID/class changes required.
+========================================================= */
+
+/* Theme-aware defaults */
+:root {
+  --pg-menu-bg: #ffffff;
+  --pg-menu-border: rgba(15, 23, 42, 0.12);
+  --pg-menu-shadow: 0 16px 40px rgba(2, 6, 23, 0.18);
+  --pg-menu-item-hover: rgba(2, 6, 23, 0.05);
+  --pg-menu-text: #0f172a;
+  --pg-menu-muted: rgba(15, 23, 42, 0.6);
+}
+
+html[data-theme="dark"] {
+  --pg-menu-bg: rgba(2, 6, 23, 0.95);
+  --pg-menu-border: rgba(148, 163, 184, 0.22);
+  --pg-menu-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
+  --pg-menu-item-hover: rgba(148, 163, 184, 0.12);
+  --pg-menu-text: #e5e7eb;
+  --pg-menu-muted: rgba(229, 231, 235, 0.65);
+}
+
+/* Shared dropdown panel styling */
+#snapActionsMenu,
+#textActionsMenu {
+  /* Your JS toggles display: block/none — keep that */
+  min-width: 240px;
+  max-width: 320px;
+
+  background: var(--pg-menu-bg);
+  color: var(--pg-menu-text);
+  border: 1px solid var(--pg-menu-border);
+  border-radius: 12px;
+  box-shadow: var(--pg-menu-shadow);
+
+  padding: 8px;
+  margin-top: 8px;
+
+  z-index: 9999;
+}
+
+/* Optional: a tiny arrow pointer */
+#snapActionsMenu::before,
+#textActionsMenu::before {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  transform: rotate(45deg);
+  background: var(--pg-menu-bg);
+  border-left: 1px solid var(--pg-menu-border);
+  border-top: 1px solid var(--pg-menu-border);
+  top: -7px;
+  right: 18px;
+}
+
+/* Make menu buttons look consistent, aligned, and clickable */
+#snapActionsMenu button,
+#textActionsMenu button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+
+  gap: 10px;
+  padding: 10px 10px;
+
+  border: 0;
+  background: transparent;
+  color: inherit;
+  border-radius: 10px;
+
+  cursor: pointer;
+  text-align: left;
+  line-height: 1.2;
+  font-size: 14px;
+}
+
+/* Hover/active states */
+#snapActionsMenu button:hover,
+#textActionsMenu button:hover {
+  background: var(--pg-menu-item-hover);
+}
+
+#snapActionsMenu button:active,
+#textActionsMenu button:active {
+  transform: translateY(1px);
+}
+
+/* If your buttons have icons inside, keep them aligned */
+#snapActionsMenu .material-symbols-outlined,
+#textActionsMenu .material-symbols-outlined {
+  font-size: 18px;
+  opacity: 0.9;
+}
+
+/* Optional: separators if you add <hr> or want spacing */
+#snapActionsMenu hr,
+#textActionsMenu hr {
+  border: 0;
+  border-top: 1px solid var(--pg-menu-border);
+  margin: 8px 6px;
+}
+
+/* Mobile: slightly wider touch targets */
+@media (max-width: 799px) {
+  #snapActionsMenu,
+  #textActionsMenu {
+    min-width: 220px;
+  }
+
+  #snapActionsMenu button,
+  #textActionsMenu button {
+    padding: 12px 10px;
+    font-size: 15px;
+  }
+}
+</style>
+<style>
+/* =========================================================
+   NOTEBOOK DROPDOWNS (details.nb-dropdown)
+   Styles:
+   - summary looks like a pro button
+   - panel is a floating card with clean items
+========================================================= */
+
+/* theme vars */
+:root{
+  --pg-dd-bg: #ffffff;
+  --pg-dd-border: rgba(15,23,42,.12);
+  --pg-dd-shadow: 0 16px 40px rgba(2,6,23,.18);
+  --pg-dd-hover: rgba(2,6,23,.05);
+  --pg-dd-text: #0f172a;
+}
+html[data-theme="dark"]{
+  --pg-dd-bg: rgba(2,6,23,.96);
+  --pg-dd-border: rgba(148,163,184,.22);
+  --pg-dd-shadow: 0 18px 44px rgba(0,0,0,.55);
+  --pg-dd-hover: rgba(148,163,184,.12);
+  --pg-dd-text: #e5e7eb;
+}
+
+/* the <details> wrapper */
+details.nb-dropdown{
+  position: relative;
+}
+
+/* remove default triangle marker */
+details.nb-dropdown > summary{
+  list-style: none;
+}
+details.nb-dropdown > summary::-webkit-details-marker{
+  display:none;
+}
+
+/* the clickable "button" */
+details.nb-dropdown > summary.nb-dropdown-toggle{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--pg-dd-border);
+  background: var(--pg-dd-bg);
+  color: var(--pg-dd-text);
+  cursor: pointer;
+  user-select: none;
+
+  box-shadow: 0 6px 18px rgba(2,6,23,.08);
+}
+
+/* make the caret / icon sit right (if you have one inside summary) */
+details.nb-dropdown > summary.nb-dropdown-toggle .material-symbols-outlined{
+  font-size: 18px;
+  opacity: .9;
+}
+
+/* the dropdown panel (first element after summary) */
+details.nb-dropdown > summary + *{
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+
+  min-width: 260px;
+  max-width: 340px;
+
+  background: var(--pg-dd-bg);
+  color: var(--pg-dd-text);
+  border: 1px solid var(--pg-dd-border);
+  border-radius: 14px;
+  box-shadow: var(--pg-dd-shadow);
+  padding: 10px;
+
+  z-index: 9999;
+}
+
+/* OPTIONAL: if you want the 2nd dropdown to open right-aligned under its button,
+   add class "nb-dropdown--right" to that <details> */
+details.nb-dropdown.nb-dropdown--right > summary + *{
+  left: auto;
+  right: 0;
+}
+
+/* menu items inside panel */
+details.nb-dropdown > summary + * button{
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 10px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+
+details.nb-dropdown > summary + * button:hover{
+  background: var(--pg-dd-hover);
+}
+
+/* if the menu uses little chips */
+details.nb-dropdown > summary + * .chip{
+  border: 1px solid var(--pg-dd-border);
+  background: transparent;
+  color: inherit;
+  border-radius: 999px;
+  padding: 8px 10px;
+}
+
+/* if you have icon+label blocks, keep icons aligned */
+details.nb-dropdown > summary + * .material-symbols-outlined{
+  font-size: 18px;
+  opacity: .9;
+}
+/* =========================================================
+   PRO DROPDOWNS (global look)
+   Targets: header menu, snap actions, text actions, notebook dropdowns
+========================================================= */
+/* Subtle pro shadow for dropdown-trigger buttons */
+#pg-sticky-loop-shell summary.pill-button, #pg-sticky-loop-shell #pg-loop-tools-toggle,
+#snapActionsToggle,
+#textActionsToggle,
+details.nb-dropdown > summary {
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.08),
+    0 6px 18px rgba(15, 23, 42, 0.06);
+  transition: box-shadow 160ms ease, transform 160ms ease, border-color 160ms ease;
+}
+
+/* Slightly stronger on hover/focus */
+#snapActionsToggle:hover,
+#textActionsToggle:hover,
+details.nb-dropdown > summary:hover,
+#snapActionsToggle:focus-visible,
+#textActionsToggle:focus-visible,
+details.nb-dropdown > summary:focus-visible {
+  box-shadow:
+    0 2px 4px rgba(15, 23, 42, 0.10),
+    0 10px 26px rgba(15, 23, 42, 0.10);
+}
+
+/* Optional: tiny press feedback */
+#snapActionsToggle:active,
+#textActionsToggle:active,
+details.nb-dropdown > summary:active {
+  transform: translateY(1px);
+}
+
+/* Base panel styling */
+.header-menu-inner,
+.snap-actions-menu,
+#textActionsMenu,
+.nb-dropdown-menu,
+.notebook-subject-dropdown {
+  background: var(--card-bg, #fff) !important;
+  border: 1px solid rgba(148, 163, 184, 0.35) !important;
+  border-radius: 14px !important;
+  padding: 8px !important;
+  box-shadow:
+    0 18px 45px rgba(2, 6, 23, 0.14),
+    0 4px 14px rgba(2, 6, 23, 0.10) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Keep menus from going edge-to-edge on mobile */
+.header-menu-inner,
+.snap-actions-menu,
+#textActionsMenu,
+.nb-dropdown-menu,
+.notebook-subject-dropdown {
+  max-width: min(360px, calc(100vw - 24px)) !important;
+}
+
+/* Button items inside dropdown panels */
+.header-menu-inner button,
+.snap-actions-menu button,
+#textActionsMenu button,
+.nb-dropdown-menu button,
+.notebook-subject-dropdown button {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+
+  padding: 10px 12px !important;
+  border-radius: 12px !important;
+
+  background: transparent !important;
+
+  font-size: 13px !important;
+  font-weight: 200 !important;
+  line-height: 1.15 !important;
+
+  cursor: pointer !important;
+  user-select: none;
+}
+
+/* Hover / active feel */
+.header-menu-inner button:hover,
+.snap-actions-menu button:hover,
+#textActionsMenu button:hover,
+.nb-dropdown-menu button:hover,
+.notebook-subject-dropdown button:hover {
+  background: rgba(148, 163, 184, 0.14) !important;
+  border-color: rgba(148, 163, 184, 0.22) !important;
+}
+
+.header-menu-inner button:active,
+.snap-actions-menu button:active,
+#textActionsMenu button:active,
+.nb-dropdown-menu button:active,
+.notebook-subject-dropdown button:active {
+  transform: translateY(1px);
+}
+
+/* Focus ring (keyboard) */
+.header-menu-inner button:focus-visible,
+.snap-actions-menu button:focus-visible,
+#textActionsMenu button:focus-visible,
+.nb-dropdown-menu button:focus-visible,
+.notebook-subject-dropdown button:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35) !important;
+}
+
+/* Icons inside menu items */
+.header-menu-inner .material-symbols-outlined,
+.snap-actions-menu .material-symbols-outlined,
+#textActionsMenu .material-symbols-outlined,
+.nb-dropdown-menu .material-symbols-outlined,
+.notebook-subject-dropdown .material-symbols-outlined {
+  font-size: 20px !important;
+  opacity: 0.85 !important;
+}
+
+/* =========================================================
+   NOTEBOOK <details> dropdown trigger styling
+========================================================= */
+
+.nb-dropdown > summary {
+  list-style: none;
+}
+.nb-dropdown > summary::-webkit-details-marker {
+  display: none;
+}
+
+.nb-dropdown-toggle {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+
+  min-height: 40px !important;
+  padding: 10px 12px !important;
+
+  border-radius: 6px !important;
+  border: 1px solid rgba(148,163,184,0.35) !important;
+  background: var(--card-bg, #fff) !important;
+
+  font-size: 13px !important;
+  font-weight: 600 !important;
+
+  cursor: pointer !important;
+}
+
+.nb-dropdown[open] > .nb-dropdown-toggle {
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.20) !important;
+}
+
+/* Position menu nicely under the summary (if you're using details) */
+.nb-dropdown {
+  position: relative;
+}
+.nb-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 50;
+}
+
+/* =========================================================
+   OPTIONAL: Grid layout for “tool picker” style menus
+   Add class="pg-dropdown-grid" to the menu you want in a grid
+========================================================= */
+
+.pg-dropdown-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(140px, 1fr)) !important;
+  gap: 8px !important;
+}
+
+@media (max-width: 520px) {
+  .pg-dropdown-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+/* Hide the sticky-loop mobile toggles on desktop */
+
+  #drawerToggle{
+    display: none !important;
+  }
+
+</style>
 
 </head>
 
@@ -2677,13 +3109,13 @@ padding: 8px;
 <div class="notebook-top-row">
   <!-- Saved Subjects dropdown (uses #notebookSubjects) -->
   <details class="nb-dropdown" id="nbSavedSubjectsDropdown">
-    <summary class="pill-button nb-dropdown-toggle">
+    <summary class="pill-button nb-dropdown-toggle ">
       <span class="material-symbols-outlined" style="font-size:16px;">label</span>
       <span>Saved Subjects</span>
       <span class="material-symbols-outlined nb-dropdown-caret">expand_more</span>
     </summary>
 
-    <div class="nb-dropdown-menu" id="nbSavedSubjectsMenu">
+    <div class="nb-dropdown-menu" id="nbSavedSubjectsMenu pg-dropdown-grid">
       <!-- your subject chips still render into this same element -->
       <div id="notebookSubjects" class="hint-row" style="margin-bottom:0;"></div>
     </div>
@@ -10022,6 +10454,91 @@ if (document.readyState === "loading") {
 </script>
 
 
+<!-- BLOCK: Global click-off close for dropdown menus (Snap actions + Text actions) ---------
+--------------------------------------------------------------------------------------=----
+===========================================================================================
+===========================================================================================
+------------------------------------------------------------------------------------------->
+
+<script>
+(function () {
+  function onReady(fn) {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", fn);
+    } else {
+      fn();
+    }
+  }
+
+  onReady(() => {
+    // Register dropdowns here: { toggle, menu, close() }
+    const dropdowns = [];
+
+    // 1) Snap actions dropdown
+    const snapToggle = document.getElementById("snapActionsToggle");
+    const snapMenu   = document.getElementById("snapActionsMenu");
+    if (snapToggle && snapMenu) {
+      dropdowns.push({
+        toggle: snapToggle,
+        menu: snapMenu,
+        close: () => (snapMenu.style.display = "none"),
+      });
+    }
+
+    // 2) Text actions dropdown
+    const textToggle = document.getElementById("textActionsToggle");
+    const textMenu   = document.getElementById("textActionsMenu");
+    if (textToggle && textMenu) {
+      dropdowns.push({
+        toggle: textToggle,
+        menu: textMenu,
+        close: () => (textMenu.style.display = "none"),
+      });
+    }
+
+    // Close on click outside (works for mouse + touch + pen)
+    document.addEventListener("pointerdown", (e) => {
+      dropdowns.forEach((d) => {
+        const clickedInside =
+          d.menu.contains(e.target) || d.toggle.contains(e.target);
+        if (!clickedInside) d.close();
+      });
+    });
+
+    // Close on Escape
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      dropdowns.forEach((d) => d.close());
+    });
+  });
+})();
+</script>
+
+
+<!-- BLOCK: Click-off close for Notebook <details> dropdowns (Saved Subjects / filters) -----
+--------------------------------------------------------------------------------------=----
+===========================================================================================
+===========================================================================================
+------------------------------------------------------------------------------------------->
+
+<script>
+(function () {
+  document.addEventListener("pointerdown", (e) => {
+    document.querySelectorAll("details.nb-dropdown[open]").forEach((dd) => {
+      if (!dd.contains(e.target)) {
+        dd.removeAttribute("open");
+      }
+    });
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    document.querySelectorAll("details.nb-dropdown[open]").forEach((dd) => {
+      dd.removeAttribute("open");
+    });
+  });
+})();
+</script>
 
 
 
