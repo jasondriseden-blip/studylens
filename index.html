@@ -2785,7 +2785,16 @@ details.nb-dropdown > summary:active {
           </div>
 
 
+
+
           <pre id="snapResult" class="text-output"></pre>
+		  <!-- Export bar for Solve output -->
+<div class="output-export-bar" style="margin:8px 0; display:flex; align-items:center; gap:6px;">
+  <button type="button" class="pill-button output-pdf-download" data-target="snapResult">Download PDF</button>
+  <button type="button" class="pill-button output-backup-download" data-target="snapResult">Backup</button>
+  <button type="button" class="pill-button output-backup-restore" data-target="snapResult">Restore</button>
+  <input type="file" class="output-backup-file" data-target="snapResult" accept="application/json" style="display:none;">
+</div>
         </div>
       </section>
 
@@ -2836,6 +2845,7 @@ details.nb-dropdown > summary:active {
           </div>
 
           <pre id="mathResult" class="text-output"></pre>
+		  
         </div>
       </section>
 
@@ -2886,6 +2896,13 @@ details.nb-dropdown > summary:active {
           </div>
 
           <pre id="studyResult" class="text-output"></pre>
+		  <!-- Export bar for Solve output -->
+<div class="output-export-bar" style="margin:8px 0; display:flex; align-items:center; gap:6px;">
+  <button type="button" class="pill-button output-pdf-download" data-target="snapResult">Download PDF</button>
+  <button type="button" class="pill-button output-backup-download" data-target="snapResult">Backup</button>
+  <button type="button" class="pill-button output-backup-restore" data-target="snapResult">Restore</button>
+  <input type="file" class="output-backup-file" data-target="snapResult" accept="application/json" style="display:none;">
+</div>
         </div>
       </section>
 
@@ -2961,6 +2978,13 @@ details.nb-dropdown > summary:active {
   </button>
 </div>
           <pre id="essayResult" class="text-output"></pre>
+		  <!-- Export bar for Solve output -->
+<div class="output-export-bar" style="margin:8px 0; display:flex; align-items:center; gap:6px;">
+  <button type="button" class="pill-button output-pdf-download" data-target="snapResult">Download PDF</button>
+  <button type="button" class="pill-button output-backup-download" data-target="snapResult">Backup</button>
+  <button type="button" class="pill-button output-backup-restore" data-target="snapResult">Restore</button>
+  <input type="file" class="output-backup-file" data-target="snapResult" accept="application/json" style="display:none;">
+</div>
         </div>
       </section>
 
@@ -3014,6 +3038,13 @@ details.nb-dropdown > summary:active {
     </div>
 
     <pre id="notesResult" class="text-output"></pre>
+	<!-- Export bar for Solve output -->
+<div class="output-export-bar" style="margin:8px 0; display:flex; align-items:center; gap:6px;">
+  <button type="button" class="pill-button output-pdf-download" data-target="snapResult">Download PDF</button>
+  <button type="button" class="pill-button output-backup-download" data-target="snapResult">Backup</button>
+  <button type="button" class="pill-button output-backup-restore" data-target="snapResult">Restore</button>
+  <input type="file" class="output-backup-file" data-target="snapResult" accept="application/json" style="display:none;">
+</div>
   </div>
 </section>
 
@@ -5158,6 +5189,197 @@ document.addEventListener("click", (e) => {
   /* ---- PART 3C (END) ---- */
 });
 /* ================================== SECTION 3 (END) ===================================== */
+/* ===========================================================================================
+   OUTPUT PDF + BACKUP + RESTORE (keeps edits + highlighting)
+   - PDF uses print-to-PDF via hidden iframe for best fidelity (no libraries needed)
+   - Backup saves BOTH:
+       1) body.innerHTML (keeps highlighting/formatting/edits)
+       2) body.innerText (for safety / copy)
+=========================================================================================== */
+
+function getToolOutputBody(outputEl) {
+  if (!outputEl) return null;
+  return outputEl.querySelector(".tool-output-body");
+}
+
+function makeBackupObject(outputEl) {
+  const body = getToolOutputBody(outputEl);
+
+  // If not rendered yet, fallback to plainText/textContent
+  const html = body ? body.innerHTML : "";
+  const text =
+    (outputEl.dataset && outputEl.dataset.plainText) ||
+    (body ? body.innerText : "") ||
+    outputEl.textContent ||
+    "";
+
+  return {
+    version: 1,
+    id: outputEl.id || "",
+    savedAt: new Date().toISOString(),
+    html: String(html || ""),
+    text: String(text || ""),
+  };
+}
+
+function downloadJson(filename, obj) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+}
+
+function restoreFromBackup(outputEl, backup) {
+  if (!outputEl) return;
+
+  // Ensure tool-output structure exists (so header/copy button stays)
+  if (!outputEl.querySelector(".tool-output-body")) {
+    if (typeof renderAnswer === "function") {
+      renderAnswer(outputEl, backup.text || "");
+    } else {
+      outputEl.textContent = backup.text || "";
+      return;
+    }
+  }
+
+  const body = getToolOutputBody(outputEl);
+  if (!body) return;
+
+  // Restore HTML (keeps highlighting/formatting/edits)
+  body.innerHTML = String(backup.html || "");
+
+  // Sync plainText for copy logic
+  outputEl.dataset.plainText = body.innerText || String(backup.text || "");
+}
+
+function printOutputToPdf(outputEl, titleText) {
+  const bodyEl = getToolOutputBody(outputEl);
+  if (!bodyEl) {
+    alert("Nothing to export yet.");
+    return;
+  }
+
+  // Grab your injected tool-output styles (so it looks the same)
+  const toolStylesEl = document.getElementById("tool-output-styles");
+  const toolCss = toolStylesEl ? toolStylesEl.textContent : "";
+
+  // Also include your existing stylesheet links + style tags for theme
+  const headBits = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+    .map((n) => n.outerHTML)
+    .join("\n");
+
+  // Build a clean printable page (we print ONLY the output body, no Copy button)
+  const printableHtml = `
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>${(titleText || "Export").replace(/</g, "&lt;")}</title>
+${headBits}
+<style>
+  ${toolCss}
+
+  /* Print polish */
+  body { padding: 24px; }
+  .print-title { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+  .print-meta { font-size: 12px; opacity: 0.75; margin-bottom: 16px; }
+
+  /* Make sure editable styling prints nicely */
+  .tool-output-body { white-space: pre-wrap; }
+</style>
+</head>
+<body>
+  <div class="print-title">${(titleText || "Export").replace(/</g, "&lt;")}</div>
+  <div class="print-meta">${new Date().toLocaleString()}</div>
+  <div class="tool-output">
+    <div class="tool-output-body">${bodyEl.innerHTML}</div>
+  </div>
+</body>
+</html>`;
+
+  // Hidden iframe print (doesn't mess up your UI)
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write(printableHtml);
+  doc.close();
+
+  iframe.onload = () => {
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+    setTimeout(() => iframe.remove(), 1000);
+  };
+}
+
+// Wire buttons
+document.addEventListener("click", (e) => {
+  const pdfBtn = e.target.closest(".output-pdf-download");
+  if (pdfBtn) {
+    const targetId = pdfBtn.dataset.target;
+    const outputEl = document.getElementById(targetId);
+    if (!outputEl) return;
+
+    printOutputToPdf(outputEl, targetId || "Export");
+    return;
+  }
+
+  const backupBtn = e.target.closest(".output-backup-download");
+  if (backupBtn) {
+    const targetId = backupBtn.dataset.target;
+    const outputEl = document.getElementById(targetId);
+    if (!outputEl) return;
+
+    const backup = makeBackupObject(outputEl);
+    const name = (targetId || "output") + "-backup.json";
+    downloadJson(name, backup);
+    return;
+  }
+
+  const restoreBtn = e.target.closest(".output-backup-restore");
+  if (restoreBtn) {
+    const targetId = restoreBtn.dataset.target;
+    const fileInput = document.querySelector('.output-backup-file[data-target="' + targetId + '"]');
+    if (!fileInput) return;
+
+    fileInput.value = ""; // allow re-select same file
+    fileInput.click();
+    return;
+  }
+});
+
+// Handle restore file selection
+document.addEventListener("change", (e) => {
+  const input = e.target.closest(".output-backup-file");
+  if (!input) return;
+
+  const targetId = input.dataset.target;
+  const outputEl = document.getElementById(targetId);
+  const file = input.files && input.files[0];
+  if (!file || !outputEl) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const backup = JSON.parse(reader.result);
+      restoreFromBackup(outputEl, backup);
+    } catch (err) {
+      alert("Invalid backup file.");
+    }
+  };
+  reader.readAsText(file);
+});
 
 /* ===========================================================================================
    SECTION 3D: Keep copy text synced with user edits (ADD THIS)
