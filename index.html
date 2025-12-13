@@ -9094,6 +9094,78 @@ window.getCurrentUserPlan = async function () {
 
 
 
+
+<script>
+/* ===========================================================================================
+   NOTEBOOK: Clear ALL online items with typed confirmation
+   - When #clearNotebookBtn is clicked:
+     - warns it cannot be undone
+     - requires typing DELETE
+     - deletes ALL notebook_items for the signed-in user
+=========================================================================================== */
+(function wireClearNotebookOnline() {
+  const btn = document.getElementById("clearNotebookBtn");
+  if (!btn) return;
+
+  btn.addEventListener("click", async () => {
+    try {
+      if (!window.supabaseClient) {
+        alert("Not ready yet. Please refresh and try again.");
+        return;
+      }
+
+      // Must be signed in to clear online notebook
+      const { data, error } = await window.supabaseClient.auth.getUser();
+      const user = data?.user;
+
+      if (error || !user) {
+        alert("You must be signed in to clear your online notebook.");
+        return;
+      }
+
+      const msg =
+        "This will PERMANENTLY delete ALL saved notebook items from your account.\n" +
+        "This cannot be undone.\n\n" +
+        'Type DELETE to confirm:';
+
+      const typed = prompt(msg) || "";
+      if (typed.trim().toUpperCase() !== "DELETE") {
+        alert("Cancelled. Nothing was deleted.");
+        return;
+      }
+
+      const { error: delError } = await window.supabaseClient
+        .from("notebook_items")
+        .delete()
+        .eq("user_id", user.id);
+
+      if (delError) {
+        console.error("Clear notebook (online) failed:", delError);
+        alert("Could not clear online notebook. Please try again.");
+        return;
+      }
+
+      alert("All saved notebook data has been deleted.");
+
+      // Optional: refresh your notebook UI if you have a function for it
+      if (typeof window.refreshNotebookUI === "function") {
+        try { await window.refreshNotebookUI(); } catch (e) {}
+      } else {
+        // Safe fallback: reload the page so the notebook list updates
+        // (remove this if you don't want a reload)
+        location.reload();
+      }
+    } catch (e) {
+      console.error("Clear notebook handler error:", e);
+      alert("Something went wrong. Please try again.");
+    }
+  });
+})();
+</script>
+
+
+
+
 <script>
 /* ===========================================================================================
    NOTEBOOK AUTOSAVE (tool-finish + edit autosave)
