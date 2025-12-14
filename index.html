@@ -3752,6 +3752,303 @@ function getModelChoice() {
 
 </script>
 
+<script>
+/* ===========================================================================================
+   LAST ACTION (SYNCED ACROSS DEVICES) — user_plans.last_action_text + last_action_at
+   What this does:
+   1) Adds a small helper: window.PG_LastAction.set("Saved: Extract Notes")
+      - Writes to Supabase user_plans for the signed-in user
+      - Uses UPDATE first; if no row exists, falls back to INSERT (upsert)
+   2) Wraps NotebookAPI so autosaves automatically update last_action:
+      - createNotebookItem()  -> "Saved: <tool>"
+      - updateNotebookItem()  -> "Edited: <tool>" (best-effort)
+   3) Wraps updateAuthUI() so the header shows the last action:
+      - Example: "Free plan · signed in as jason · 2/10 uses this month · Saved: Extract Notes"
+   Notes:
+   - Does NOT change your existing code; it only wraps existing functions safely.
+   - If user_plans row doesn't exist, it tries to create one with plan="free" (only on insert).
+=========================================================================================== */
+
+(function lastActionSyncInit() {
+  // ---- Guard: must have Supabase client ----
+  if (!window.supabaseClient) {
+    console.warn("[LastAction] supabaseClient not found. Make sure auth block loads first.");
+    return;
+  }
+
+  // ---- Small helpers ----
+  async function getSignedInUser() {
+    try {
+      const { data, error } = await window.supabaseClient.auth.getUser();
+      if (error || !data?.user) return null;
+      return data.user;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function updateUserPlansRow(userId, patch) {
+    // Try UPDATE first (works if row exists)
+    const { data: updated, error: updErr } = await window.supabaseClient
+      .from("user_plans")
+      .update(patch)
+      .eq("user_id", userId)
+      .select("user_id")
+      .maybeSingle();
+
+    if (!updErr && updated?.user_id) return { ok: true, mode: "update" };
+
+    // If update didn't find a row (or error), fall back to UPSERT insert.
+    // IMPORTANT: we include plan:"free" ONLY for insert safety.
+    const insertRow = Object.assign({ user_id: userId, plan: "free" }, patch);
+
+    const { error: upsertErr } = await window.supabaseClient
+      .from("user_plans")
+      .upsert(insertRow, { onConflict: "user_id" });
+
+    if (upsertErr) return { ok: false, error: upsertErr };
+    return { ok: true, mode: "upsert" };
+  }
+
+  // ---- Public API you can call anywhere ----
+  window.PG_LastAction = {
+    /**
+     * Set last action text for the signed-in user.
+     * @param {string} text - Example: "Saved: Extract Notes"
+     */
+    set: async function (text) {
+      const user = await getSignedInUser();
+      if (!user) return { ok: false, reason: "not-signed-in" };
+
+      const clean = String(text || "").trim();
+      if (!clean) return { ok: false, reason: "empty" };
+
+      const patch = {
+        last_action_text: clean,
+        last_action_at: new Date().toISOString()
+      };
+
+      const res = await updateUserPlansRow(user.id, patch);
+      if (!res.ok) console.error("[LastAction] write failed:", res.error);
+      return res;
+    },
+
+    /**
+     * Fetch last action for the signed-in user (for header).
+     */
+    get: async function () {
+      const user = await getSignedInUser();
+      if (!user) return null;
+
+      const { data, error } = await window.supabaseClient
+        .from("user_plans")
+        .select("last_action_text,last_action_at")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.warn("[LastAction] read failed:", error);
+        return null;
+      }
+      return data || null;
+    }
+  };
+
+  // =========================================================================================
+  // 1) Wrap NotebookAPI so autosaves automatically update "last action"
+  // =========================================================================================
+  (function wrapNotebookAPI() {
+    if (!window.NotebookAPI) return;
+
+    // ---- Wrap createNotebookItem ----
+    if (typeof window.NotebookAPI.createNotebookItem === "function" &&
+        !window.NotebookAPI.__lastActionWrappedCreate) {
+
+      const originalCreate = window.NotebookAPI.createNotebookItem;
+
+      window.NotebookAPI.createNotebookItem = async function (payload) {
+        const res = await originalCreate.apply(this, arguments);
+
+        // If create succeeded, set last action (best-effort label)
+        try {
+          if (res && !res.error) {
+            const toolLabel = (payload && payload.tool) ? String(payload.tool).trim() : "Notebook";
+            await window.PG_LastAction.set("Saved: " + toolLabel);
+          }
+        } catch (e) {}
+
+        return res;
+      };
+
+      window.NotebookAPI.__lastActionWrappedCreate = true;
+    }
+
+    // ---- Wrap updateNotebookItem ----
+    if (typeof window.NotebookAPI.updateNotebookItem === "function" &&
+        !window.NotebookAPI.__lastActionWrappedUpdate) {
+
+      const originalUpdate = window.NotebookAPI.updateNotebookItem;
+
+      window.NotebookAPI.updateNotebookItem = async function (itemId, patch) {
+        const res = await originalUpdate.apply(this, arguments);
+
+        // If update succeeded, set last action
+        try {
+          if (res && !res.error) {
+            // If caller passed a tool label in patch later, we’ll use it; otherwise generic.
+            const toolLabel =
+              (patch && patch.tool) ? String(patch.tool).trim() : "Notebook";
+            await window.PG_LastAction.set("Edited: " + toolLabel);
+          }
+        } catch (e) {}
+
+        return res;
+      };
+
+      window.NotebookAPI.__lastActionWrappedUpdate = true;
+    }
+  })();
+
+  // =========================================================================================
+  // 2) Wrap updateAuthUI() to append last action in the header
+  // =========================================================================================
+  (function wrapUpdateAuthUI() {
+    // updateAuthUI is defined in your auth block; in browsers it’s typically global.
+    if (typeof window.updateAuthUI !== "function") return;
+    if (window.__lastActionWrappedAuthUI) return;
+
+    const originalUpdateAuthUI = window.updateAuthUI;
+
+    window.updateAuthUI = async function () {
+      // Run your original header logic first (plan + usage + signed-in/out)
+      await originalUpdateAuthUI.apply(this, arguments);
+
+      // Then append last action (signed-in only)
+      try {
+        const userPlanLabel = document.getElementById("userPlanLabel");
+        if (!userPlanLabel) return;
+
+        const user = await getSignedInUser();
+        if (!user) return;
+
+        const row = await window.PG_LastAction.get();
+        const last = row && row.last_action_text ? String(row.last_action_text).trim() : "";
+        if (!last) return;
+
+        // Avoid double-appending if updateAuthUI runs multiple times
+        const base = String(userPlanLabel.textContent || "");
+        if (base.includes(last)) return;
+
+        userPlanLabel.textContent = base + " · " + last;
+      } catch (e) {}
+    };
+
+    window.__lastActionWrappedAuthUI = true;
+  })();
+
+  // =========================================================================================
+  // 3) Optional: when the user clears online notebook, set last action if your handler exists
+  //    (If you pasted my clearNotebook handler earlier, this will still work fine)
+  // =========================================================================================
+  (function hookClearNotebookBtn() {
+    const btn = document.getElementById("clearNotebookBtn");
+    if (!btn || btn.dataset.__lastActionHooked === "1") return;
+    btn.dataset.__lastActionHooked = "1";
+
+    // We DON'T override your clear logic. We just listen and update after reload.
+    // (If your clear script already reloads, last action will show after it reloads.)
+    btn.addEventListener("click", async () => {
+      // Best-effort optimistic set (if they cancel, it will get overwritten next action)
+      // You can remove this if you only want it after successful delete.
+      // await window.PG_LastAction.set("Clearing notebook…");
+    }, { passive: true });
+  })();
+
+  console.log("[LastAction] sync + header hook installed.");
+})();
+</script>
+
+
+
+
+
+
+<script>
+/* ===========================================================================================
+   FUN + PROFESSIONAL STATUS (PER SESSION) — short tag appended to last action
+   - Adds a short “vibe tag” like: "Locked in", "All set", "Synced"
+   - Rotates ONCE per browser session (sessionStorage)
+   - Keeps header short: "… · Saved: Extract Notes · Locked in"
+   Requirements:
+   - You already installed the LastAction block (wraps updateAuthUI)
+   - Header label element id is #userPlanLabel
+=========================================================================================== */
+(function pgFunStatusPerSession() {
+  const KEY = "__pg_fun_status_v1";
+
+  const TAGS = [
+    "Locked in",
+    "All set",
+    "Ready",
+    "Synced",
+    "On it",
+    "In the zone",
+    "Good to go",
+    "Focused",
+    "Rolling",
+    "Dialed in",
+    "Up to date",
+    "Steady",
+    "Let’s go",
+    "Making progress",
+    "Clean run"
+  ];
+
+  function pickTag() {
+    try {
+      const existing = sessionStorage.getItem(KEY);
+      if (existing) return existing;
+
+      const idx = Math.floor(Math.random() * TAGS.length);
+      const chosen = TAGS[idx] || "Ready";
+      sessionStorage.setItem(KEY, chosen);
+      return chosen;
+    } catch (e) {
+      // If sessionStorage blocked, just pick one
+      const idx = Math.floor(Math.random() * TAGS.length);
+      return TAGS[idx] || "Ready";
+    }
+  }
+
+  const funTag = pickTag();
+
+  // Wrap updateAuthUI one more time, AFTER your last-action wrapper has run
+  if (typeof window.updateAuthUI !== "function" || window.__pg_funstatus_wrapped) return;
+
+  const originalUpdateAuthUI = window.updateAuthUI;
+  window.updateAuthUI = async function () {
+    await originalUpdateAuthUI.apply(this, arguments);
+
+    try {
+      const el = document.getElementById("userPlanLabel");
+      if (!el) return;
+
+      // Keep it short: only append if not already included
+      const txt = String(el.textContent || "");
+      if (txt.includes(funTag)) return;
+
+      // Don’t add fun tag for signed-out users (optional)
+      const authBtn = document.getElementById("authButton");
+      const signedIn = authBtn && authBtn.dataset.authState === "signed-in";
+      if (!signedIn) return;
+
+      el.textContent = txt + " · " + funTag;
+    } catch (e) {}
+  };
+
+  window.__pg_funstatus_wrapped = true;
+})();
+</script>
 
 
 
