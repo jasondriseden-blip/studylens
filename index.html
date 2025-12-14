@@ -3752,227 +3752,6 @@ function getModelChoice() {
 
 </script>
 
-<script>
-/* ===========================================================================================
-   LAST ACTION (SYNCED ACROSS DEVICES) — user_plans.last_action_text + last_action_at
-   What this does:
-   1) Adds a small helper: window.PG_LastAction.set("Saved: Extract Notes")
-      - Writes to Supabase user_plans for the signed-in user
-      - Uses UPDATE first; if no row exists, falls back to INSERT (upsert)
-   2) Wraps NotebookAPI so autosaves automatically update last_action:
-      - createNotebookItem()  -> "Saved: <tool>"
-      - updateNotebookItem()  -> "Edited: <tool>" (best-effort)
-   3) Wraps updateAuthUI() so the header shows the last action:
-      - Example: "Free plan · signed in as jason · 2/10 uses this month · Saved: Extract Notes"
-   Notes:
-   - Does NOT change your existing code; it only wraps existing functions safely.
-   - If user_plans row doesn't exist, it tries to create one with plan="free" (only on insert).
-=========================================================================================== */
-
-(function lastActionSyncInit() {
-  // ---- Guard: must have Supabase client ----
-  if (!window.supabaseClient) {
-    console.warn("[LastAction] supabaseClient not found. Make sure auth block loads first.");
-    return;
-  }
-
-  // ---- Small helpers ----
-  async function getSignedInUser() {
-    try {
-      const { data, error } = await window.supabaseClient.auth.getUser();
-      if (error || !data?.user) return null;
-      return data.user;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  async function updateUserPlansRow(userId, patch) {
-    // Try UPDATE first (works if row exists)
-    const { data: updated, error: updErr } = await window.supabaseClient
-      .from("user_plans")
-      .update(patch)
-      .eq("user_id", userId)
-      .select("user_id")
-      .maybeSingle();
-
-    if (!updErr && updated?.user_id) return { ok: true, mode: "update" };
-
-    // If update didn't find a row (or error), fall back to UPSERT insert.
-    // IMPORTANT: we include plan:"free" ONLY for insert safety.
-    const insertRow = Object.assign({ user_id: userId, plan: "free" }, patch);
-
-    const { error: upsertErr } = await window.supabaseClient
-      .from("user_plans")
-      .upsert(insertRow, { onConflict: "user_id" });
-
-    if (upsertErr) return { ok: false, error: upsertErr };
-    return { ok: true, mode: "upsert" };
-  }
-
-  // ---- Public API you can call anywhere ----
-  window.PG_LastAction = {
-    /**
-     * Set last action text for the signed-in user.
-     * @param {string} text - Example: "Saved: Extract Notes"
-     */
-    set: async function (text) {
-      const user = await getSignedInUser();
-      if (!user) return { ok: false, reason: "not-signed-in" };
-
-      const clean = String(text || "").trim();
-      if (!clean) return { ok: false, reason: "empty" };
-
-      const patch = {
-        last_action_text: clean,
-        last_action_at: new Date().toISOString()
-      };
-
-      const res = await updateUserPlansRow(user.id, patch);
-      if (!res.ok) console.error("[LastAction] write failed:", res.error);
-      return res;
-    },
-
-    /**
-     * Fetch last action for the signed-in user (for header).
-     */
-    get: async function () {
-      const user = await getSignedInUser();
-      if (!user) return null;
-
-      const { data, error } = await window.supabaseClient
-        .from("user_plans")
-        .select("last_action_text,last_action_at")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (error) {
-        console.warn("[LastAction] read failed:", error);
-        return null;
-      }
-      return data || null;
-    }
-  };
-
-  // =========================================================================================
-  // 1) Wrap NotebookAPI so autosaves automatically update "last action"
-  // =========================================================================================
-  (function wrapNotebookAPI() {
-    if (!window.NotebookAPI) return;
-
-    // ---- Wrap createNotebookItem ----
-    if (typeof window.NotebookAPI.createNotebookItem === "function" &&
-        !window.NotebookAPI.__lastActionWrappedCreate) {
-
-      const originalCreate = window.NotebookAPI.createNotebookItem;
-
-      window.NotebookAPI.createNotebookItem = async function (payload) {
-        const res = await originalCreate.apply(this, arguments);
-
-        // If create succeeded, set last action (best-effort label)
-        try {
-          if (res && !res.error) {
-            const toolLabel = (payload && payload.tool) ? String(payload.tool).trim() : "Notebook";
-            await window.PG_LastAction.set("Saved: " + toolLabel);
-          }
-        } catch (e) {}
-
-        return res;
-      };
-
-      window.NotebookAPI.__lastActionWrappedCreate = true;
-    }
-
-    // ---- Wrap updateNotebookItem ----
-    if (typeof window.NotebookAPI.updateNotebookItem === "function" &&
-        !window.NotebookAPI.__lastActionWrappedUpdate) {
-
-      const originalUpdate = window.NotebookAPI.updateNotebookItem;
-
-      window.NotebookAPI.updateNotebookItem = async function (itemId, patch) {
-        const res = await originalUpdate.apply(this, arguments);
-
-        // If update succeeded, set last action
-        try {
-          if (res && !res.error) {
-            // If caller passed a tool label in patch later, we’ll use it; otherwise generic.
-            const toolLabel =
-              (patch && patch.tool) ? String(patch.tool).trim() : "Notebook";
-            await window.PG_LastAction.set("Edited: " + toolLabel);
-          }
-        } catch (e) {}
-
-        return res;
-      };
-
-      window.NotebookAPI.__lastActionWrappedUpdate = true;
-    }
-  })();
-
-  // =========================================================================================
-  // 2) Wrap updateAuthUI() to append last action in the header
-  // =========================================================================================
-  (function wrapUpdateAuthUI() {
-    // updateAuthUI is defined in your auth block; in browsers it’s typically global.
-    if (typeof window.updateAuthUI !== "function") return;
-    if (window.__lastActionWrappedAuthUI) return;
-
-    const originalUpdateAuthUI = window.updateAuthUI;
-
-    window.updateAuthUI = async function () {
-      // Run your original header logic first (plan + usage + signed-in/out)
-      await originalUpdateAuthUI.apply(this, arguments);
-
-      // Then append last action (signed-in only)
-      try {
-        const userPlanLabel = document.getElementById("userPlanLabel");
-        if (!userPlanLabel) return;
-
-        const user = await getSignedInUser();
-        if (!user) return;
-
-        const row = await window.PG_LastAction.get();
-        const last = row && row.last_action_text ? String(row.last_action_text).trim() : "";
-        if (!last) return;
-
-        // Avoid double-appending if updateAuthUI runs multiple times
-        const base = String(userPlanLabel.textContent || "");
-        if (base.includes(last)) return;
-
-        userPlanLabel.textContent = base + " · " + last;
-      } catch (e) {}
-    };
-
-    window.__lastActionWrappedAuthUI = true;
-  })();
-
-  // =========================================================================================
-  // 3) Optional: when the user clears online notebook, set last action if your handler exists
-  //    (If you pasted my clearNotebook handler earlier, this will still work fine)
-  // =========================================================================================
-  (function hookClearNotebookBtn() {
-    const btn = document.getElementById("clearNotebookBtn");
-    if (!btn || btn.dataset.__lastActionHooked === "1") return;
-    btn.dataset.__lastActionHooked = "1";
-
-    // We DON'T override your clear logic. We just listen and update after reload.
-    // (If your clear script already reloads, last action will show after it reloads.)
-    btn.addEventListener("click", async () => {
-      // Best-effort optimistic set (if they cancel, it will get overwritten next action)
-      // You can remove this if you only want it after successful delete.
-      // await window.PG_LastAction.set("Clearing notebook…");
-    }, { passive: true });
-  })();
-
-  console.log("[LastAction] sync + header hook installed.");
-})();
-</script>
-
-
-
-
-
-
 
 
 
@@ -4348,6 +4127,12 @@ if (!modeChip) {
 
 
 
+<!-- BLOCK 2: Notebook load/save/render, filters, add item ----------------------------------
+--------------------------------------------------------------------------------------=----
+===========================================================================================
+===========================================================================================
+------------------------------------------------------------------------------------------->
+
 <script>
 /* ===========================================================================================
    SECTION 0: Notebook globals + DOM elements (START)
@@ -4429,124 +4214,6 @@ function saveNotebook(items) {
   localStorage.setItem(notebookKey, JSON.stringify(items.slice(-200)));
 }
 /* ================================== SECTION 2 (END) ===================================== */
-
-
-
-/* ===========================================================================================
-   SECTION 2.5: ✅ Cloud sync bridge (START)
-   - If signed in + NotebookAPI exists:
-     - We store the latest cloud items into localStorage (as the render source)
-     - Then renderNotebook() works unchanged
-   - Guests keep local-only behavior
-=========================================================================================== */
-async function isSignedInNotebook() {
-  try {
-    if (!window.supabaseClient) return false;
-    const { data, error } = await window.supabaseClient.auth.getUser();
-    return !(error || !data?.user);
-  } catch (e) {
-    return false;
-  }
-}
-
-function toolToLocalType(tool) {
-  const t = String(tool || "").trim();
-  if (!t) return "Snap";
-
-  // tool labels coming from autosave / your mapping
-  if (t === "Solve") return "Snap";
-  if (t === "Math Solver") return "Math";
-  if (t === "Study Guide") return "Study";
-  if (t === "Essay Helper") return "Essay";
-  if (t === "Flashcards") return "Flashcards";
-  if (t === "Simplify" || t === "Simplified answer") return "Simplified";
-  if (t === "Hint") return "Hint";
-  if (t === "Extract Notes" || t === "Notes") return "Notes";
-
-  // if a local type was stored as tool, accept it
-  if (t === "Snap" || t === "Math" || t === "Study" || t === "Essay" || t === "Cards" || t === "Flashcards" || t === "Simplified" || t === "Hint" || t === "Notes") {
-    return t;
-  }
-
-  return t;
-}
-
-function localTypeToTool(type) {
-  const t = String(type || "").trim();
-  if (!t) return "";
-
-  // local types → the labels you’re using elsewhere
-  if (t === "Snap") return "Solve";
-  if (t === "Math") return "Math Solver";
-  if (t === "Study") return "Study Guide";
-  if (t === "Essay") return "Essay Helper";
-  if (t === "Cards" || t === "Flashcards") return "Flashcards";
-  if (t === "Simplified") return "Simplify";
-  if (t === "Hint") return "Hint";
-  if (t === "Notes") return "Extract Notes";
-
-  return t;
-}
-
-function cloudRowsToLocalItems(rows) {
-  const list = Array.isArray(rows) ? rows : [];
-  return list.map((r) => {
-    const created = r.created_at ? Date.parse(r.created_at) : Date.now();
-    const text =
-      (r.output_html_current != null ? String(r.output_html_current) : "") ||
-      (r.output_html_original != null ? String(r.output_html_original) : "") ||
-      "";
-
-    return {
-      id: r.id, // uuid from Supabase
-      type: toolToLocalType(r.tool),
-      text: text,
-      time: isFinite(created) ? created : Date.now(),
-      subject: (r.saved_under || "general").trim() || "general",
-      model: "smart",
-      mode: window.__cheatMode ? "cheat" : "learn",
-      pinned: false
-    };
-  });
-}
-
-async function syncNotebookFromCloudFetch() {
-  try {
-    const signedIn = await isSignedInNotebook();
-    if (!signedIn) return;
-
-    if (!window.NotebookAPI || typeof window.NotebookAPI.listNotebookItems !== "function") return;
-
-    const res = await window.NotebookAPI.listNotebookItems({ limit: 200 });
-    if (res?.error) {
-      console.error("Notebook sync list error:", res.error);
-      return;
-    }
-
-    const localItems = cloudRowsToLocalItems(res.data || []);
-    saveNotebook(localItems);
-    renderNotebook();
-  } catch (e) {
-    console.error("Notebook sync fetch exception:", e);
-  }
-}
-
-// If your other block emits pg:notebook:items, use it (fast sync)
-window.addEventListener("pg:notebook:items", (ev) => {
-  try {
-    const rows = ev?.detail?.items || [];
-    const localItems = cloudRowsToLocalItems(rows);
-    saveNotebook(localItems);
-    renderNotebook();
-  } catch (e) {}
-});
-
-// Also refresh on focus (helps even if realtime is off)
-window.addEventListener("focus", () => { try { syncNotebookFromCloudFetch(); } catch (e) {} });
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) { try { syncNotebookFromCloudFetch(); } catch (e) {} }
-});
-/* ================================== SECTION 2.5 (END) ==================================== */
 
 
 
@@ -4686,6 +4353,13 @@ function renderNotebookSubjects(allItems) {
 
 /* ===========================================================================================
    SECTION 5: Render notebook items list (START)
+   - Loads items from storage
+   - Renders subject chips from ALL items
+   - Applies type filter + subject filter
+   - Builds each item card with:
+     - Open button (.notebook-open-btn)
+     - Copy icon (.notebook-item-copy)
+     - Delete button (.notebook-item-delete)
 =========================================================================================== */
 function renderNotebook() {
   if (!notebookListEl) return;
@@ -4736,7 +4410,6 @@ function renderNotebook() {
     Flashcards: "Flashcards",
     Simplified: "Simplified answer",
     Hint: "Hint",
-    Notes: "Extract Notes"
   };
   /* ---- PART 5E (END) ---- */
 
@@ -4814,6 +4487,10 @@ function renderNotebook() {
 
 /* ===========================================================================================
    SECTION 6: Open a saved notebook item back in its tool (START)
+   - Looks up item by id
+   - Activates the correct tab (if activateTab exists)
+   - Renders text into the correct result element
+   - Rebuilds flashcards if helpers exist
 =========================================================================================== */
 function openNotebookItemById(itemId) {
   const items = loadNotebook();
@@ -4822,6 +4499,10 @@ function openNotebookItemById(itemId) {
 
   const text = item.text || "";
 
+  /* ---- PART 6A: Safe render helper (START)
+     - If renderAnswer exists, it uses it
+     - Otherwise it falls back to plain textContent
+  ---- */
   function safeRender(elementId) {
     const el = document.getElementById(elementId);
     if (!el) return;
@@ -4832,7 +4513,9 @@ function openNotebookItemById(itemId) {
       el.textContent = text;
     }
   }
+  /* ---- PART 6A (END) ---- */
 
+  /* ---- PART 6B: Route based on item.type (START) ---- */
   switch (item.type) {
     case "Snap":
       if (typeof activateTab === "function") {
@@ -4854,11 +4537,12 @@ function openNotebookItemById(itemId) {
       if (typeof activateTab === "function") activateTab("study");
       safeRender("studyResult");
       break;
+	  
+	  case "Notes":
+  if (typeof activateTab === "function") activateTab("notes");
+  safeRender("notesResult");
+  break;
 
-    case "Notes":
-      if (typeof activateTab === "function") activateTab("notes");
-      safeRender("notesResult");
-      break;
 
     case "Essay":
       if (typeof activateTab === "function") activateTab("essay");
@@ -4869,11 +4553,13 @@ function openNotebookItemById(itemId) {
     case "Flashcards": {
       if (typeof activateTab === "function") activateTab("flashcards");
 
+      // Put raw text back into cardsResult
       const cardsResultEl = document.getElementById("cardsResult");
       if (cardsResultEl) {
         cardsResultEl.textContent = text;
       }
 
+      // Rebuild interactive flashcards if helpers exist
       if (typeof parseFlashcardsFromText === "function") {
         try {
           const parsed = parseFlashcardsFromText(text);
@@ -4899,6 +4585,7 @@ function openNotebookItemById(itemId) {
     case "Simplified":
     case "Hint":
     default:
+      // Fallback: show in Solve/Snap
       if (typeof activateTab === "function") {
         if (document.getElementById("solve")) {
           activateTab("solve");
@@ -4909,6 +4596,7 @@ function openNotebookItemById(itemId) {
       safeRender("snapResult");
       break;
   }
+  /* ---- PART 6B (END) ---- */
 }
 /* ================================== SECTION 6 (END) ===================================== */
 
@@ -4916,9 +4604,12 @@ function openNotebookItemById(itemId) {
 
 /* ===========================================================================================
    SECTION 7: Notebook item buttons (Open / Copy / Delete) via event delegation (START)
+   - One click handler on #notebookList
+   - Uses closest() to detect which button was clicked
 =========================================================================================== */
 if (notebookListEl) {
-  notebookListEl.addEventListener("click", async (e) => {
+  notebookListEl.addEventListener("click", (e) => {
+    /* ---- PART 7A: Open button (START) ---- */
     const openBtn = e.target.closest(".notebook-open-btn");
     if (openBtn) {
       const id = openBtn.dataset.id;
@@ -4926,7 +4617,9 @@ if (notebookListEl) {
       openNotebookItemById(id);
       return;
     }
+    /* ---- PART 7A (END) ---- */
 
+    /* ---- PART 7B: Copy button (START) ---- */
     const copyBtn = e.target.closest(".notebook-item-copy");
     if (copyBtn) {
       const id = copyBtn.dataset.id;
@@ -4939,30 +4632,14 @@ if (notebookListEl) {
       copyTextToClipboard(item.text || "");
       return;
     }
+    /* ---- PART 7B (END) ---- */
 
+    /* ---- PART 7C: Delete button (START) ---- */
     const deleteBtn = e.target.closest(".notebook-item-delete");
     if (deleteBtn) {
       const id = deleteBtn.dataset.id;
       if (!id) return;
 
-      // ✅ If signed in, delete from Supabase (true sync)
-      const signedIn = await isSignedInNotebook();
-      if (signedIn && window.NotebookAPI && typeof window.NotebookAPI.deleteNotebookItem === "function") {
-        const ok = confirm("Delete this saved item? This deletes it online too.");
-        if (!ok) return;
-
-        const res = await window.NotebookAPI.deleteNotebookItem(id);
-        if (res?.error) {
-          console.error("Online delete failed:", res.error);
-          alert("Could not delete online. Please try again.");
-          return;
-        }
-
-        await syncNotebookFromCloudFetch();
-        return;
-      }
-
-      // Guest/local fallback (unchanged)
       const items = loadNotebook();
       const idx = items.findIndex((i) => i.id === id);
       if (idx === -1) return;
@@ -4976,6 +4653,7 @@ if (notebookListEl) {
       saveNotebook(items);
       renderNotebook();
     }
+    /* ---- PART 7C (END) ---- */
   });
 }
 /* ================================== SECTION 7 (END) ===================================== */
@@ -4984,9 +4662,15 @@ if (notebookListEl) {
 
 /* ===========================================================================================
    SECTION 8: Subject chip actions via delegation (START)
+   Handles:
+   - .notebook-subject-btn (filter)
+   - .notebook-subject-edit (rename)
+   - .notebook-subject-delete (delete subject + notes)
+   NOTE: the menu open/close is handled directly in renderNotebookSubjects()
 =========================================================================================== */
 if (notebookSubjectsEl) {
-  notebookSubjectsEl.addEventListener("click", async (e) => {
+  notebookSubjectsEl.addEventListener("click", (e) => {
+    /* ---- PART 8A: Subject filter toggle (START) ---- */
     const subjectBtn = e.target.closest(".notebook-subject-btn");
     if (subjectBtn) {
       const subj = subjectBtn.dataset.subject;
@@ -4996,7 +4680,9 @@ if (notebookSubjectsEl) {
       renderNotebook();
       return;
     }
+    /* ---- PART 8A (END) ---- */
 
+    /* ---- PART 8B: Rename subject (START) ---- */
     const editBtn = e.target.closest(".notebook-subject-edit");
     if (editBtn) {
       const oldSubj = editBtn.dataset.subject;
@@ -5011,29 +4697,6 @@ if (notebookSubjectsEl) {
       const ok = confirm(`Rename subject "${oldSubj}" to "${newName}"?`);
       if (!ok) return;
 
-      const signedIn = await isSignedInNotebook();
-      if (signedIn && window.NotebookAPI) {
-        // online rename: update each matching row (small list; keeps your UI unchanged)
-        const res = await window.NotebookAPI.listNotebookItems({ limit: 200 });
-        if (res?.error) return;
-
-        const rows = res.data || [];
-        for (const r of rows) {
-          const s = (r.saved_under || "general").trim() || "general";
-          if (s === oldSubj) {
-            await window.NotebookAPI.updateNotebookItem(r.id, { saved_under: newName });
-          }
-        }
-
-        if (notebookSubjectFilter === oldSubj) {
-          notebookSubjectFilter = newName;
-        }
-
-        await syncNotebookFromCloudFetch();
-        return;
-      }
-
-      // local fallback (unchanged)
       const items = loadNotebook();
       notebookLastSnapshot = items.slice();
 
@@ -5053,7 +4716,9 @@ if (notebookSubjectsEl) {
       renderNotebook();
       return;
     }
+    /* ---- PART 8B (END) ---- */
 
+    /* ---- PART 8C: Delete subject + its notes (START) ---- */
     const delBtn = e.target.closest(".notebook-subject-delete");
     if (delBtn) {
       const subj = delBtn.dataset.subject;
@@ -5064,28 +4729,6 @@ if (notebookSubjectsEl) {
       );
       if (!ok) return;
 
-      const signedIn = await isSignedInNotebook();
-      if (signedIn && window.NotebookAPI) {
-        const res = await window.NotebookAPI.listNotebookItems({ limit: 200 });
-        if (res?.error) return;
-
-        const rows = res.data || [];
-        for (const r of rows) {
-          const s = (r.saved_under || "general").trim() || "general";
-          if (s === subj) {
-            await window.NotebookAPI.deleteNotebookItem(r.id);
-          }
-        }
-
-        if (notebookSubjectFilter === subj) {
-          notebookSubjectFilter = "all";
-        }
-
-        await syncNotebookFromCloudFetch();
-        return;
-      }
-
-      // local fallback (unchanged)
       const items = loadNotebook();
       notebookLastSnapshot = items.slice();
 
@@ -5100,6 +4743,7 @@ if (notebookSubjectsEl) {
       saveNotebook(remaining);
       renderNotebook();
     }
+    /* ---- PART 8C (END) ---- */
   });
 }
 /* ================================== SECTION 8 (END) ===================================== */
@@ -5108,6 +4752,8 @@ if (notebookSubjectsEl) {
 
 /* ===========================================================================================
    SECTION 9: Notebook FILTER buttons (All, Snap, Math, etc.) (START)
+   - .notebook-filter buttons must have data-filter="..."
+   - Adds/removes "active" class (class name unchanged)
 =========================================================================================== */
 notebookFilterButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
@@ -5124,34 +4770,12 @@ notebookFilterButtons.forEach((btn) => {
 
 /* ===========================================================================================
    SECTION 10: Add an item to the notebook (START)
+   - Called by other tools when they generate an answer
+   - Keeps a snapshot for undo
 =========================================================================================== */
-async function addNotebookItem(type, text) {
+function addNotebookItem(type, text) {
   if (!text || !text.trim()) return;
 
-  // ✅ If signed in, write to Supabase so it syncs across devices
-  const signedIn = await isSignedInNotebook();
-  if (signedIn && window.NotebookAPI && typeof window.NotebookAPI.createNotebookItem === "function") {
-    const tool = localTypeToTool(type);
-    const subject = getSaveSubject();
-
-    const res = await window.NotebookAPI.createNotebookItem({
-      saved_under: subject,
-      tool: tool,
-      source_text: "",
-      instructions: "",
-      output_html: text.trim()
-    });
-
-    if (res?.error) {
-      console.error("Online notebook save failed:", res.error);
-      return;
-    }
-
-    await syncNotebookFromCloudFetch();
-    return;
-  }
-
-  // Guest/local fallback (unchanged)
   const items = loadNotebook();
   notebookLastSnapshot = items.slice(); // allow undo of this insert
 
@@ -5175,14 +4799,12 @@ async function addNotebookItem(type, text) {
 
 /* ===========================================================================================
    SECTION 11: Clear + Undo buttons (START)
+   - #clearNotebookBtn clears everything (with confirm)
+   - #undoNotebookBtn restores the last snapshot (one-level undo)
 =========================================================================================== */
 const clearNotebookBtn = document.getElementById("clearNotebookBtn");
 if (clearNotebookBtn) {
-  clearNotebookBtn.addEventListener("click", async () => {
-    // If signed in, let your ONLINE clear block handle it (typed DELETE)
-    const signedIn = await isSignedInNotebook();
-    if (signedIn) return;
-
+  clearNotebookBtn.addEventListener("click", () => {
     const items = loadNotebook();
 
     if (!items.length) {
@@ -5201,14 +4823,7 @@ if (clearNotebookBtn) {
 
 const undoNotebookBtn = document.getElementById("undoNotebookBtn");
 if (undoNotebookBtn) {
-  undoNotebookBtn.addEventListener("click", async () => {
-    // If signed in, just re-sync from cloud (undo is local-only)
-    const signedIn = await isSignedInNotebook();
-    if (signedIn) {
-      await syncNotebookFromCloudFetch();
-      return;
-    }
-
+  undoNotebookBtn.addEventListener("click", () => {
     if (!notebookLastSnapshot) {
       alert("Nothing to undo yet.");
       return;
@@ -5227,14 +4842,22 @@ if (undoNotebookBtn) {
    SECTION 12: Initial render (START)
 =========================================================================================== */
 renderNotebook();
-syncNotebookFromCloudFetch();
 /* ================================== SECTION 12 (END) ==================================== */
 
 
 
 /* ===========================================================================================
    SECTION 13: Copy buttons for textareas (START)
+   - Wires #copySnapTextBtn to copy #snapText
+   - Auto-inserts copy buttons next to other visible <textarea> elements
+   IMPORTANT:
+   - Keeps your exclusions: snapText and extraInstructions
 =========================================================================================== */
+
+/* --- PART 13A: Run when DOM is ready (START)
+   This version is safer than only DOMContentLoaded:
+   - If the script loads after DOMContentLoaded already fired, it still runs.
+*/
 function runWhenReady(fn) {
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", fn);
@@ -5242,8 +4865,10 @@ function runWhenReady(fn) {
     fn();
   }
 }
+/* --- PART 13A (END) --- */
 
 runWhenReady(() => {
+  /* ---- PART 13B: Snap textarea copy button (START) ---- */
   const snapTa = document.getElementById("snapText");
   const copySnapBtn = document.getElementById("copySnapTextBtn");
 
@@ -5252,13 +4877,21 @@ runWhenReady(() => {
       copyTextToClipboard(snapTa.value || "");
     });
   }
+  /* ---- PART 13B (END) ---- */
 
+
+  /* ---- PART 13C: Auto-add copy buttons to other textareas (START) ---- */
   const textareas = document.querySelectorAll("textarea");
 
   textareas.forEach((ta) => {
+    // Exclusions (kept exactly)
     if (ta.id === "snapText") return;
     if (ta.id === "extraInstructions") return;
+
+    // Skip hidden textareas
     if (ta.style.display === "none") return;
+
+    // Must have a parent to insert a button
     if (!ta.parentNode) return;
 
     const btn = document.createElement("button");
@@ -5274,6 +4907,7 @@ runWhenReady(() => {
       copyTextToClipboard(ta.value || "");
     });
   });
+  /* ---- PART 13C (END) ---- */
 });
 /* ================================== SECTION 13 (END) ==================================== */
 </script>
@@ -11440,6 +11074,12 @@ if (document.readyState === "loading") {
 
   /* =========================================================================================
      SECTION 3: Sticky loop rotator (START)
+     - Looks for containers with [data-sticky-loop]
+     - Inside each container it looks for #pg-loop-metrics-rotator
+     - Rotates children with class ".pg-loop-item"
+     IMPORTANT FIX:
+     - Prevents multiple intervals if this script runs more than once
+       (stores interval id on the container)
   ========================================================================================= */
   function setupStickyLoop() {
     var containers = document.querySelectorAll("[data-sticky-loop]");
@@ -11451,16 +11091,18 @@ if (document.readyState === "loading") {
       var items = Array.from(rotator.querySelectorAll(".pg-loop-item"));
       if (items.length <= 1) return;
 
+      // If we already started an interval for this container, don't start another one
       if (container.dataset && container.dataset.pgLoopIntervalId) return;
 
       var intervalMs = parseInt(
         container.getAttribute("data-loop-interval") || "6000",
         10
       );
-      if (!intervalMs || intervalMs < 500) intervalMs = 6000;
+      if (!intervalMs || intervalMs < 500) intervalMs = 6000; // safety
 
       var index = 0;
 
+      // Make sure exactly one is active at start (optional safety)
       items.forEach(function (it, i) {
         it.classList.toggle("pg-loop-item--active", i === index);
       });
@@ -11471,6 +11113,7 @@ if (document.readyState === "loading") {
         items[index].classList.add("pg-loop-item--active");
       }, intervalMs);
 
+      // Store interval id so we don’t create duplicates
       container.dataset.pgLoopIntervalId = String(intervalId);
     });
   }
@@ -11480,11 +11123,18 @@ if (document.readyState === "loading") {
 
   /* =========================================================================================
      SECTION 4: Progress metrics (START)
+     - Streak tracking: pg_last_visit + pg_streak
+     - Weekly active days: pg_active_days (object of dates -> true)
+     - Sessions this week: pg_sessions_this_week + pg_sessions_week_key
+     - Writes results into:
+         [data-pg-streak-value]
+         [data-pg-weekly-summary]
+         [data-pg-session-count]
   ========================================================================================= */
   function setupProgressMetrics() {
     try {
       var now = new Date();
-      var todayKey = now.toISOString().slice(0, 10);
+      var todayKey = now.toISOString().slice(0, 10); // YYYY-MM-DD
 
       /* ---- PART 4A: Streak logic (START) ---- */
       var lastVisit = localStorage.getItem("pg_last_visit");
@@ -11495,6 +11145,8 @@ if (document.readyState === "loading") {
         streak = 1;
       } else if (lastVisit !== todayKey) {
         var lastDate = new Date(lastVisit + "T00:00:00");
+
+        // difference in days, in UTC (so it works across timezones)
         var diff =
           (Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) -
             Date.UTC(
@@ -11507,7 +11159,7 @@ if (document.readyState === "loading") {
         if (diff === 1) {
           streak += 1;
         } else if (diff > 1) {
-          streak = 1;
+          streak = 1; // streak broken
         }
       }
 
@@ -11534,7 +11186,7 @@ if (document.readyState === "loading") {
       var lastWeekKey = localStorage.getItem("pg_sessions_week_key");
 
       if (lastWeekKey !== weekKey) {
-        sessions = 0;
+        sessions = 0; // new week -> reset
       }
       sessions += 1;
 
@@ -11546,38 +11198,9 @@ if (document.readyState === "loading") {
       /* ---- PART 4D: Write into the UI pills (START) ---- */
       var streakNode = document.querySelector("[data-pg-streak-value]");
       if (streakNode) {
-        if (streak === 1) {
-          var key = "pg_today_status_v1";
-          var options = [
-            "Today · Locked in",
-            "Today · All set",
-            "Today · Ready",
-            "Today · Synced",
-            "Today · On it",
-            "Today · In the zone",
-            "Today · Good to go",
-            "Today · Focused",
-            "Today · Rolling",
-            "Today · Dialed in",
-            "Today · Up to date"
-          ];
+  streakNode.textContent = streak === 1 ? "Checked in today" : `${streak}-day streak`;
+}
 
-          var tag = "";
-          try {
-            tag = sessionStorage.getItem(key) || "";
-            if (!tag) {
-              tag = options[Math.floor(Math.random() * options.length)] || "Today · Ready";
-              sessionStorage.setItem(key, tag);
-            }
-          } catch (e) {
-            tag = options[Math.floor(Math.random() * options.length)] || "Today · Ready";
-          }
-
-          streakNode.textContent = tag;
-        } else {
-          streakNode.textContent = streak + "-day streak";
-        }
-      }
 
       var weeklyNode = document.querySelector("[data-pg-weekly-summary]");
       if (weeklyNode) {
@@ -11596,6 +11219,7 @@ if (document.readyState === "loading") {
       /* ---- PART 4D (END) ---- */
 
     } catch (e) {
+      // Fail silently; this is just for engagement
       console.warn("PassingGrade progress metrics error", e);
     }
   }
@@ -11605,10 +11229,12 @@ if (document.readyState === "loading") {
 
   /* =========================================================================================
      SECTION 5: Week helpers (START)
+     - getWeekKey(): returns ISO-ish week key like "2025-W50"
+     - countActiveDaysThisWeek(): counts Mon–Sun in activeDaysObj
   ========================================================================================= */
   function getWeekKey(date) {
     var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    var dayNum = d.getUTCDay() || 7;
+    var dayNum = d.getUTCDay() || 7; // 1-7 (Mon-Sun)
     d.setUTCDate(d.getUTCDate() + 4 - dayNum);
     var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
     var weekNo = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
@@ -11618,10 +11244,10 @@ if (document.readyState === "loading") {
   function countActiveDaysThisWeek(activeDaysObj, now) {
     var count = 0;
     var today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-    var dayNum = today.getUTCDay() || 7;
+    var dayNum = today.getUTCDay() || 7; // 1-7 (Mon-Sun)
 
     var monday = new Date(today);
-    monday.setUTCDate(today.getUTCDate() - (dayNum - 1));
+    monday.setUTCDate(today.getUTCDate() - (dayNum - 1)); // back to Monday
 
     for (var i = 0; i < 7; i++) {
       var d = new Date(monday);
@@ -11637,6 +11263,10 @@ if (document.readyState === "loading") {
 
   /* =========================================================================================
      SECTION 6: Mobile toggles wiring (START)
+     - Wires sticky-loop buttons to trigger the original Menu/Tools buttons
+     - Also wires a nav close button to close the menu + send Escape
+     IMPORTANT FIX:
+     - Adds "already wired" guards so repeated calls don’t add duplicate listeners
   ========================================================================================= */
   function wireMobileToggles() {
     var loopMenuButton = document.getElementById("pg-loop-menu-toggle");
@@ -11645,6 +11275,7 @@ if (document.readyState === "loading") {
 
     if (!loopMenuButton && !loopToolsButton && !navCloseButton) return;
 
+    // Find existing Menu / Tools controls by text (keeps your current behavior)
     var allButtons = Array.prototype.slice.call(
       document.querySelectorAll("button, [role='button']")
     );
@@ -11652,42 +11283,64 @@ if (document.readyState === "loading") {
     var menuOriginal = findByText(allButtons, "Menu");
     var toolsOriginal = findByText(allButtons, "Tools");
 
+    // Hide originals on mobile only via CSS hook class (no behavior change)
     [menuOriginal, toolsOriginal].forEach(function (el) {
       if (el && !el.classList.contains("pg-mobile-hide-original-toggle")) {
         el.classList.add("pg-mobile-hide-original-toggle");
       }
     });
 
-    if (loopMenuButton && menuOriginal && !loopMenuButton.dataset.pgWired) {
-      loopMenuButton.dataset.pgWired = "1";
-      loopMenuButton.addEventListener("click", function () {
-        menuOriginal.click();
-      });
+    /* ---- PART 6A: Loop Menu -> click original Menu (START) ---- */
+    if (loopMenuButton && menuOriginal) {
+      if (!loopMenuButton.dataset.pgWired) {
+        loopMenuButton.dataset.pgWired = "1";
+        loopMenuButton.addEventListener("click", function () {
+          menuOriginal.click();
+        });
+      }
     }
+    /* ---- PART 6A (END) ---- */
 
-    if (loopToolsButton && toolsOriginal && !loopToolsButton.dataset.pgWired) {
-      loopToolsButton.dataset.pgWired = "1";
-      loopToolsButton.addEventListener("click", function () {
-        toolsOriginal.click();
-      });
+    /* ---- PART 6B: Loop Tools -> click original Tools (START) ---- */
+    if (loopToolsButton && toolsOriginal) {
+      if (!loopToolsButton.dataset.pgWired) {
+        loopToolsButton.dataset.pgWired = "1";
+        loopToolsButton.addEventListener("click", function () {
+          toolsOriginal.click();
+        });
+      }
     }
+    /* ---- PART 6B (END) ---- */
 
-    if (navCloseButton && !navCloseButton.dataset.pgWired) {
-      navCloseButton.dataset.pgWired = "1";
-      navCloseButton.addEventListener("click", function () {
-        if (loopMenuButton) loopMenuButton.click();
-        else if (menuOriginal) menuOriginal.click();
+    /* ---- PART 6C: Nav close button behavior (START) ---- */
+    if (navCloseButton) {
+      if (!navCloseButton.dataset.pgWired) {
+        navCloseButton.dataset.pgWired = "1";
+        navCloseButton.addEventListener("click", function () {
 
-        try {
-          document.dispatchEvent(new KeyboardEvent("keydown", {
-            key: "Escape",
-            keyCode: 27,
-            which: 27,
-            bubbles: true
-          }));
-        } catch (e) {}
-      });
+          // 1) Try to toggle whatever opens/closes the nav
+          if (loopMenuButton) {
+            loopMenuButton.click();
+          } else if (menuOriginal) {
+            menuOriginal.click();
+          }
+
+          // 2) Also fire Escape (some drawers/sheets listen for this)
+          try {
+            var escEvt = new KeyboardEvent("keydown", {
+              key: "Escape",
+              keyCode: 27,
+              which: 27,
+              bubbles: true
+            });
+            document.dispatchEvent(escEvt);
+          } catch (e) {
+            // ignore if KeyboardEvent fails
+          }
+        });
+      }
     }
+    /* ---- PART 6C (END) ---- */
   }
   /* ================================= SECTION 6 (END) ==================================== */
 
@@ -11695,7 +11348,11 @@ if (document.readyState === "loading") {
 
   /* =========================================================================================
      SECTION 7: findByText helper (START)
-  ========================================================================================= */
+     - Finds the first node whose textContent contains the requested word
+     IMPORTANT NOTE:
+     - This keeps your original behavior, but it can match more than you expect
+       (example: "Menu" might match "Menu Settings").
+=========================================================================================== */
   function findByText(nodes, text) {
     text = String(text || "").toLowerCase();
     for (var i = 0; i < nodes.length; i++) {
@@ -11706,7 +11363,8 @@ if (document.readyState === "loading") {
   }
   /* ================================= SECTION 7 (END) ==================================== */
 
-})();
+})(); // end IIFE
+/* ================================== SECTION 0 (END) ===================================== */
 </script>
 
 
