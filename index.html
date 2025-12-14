@@ -168,6 +168,7 @@
     justify-content: space-between;
     align-items: center;
     gap: 10px;
+	margin-bottom:10px;
   }
 
   .title-block {
@@ -231,6 +232,52 @@
     height: 40px;
     width: auto;
   }
+/* removes default marker in WebKit */
+details.header-menu > summary.pill-button::-webkit-details-marker{
+  display:none;
+}
+
+/* icon */
+details.header-menu > summary.pill-button > .material-symbols-outlined{
+  display:inline-flex;
+  transition:transform 180ms ease;
+}
+
+/* rotate icon when open */
+details.header-menu[open] > summary.pill-button > .material-symbols-outlined{
+  transform:rotate(180deg);
+}
+
+/* line between icon and the word */
+details.header-menu > summary.pill-button > .material-symbols-outlined + span{
+  padding-left:10px;
+ border-left: 1px solid var(--outline);
+}
+/* the row */
+.snap-actions-dropdown > button.pill-button{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+}
+.snap-actions-dropdown > button.pill-button > .material-symbols-outlined{
+  transition: transform 180ms ease;
+}
+
+.snap-actions-dropdown > button.pill-button[aria-expanded="true"] > .material-symbols-outlined{
+  transform: rotate(180deg);
+}
+
+/* icon */
+.snap-actions-dropdown > button.pill-button > .material-symbols-outlined{
+  display:inline-flex;
+  transition:transform 180ms ease;
+}
+
+/* divider between icon and text */
+.snap-actions-dropdown > button.pill-button > .material-symbols-outlined + span{
+  padding-left:10px;
+  border-left:1px solid rgba(0,0,0,0.2); /* change for dark mode */
+}
 
   .header-subline {
     margin-top: 0.35rem;
@@ -3434,8 +3481,10 @@ if (themeToggle) {
 
     // Flip the theme
     setTheme(current === "dark" ? "light" : "dark");
+	
   });
 }
+
 /* --- PART 1D (END) --- */
 
 /* ===================== SECTION 1 (END) ===================== */
