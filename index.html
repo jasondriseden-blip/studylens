@@ -4127,12 +4127,6 @@ if (!modeChip) {
 
 
 
-<!-- BLOCK 2: Notebook load/save/render, filters, add item ----------------------------------
---------------------------------------------------------------------------------------=----
-===========================================================================================
-===========================================================================================
-------------------------------------------------------------------------------------------->
-
 <script>
 /* ===========================================================================================
    SECTION 0: Notebook globals + DOM elements (START)
@@ -4214,6 +4208,124 @@ function saveNotebook(items) {
   localStorage.setItem(notebookKey, JSON.stringify(items.slice(-200)));
 }
 /* ================================== SECTION 2 (END) ===================================== */
+
+
+
+/* ===========================================================================================
+   SECTION 2.5: ✅ Cloud sync bridge (START)
+   - If signed in + NotebookAPI exists:
+     - We store the latest cloud items into localStorage (as the render source)
+     - Then renderNotebook() works unchanged
+   - Guests keep local-only behavior
+=========================================================================================== */
+async function isSignedInNotebook() {
+  try {
+    if (!window.supabaseClient) return false;
+    const { data, error } = await window.supabaseClient.auth.getUser();
+    return !(error || !data?.user);
+  } catch (e) {
+    return false;
+  }
+}
+
+function toolToLocalType(tool) {
+  const t = String(tool || "").trim();
+  if (!t) return "Snap";
+
+  // tool labels coming from autosave / your mapping
+  if (t === "Solve") return "Snap";
+  if (t === "Math Solver") return "Math";
+  if (t === "Study Guide") return "Study";
+  if (t === "Essay Helper") return "Essay";
+  if (t === "Flashcards") return "Flashcards";
+  if (t === "Simplify" || t === "Simplified answer") return "Simplified";
+  if (t === "Hint") return "Hint";
+  if (t === "Extract Notes" || t === "Notes") return "Notes";
+
+  // if a local type was stored as tool, accept it
+  if (t === "Snap" || t === "Math" || t === "Study" || t === "Essay" || t === "Cards" || t === "Flashcards" || t === "Simplified" || t === "Hint" || t === "Notes") {
+    return t;
+  }
+
+  return t;
+}
+
+function localTypeToTool(type) {
+  const t = String(type || "").trim();
+  if (!t) return "";
+
+  // local types → the labels you’re using elsewhere
+  if (t === "Snap") return "Solve";
+  if (t === "Math") return "Math Solver";
+  if (t === "Study") return "Study Guide";
+  if (t === "Essay") return "Essay Helper";
+  if (t === "Cards" || t === "Flashcards") return "Flashcards";
+  if (t === "Simplified") return "Simplify";
+  if (t === "Hint") return "Hint";
+  if (t === "Notes") return "Extract Notes";
+
+  return t;
+}
+
+function cloudRowsToLocalItems(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  return list.map((r) => {
+    const created = r.created_at ? Date.parse(r.created_at) : Date.now();
+    const text =
+      (r.output_html_current != null ? String(r.output_html_current) : "") ||
+      (r.output_html_original != null ? String(r.output_html_original) : "") ||
+      "";
+
+    return {
+      id: r.id, // uuid from Supabase
+      type: toolToLocalType(r.tool),
+      text: text,
+      time: isFinite(created) ? created : Date.now(),
+      subject: (r.saved_under || "general").trim() || "general",
+      model: "smart",
+      mode: window.__cheatMode ? "cheat" : "learn",
+      pinned: false
+    };
+  });
+}
+
+async function syncNotebookFromCloudFetch() {
+  try {
+    const signedIn = await isSignedInNotebook();
+    if (!signedIn) return;
+
+    if (!window.NotebookAPI || typeof window.NotebookAPI.listNotebookItems !== "function") return;
+
+    const res = await window.NotebookAPI.listNotebookItems({ limit: 200 });
+    if (res?.error) {
+      console.error("Notebook sync list error:", res.error);
+      return;
+    }
+
+    const localItems = cloudRowsToLocalItems(res.data || []);
+    saveNotebook(localItems);
+    renderNotebook();
+  } catch (e) {
+    console.error("Notebook sync fetch exception:", e);
+  }
+}
+
+// If your other block emits pg:notebook:items, use it (fast sync)
+window.addEventListener("pg:notebook:items", (ev) => {
+  try {
+    const rows = ev?.detail?.items || [];
+    const localItems = cloudRowsToLocalItems(rows);
+    saveNotebook(localItems);
+    renderNotebook();
+  } catch (e) {}
+});
+
+// Also refresh on focus (helps even if realtime is off)
+window.addEventListener("focus", () => { try { syncNotebookFromCloudFetch(); } catch (e) {} });
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) { try { syncNotebookFromCloudFetch(); } catch (e) {} }
+});
+/* ================================== SECTION 2.5 (END) ==================================== */
 
 
 
@@ -4353,13 +4465,6 @@ function renderNotebookSubjects(allItems) {
 
 /* ===========================================================================================
    SECTION 5: Render notebook items list (START)
-   - Loads items from storage
-   - Renders subject chips from ALL items
-   - Applies type filter + subject filter
-   - Builds each item card with:
-     - Open button (.notebook-open-btn)
-     - Copy icon (.notebook-item-copy)
-     - Delete button (.notebook-item-delete)
 =========================================================================================== */
 function renderNotebook() {
   if (!notebookListEl) return;
@@ -4410,6 +4515,7 @@ function renderNotebook() {
     Flashcards: "Flashcards",
     Simplified: "Simplified answer",
     Hint: "Hint",
+    Notes: "Extract Notes"
   };
   /* ---- PART 5E (END) ---- */
 
@@ -4487,10 +4593,6 @@ function renderNotebook() {
 
 /* ===========================================================================================
    SECTION 6: Open a saved notebook item back in its tool (START)
-   - Looks up item by id
-   - Activates the correct tab (if activateTab exists)
-   - Renders text into the correct result element
-   - Rebuilds flashcards if helpers exist
 =========================================================================================== */
 function openNotebookItemById(itemId) {
   const items = loadNotebook();
@@ -4499,10 +4601,6 @@ function openNotebookItemById(itemId) {
 
   const text = item.text || "";
 
-  /* ---- PART 6A: Safe render helper (START)
-     - If renderAnswer exists, it uses it
-     - Otherwise it falls back to plain textContent
-  ---- */
   function safeRender(elementId) {
     const el = document.getElementById(elementId);
     if (!el) return;
@@ -4513,9 +4611,7 @@ function openNotebookItemById(itemId) {
       el.textContent = text;
     }
   }
-  /* ---- PART 6A (END) ---- */
 
-  /* ---- PART 6B: Route based on item.type (START) ---- */
   switch (item.type) {
     case "Snap":
       if (typeof activateTab === "function") {
@@ -4537,12 +4633,11 @@ function openNotebookItemById(itemId) {
       if (typeof activateTab === "function") activateTab("study");
       safeRender("studyResult");
       break;
-	  
-	  case "Notes":
-  if (typeof activateTab === "function") activateTab("notes");
-  safeRender("notesResult");
-  break;
 
+    case "Notes":
+      if (typeof activateTab === "function") activateTab("notes");
+      safeRender("notesResult");
+      break;
 
     case "Essay":
       if (typeof activateTab === "function") activateTab("essay");
@@ -4553,13 +4648,11 @@ function openNotebookItemById(itemId) {
     case "Flashcards": {
       if (typeof activateTab === "function") activateTab("flashcards");
 
-      // Put raw text back into cardsResult
       const cardsResultEl = document.getElementById("cardsResult");
       if (cardsResultEl) {
         cardsResultEl.textContent = text;
       }
 
-      // Rebuild interactive flashcards if helpers exist
       if (typeof parseFlashcardsFromText === "function") {
         try {
           const parsed = parseFlashcardsFromText(text);
@@ -4585,7 +4678,6 @@ function openNotebookItemById(itemId) {
     case "Simplified":
     case "Hint":
     default:
-      // Fallback: show in Solve/Snap
       if (typeof activateTab === "function") {
         if (document.getElementById("solve")) {
           activateTab("solve");
@@ -4596,7 +4688,6 @@ function openNotebookItemById(itemId) {
       safeRender("snapResult");
       break;
   }
-  /* ---- PART 6B (END) ---- */
 }
 /* ================================== SECTION 6 (END) ===================================== */
 
@@ -4604,12 +4695,9 @@ function openNotebookItemById(itemId) {
 
 /* ===========================================================================================
    SECTION 7: Notebook item buttons (Open / Copy / Delete) via event delegation (START)
-   - One click handler on #notebookList
-   - Uses closest() to detect which button was clicked
 =========================================================================================== */
 if (notebookListEl) {
-  notebookListEl.addEventListener("click", (e) => {
-    /* ---- PART 7A: Open button (START) ---- */
+  notebookListEl.addEventListener("click", async (e) => {
     const openBtn = e.target.closest(".notebook-open-btn");
     if (openBtn) {
       const id = openBtn.dataset.id;
@@ -4617,9 +4705,7 @@ if (notebookListEl) {
       openNotebookItemById(id);
       return;
     }
-    /* ---- PART 7A (END) ---- */
 
-    /* ---- PART 7B: Copy button (START) ---- */
     const copyBtn = e.target.closest(".notebook-item-copy");
     if (copyBtn) {
       const id = copyBtn.dataset.id;
@@ -4632,14 +4718,30 @@ if (notebookListEl) {
       copyTextToClipboard(item.text || "");
       return;
     }
-    /* ---- PART 7B (END) ---- */
 
-    /* ---- PART 7C: Delete button (START) ---- */
     const deleteBtn = e.target.closest(".notebook-item-delete");
     if (deleteBtn) {
       const id = deleteBtn.dataset.id;
       if (!id) return;
 
+      // ✅ If signed in, delete from Supabase (true sync)
+      const signedIn = await isSignedInNotebook();
+      if (signedIn && window.NotebookAPI && typeof window.NotebookAPI.deleteNotebookItem === "function") {
+        const ok = confirm("Delete this saved item? This deletes it online too.");
+        if (!ok) return;
+
+        const res = await window.NotebookAPI.deleteNotebookItem(id);
+        if (res?.error) {
+          console.error("Online delete failed:", res.error);
+          alert("Could not delete online. Please try again.");
+          return;
+        }
+
+        await syncNotebookFromCloudFetch();
+        return;
+      }
+
+      // Guest/local fallback (unchanged)
       const items = loadNotebook();
       const idx = items.findIndex((i) => i.id === id);
       if (idx === -1) return;
@@ -4653,7 +4755,6 @@ if (notebookListEl) {
       saveNotebook(items);
       renderNotebook();
     }
-    /* ---- PART 7C (END) ---- */
   });
 }
 /* ================================== SECTION 7 (END) ===================================== */
@@ -4662,15 +4763,9 @@ if (notebookListEl) {
 
 /* ===========================================================================================
    SECTION 8: Subject chip actions via delegation (START)
-   Handles:
-   - .notebook-subject-btn (filter)
-   - .notebook-subject-edit (rename)
-   - .notebook-subject-delete (delete subject + notes)
-   NOTE: the menu open/close is handled directly in renderNotebookSubjects()
 =========================================================================================== */
 if (notebookSubjectsEl) {
-  notebookSubjectsEl.addEventListener("click", (e) => {
-    /* ---- PART 8A: Subject filter toggle (START) ---- */
+  notebookSubjectsEl.addEventListener("click", async (e) => {
     const subjectBtn = e.target.closest(".notebook-subject-btn");
     if (subjectBtn) {
       const subj = subjectBtn.dataset.subject;
@@ -4680,9 +4775,7 @@ if (notebookSubjectsEl) {
       renderNotebook();
       return;
     }
-    /* ---- PART 8A (END) ---- */
 
-    /* ---- PART 8B: Rename subject (START) ---- */
     const editBtn = e.target.closest(".notebook-subject-edit");
     if (editBtn) {
       const oldSubj = editBtn.dataset.subject;
@@ -4697,6 +4790,29 @@ if (notebookSubjectsEl) {
       const ok = confirm(`Rename subject "${oldSubj}" to "${newName}"?`);
       if (!ok) return;
 
+      const signedIn = await isSignedInNotebook();
+      if (signedIn && window.NotebookAPI) {
+        // online rename: update each matching row (small list; keeps your UI unchanged)
+        const res = await window.NotebookAPI.listNotebookItems({ limit: 200 });
+        if (res?.error) return;
+
+        const rows = res.data || [];
+        for (const r of rows) {
+          const s = (r.saved_under || "general").trim() || "general";
+          if (s === oldSubj) {
+            await window.NotebookAPI.updateNotebookItem(r.id, { saved_under: newName });
+          }
+        }
+
+        if (notebookSubjectFilter === oldSubj) {
+          notebookSubjectFilter = newName;
+        }
+
+        await syncNotebookFromCloudFetch();
+        return;
+      }
+
+      // local fallback (unchanged)
       const items = loadNotebook();
       notebookLastSnapshot = items.slice();
 
@@ -4716,9 +4832,7 @@ if (notebookSubjectsEl) {
       renderNotebook();
       return;
     }
-    /* ---- PART 8B (END) ---- */
 
-    /* ---- PART 8C: Delete subject + its notes (START) ---- */
     const delBtn = e.target.closest(".notebook-subject-delete");
     if (delBtn) {
       const subj = delBtn.dataset.subject;
@@ -4729,6 +4843,28 @@ if (notebookSubjectsEl) {
       );
       if (!ok) return;
 
+      const signedIn = await isSignedInNotebook();
+      if (signedIn && window.NotebookAPI) {
+        const res = await window.NotebookAPI.listNotebookItems({ limit: 200 });
+        if (res?.error) return;
+
+        const rows = res.data || [];
+        for (const r of rows) {
+          const s = (r.saved_under || "general").trim() || "general";
+          if (s === subj) {
+            await window.NotebookAPI.deleteNotebookItem(r.id);
+          }
+        }
+
+        if (notebookSubjectFilter === subj) {
+          notebookSubjectFilter = "all";
+        }
+
+        await syncNotebookFromCloudFetch();
+        return;
+      }
+
+      // local fallback (unchanged)
       const items = loadNotebook();
       notebookLastSnapshot = items.slice();
 
@@ -4743,7 +4879,6 @@ if (notebookSubjectsEl) {
       saveNotebook(remaining);
       renderNotebook();
     }
-    /* ---- PART 8C (END) ---- */
   });
 }
 /* ================================== SECTION 8 (END) ===================================== */
@@ -4752,8 +4887,6 @@ if (notebookSubjectsEl) {
 
 /* ===========================================================================================
    SECTION 9: Notebook FILTER buttons (All, Snap, Math, etc.) (START)
-   - .notebook-filter buttons must have data-filter="..."
-   - Adds/removes "active" class (class name unchanged)
 =========================================================================================== */
 notebookFilterButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
@@ -4770,12 +4903,34 @@ notebookFilterButtons.forEach((btn) => {
 
 /* ===========================================================================================
    SECTION 10: Add an item to the notebook (START)
-   - Called by other tools when they generate an answer
-   - Keeps a snapshot for undo
 =========================================================================================== */
-function addNotebookItem(type, text) {
+async function addNotebookItem(type, text) {
   if (!text || !text.trim()) return;
 
+  // ✅ If signed in, write to Supabase so it syncs across devices
+  const signedIn = await isSignedInNotebook();
+  if (signedIn && window.NotebookAPI && typeof window.NotebookAPI.createNotebookItem === "function") {
+    const tool = localTypeToTool(type);
+    const subject = getSaveSubject();
+
+    const res = await window.NotebookAPI.createNotebookItem({
+      saved_under: subject,
+      tool: tool,
+      source_text: "",
+      instructions: "",
+      output_html: text.trim()
+    });
+
+    if (res?.error) {
+      console.error("Online notebook save failed:", res.error);
+      return;
+    }
+
+    await syncNotebookFromCloudFetch();
+    return;
+  }
+
+  // Guest/local fallback (unchanged)
   const items = loadNotebook();
   notebookLastSnapshot = items.slice(); // allow undo of this insert
 
@@ -4799,12 +4954,14 @@ function addNotebookItem(type, text) {
 
 /* ===========================================================================================
    SECTION 11: Clear + Undo buttons (START)
-   - #clearNotebookBtn clears everything (with confirm)
-   - #undoNotebookBtn restores the last snapshot (one-level undo)
 =========================================================================================== */
 const clearNotebookBtn = document.getElementById("clearNotebookBtn");
 if (clearNotebookBtn) {
-  clearNotebookBtn.addEventListener("click", () => {
+  clearNotebookBtn.addEventListener("click", async () => {
+    // If signed in, let your ONLINE clear block handle it (typed DELETE)
+    const signedIn = await isSignedInNotebook();
+    if (signedIn) return;
+
     const items = loadNotebook();
 
     if (!items.length) {
@@ -4823,7 +4980,14 @@ if (clearNotebookBtn) {
 
 const undoNotebookBtn = document.getElementById("undoNotebookBtn");
 if (undoNotebookBtn) {
-  undoNotebookBtn.addEventListener("click", () => {
+  undoNotebookBtn.addEventListener("click", async () => {
+    // If signed in, just re-sync from cloud (undo is local-only)
+    const signedIn = await isSignedInNotebook();
+    if (signedIn) {
+      await syncNotebookFromCloudFetch();
+      return;
+    }
+
     if (!notebookLastSnapshot) {
       alert("Nothing to undo yet.");
       return;
@@ -4842,22 +5006,14 @@ if (undoNotebookBtn) {
    SECTION 12: Initial render (START)
 =========================================================================================== */
 renderNotebook();
+syncNotebookFromCloudFetch();
 /* ================================== SECTION 12 (END) ==================================== */
 
 
 
 /* ===========================================================================================
    SECTION 13: Copy buttons for textareas (START)
-   - Wires #copySnapTextBtn to copy #snapText
-   - Auto-inserts copy buttons next to other visible <textarea> elements
-   IMPORTANT:
-   - Keeps your exclusions: snapText and extraInstructions
 =========================================================================================== */
-
-/* --- PART 13A: Run when DOM is ready (START)
-   This version is safer than only DOMContentLoaded:
-   - If the script loads after DOMContentLoaded already fired, it still runs.
-*/
 function runWhenReady(fn) {
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", fn);
@@ -4865,10 +5021,8 @@ function runWhenReady(fn) {
     fn();
   }
 }
-/* --- PART 13A (END) --- */
 
 runWhenReady(() => {
-  /* ---- PART 13B: Snap textarea copy button (START) ---- */
   const snapTa = document.getElementById("snapText");
   const copySnapBtn = document.getElementById("copySnapTextBtn");
 
@@ -4877,21 +5031,13 @@ runWhenReady(() => {
       copyTextToClipboard(snapTa.value || "");
     });
   }
-  /* ---- PART 13B (END) ---- */
 
-
-  /* ---- PART 13C: Auto-add copy buttons to other textareas (START) ---- */
   const textareas = document.querySelectorAll("textarea");
 
   textareas.forEach((ta) => {
-    // Exclusions (kept exactly)
     if (ta.id === "snapText") return;
     if (ta.id === "extraInstructions") return;
-
-    // Skip hidden textareas
     if (ta.style.display === "none") return;
-
-    // Must have a parent to insert a button
     if (!ta.parentNode) return;
 
     const btn = document.createElement("button");
@@ -4907,7 +5053,6 @@ runWhenReady(() => {
       copyTextToClipboard(ta.value || "");
     });
   });
-  /* ---- PART 13C (END) ---- */
 });
 /* ================================== SECTION 13 (END) ==================================== */
 </script>
