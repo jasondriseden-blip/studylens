@@ -9065,7 +9065,14 @@ window.getCurrentUserPlan = async function () {
       edited_at: null
     };
 
-    return await db.from("notebook_items").insert(row).select("*").single();
+    const res = await db.from("notebook_items").insert(row).select("*").single();
+
+    // ✅ NEW: refresh UI after create (local + helps consistency)
+    if (!res?.error && typeof window.refreshNotebookUI === "function") {
+      try { await window.refreshNotebookUI(); } catch (e) {}
+    }
+
+    return res;
   }
 
   async function listNotebookItems({ tool = null, limit = 200 } = {}) {
@@ -9121,11 +9128,18 @@ window.getCurrentUserPlan = async function () {
     if (userErr) return { data: null, error: userErr };
     if (!id) return { data: null, error: new Error("Missing notebook item id") };
 
-    return await db
+    const res = await db
       .from("notebook_items")
       .delete()
       .eq("id", id)
       .eq("user_id", user.id);
+
+    // ✅ NEW: refresh UI after delete
+    if (!res?.error && typeof window.refreshNotebookUI === "function") {
+      try { await window.refreshNotebookUI(); } catch (e) {}
+    }
+
+    return res;
   }
 
   window.NotebookAPI = {
@@ -9135,10 +9149,102 @@ window.getCurrentUserPlan = async function () {
     deleteNotebookItem
   };
 
+  // ✅ NEW: default refreshNotebookUI (only if you don't already have one)
+  if (typeof window.refreshNotebookUI !== "function") {
+    window.refreshNotebookUI = async function refreshNotebookUI() {
+      try {
+        const res = await listNotebookItems({ limit: 200 });
+        if (res?.error) return;
+
+        // store latest in memory so other code can use it
+        window.__pg_notebook_items = res.data || [];
+
+        // fire an event so any UI can listen without tight coupling
+        window.dispatchEvent(new CustomEvent("pg:notebook:items", {
+          detail: { items: window.__pg_notebook_items }
+        }));
+      } catch (e) {}
+    };
+  }
+
+  // ✅ NEW: realtime sync (listens for inserts/updates/deletes from other devices)
+  (function initNotebookRealtimeSync(){
+    if (window.__pg_notebook_realtime_ready) return;
+    window.__pg_notebook_realtime_ready = true;
+
+    let channel = null;
+    let currentUserId = null;
+
+    async function startForUser(userId) {
+      if (!userId) return;
+
+      // restart if user changed
+      if (channel) {
+        try { db.removeChannel(channel); } catch (e) {}
+        channel = null;
+      }
+      currentUserId = userId;
+
+      channel = db
+        .channel("pg_notebook_items_" + userId)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "notebook_items",
+            filter: `user_id=eq.${userId}`
+          },
+          async () => {
+            if (typeof window.refreshNotebookUI === "function") {
+              try { await window.refreshNotebookUI(); } catch (e) {}
+            }
+          }
+        )
+        .subscribe();
+
+      // initial fetch
+      if (typeof window.refreshNotebookUI === "function") {
+        try { await window.refreshNotebookUI(); } catch (e) {}
+      }
+    }
+
+    async function stop() {
+      if (channel) {
+        try { db.removeChannel(channel); } catch (e) {}
+        channel = null;
+      }
+      currentUserId = null;
+    }
+
+    // start now if signed in
+    requireUser().then(({ user }) => {
+      if (user?.id) startForUser(user.id);
+    });
+
+    // restart on auth changes
+    db.auth.onAuthStateChange(async (_event, session) => {
+      const uid = session?.user?.id || null;
+      if (!uid) return stop();
+      if (uid !== currentUserId) startForUser(uid);
+    });
+
+    // also refresh when you return to the tab (helps even if realtime is off)
+    window.addEventListener("focus", () => {
+      if (typeof window.refreshNotebookUI === "function") {
+        try { window.refreshNotebookUI(); } catch (e) {}
+      }
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && typeof window.refreshNotebookUI === "function") {
+        try { window.refreshNotebookUI(); } catch (e) {}
+      }
+    });
+  })();
+
   console.log("NotebookAPI ready:", Object.keys(window.NotebookAPI));
 })();
 </script>
-
 
 
 
@@ -9198,8 +9304,6 @@ window.getCurrentUserPlan = async function () {
       if (typeof window.refreshNotebookUI === "function") {
         try { await window.refreshNotebookUI(); } catch (e) {}
       } else {
-        // Safe fallback: reload the page so the notebook list updates
-        // (remove this if you don't want a reload)
         location.reload();
       }
     } catch (e) {
@@ -9399,6 +9503,11 @@ window.getCurrentUserPlan = async function () {
         const item = res?.data;
         if (item?.id) {
           bodyEl.dataset.notebookItemId = item.id;
+        }
+
+        // ✅ NEW: after create, ensure any notebook list refreshes
+        if (typeof window.refreshNotebookUI === "function") {
+          try { await window.refreshNotebookUI(); } catch (e) {}
         }
       });
     } catch (err) {
